@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Smoke test: the core harness machinery is present and executable. This fails loud
+# in a fresh worktree or after an accidental deletion — the gates are the safety net,
+# so their absence must not be silent.
+set -euo pipefail
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+cd "$ROOT"
+
+fail=0
+note() { echo "  MISSING: $1" >&2; fail=1; }
+
+# Executable hooks (the deterministic floor).
+for h in block-dangerous-git block-npm-install worktree-create permission-logger session-start; do
+  [ -x ".claude/hooks/$h.sh" ] || note ".claude/hooks/$h.sh (executable)"
+done
+
+# Executable scripts.
+for s in worktree-add pr gc test-local lint run-tests; do
+  [ -x "scripts/$s.sh" ] || note "scripts/$s.sh (executable)"
+done
+
+# Core skills brought by the bootstrap.
+for sk in queue cr feature tdd refactor debug compound grill-with-docs; do
+  [ -f ".claude/skills/$sk/SKILL.md" ] || note ".claude/skills/$sk/SKILL.md"
+done
+
+# Review agents (reviewer + the 4 isolated lenses are load-bearing for /cr).
+for a in reviewer lens-assumption lens-composition lens-cascade lens-abuse task-runner implementer; do
+  [ -f ".claude/agents/$a.md" ] || note ".claude/agents/$a.md"
+done
+
+# The agent contract the orchestrator + task-runner depend on.
+[ -f ".claude/agent-contract.md" ] || note ".claude/agent-contract.md"
+
+# Husky pre-push gate wiring (the un-forgeable-gate precursor).
+[ -f ".husky/pre-push" ] || note ".husky/pre-push"
+
+# No project-specific stack terms must leak back into the portable core.
+if grep -rilE 'supabase|event-vendor|moodboard' .claude/skills .claude/agents .claude/hooks scripts 2>/dev/null | grep -q .; then
+  echo "  LEAK: project-specific term found in portable core (run the grep to locate)" >&2
+  fail=1
+fi
+
+[ "$fail" = 0 ] && echo "harness-smoke: OK"
+exit "$fail"

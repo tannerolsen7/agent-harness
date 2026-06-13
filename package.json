@@ -1,0 +1,15 @@
+{
+  "name": "agent-harness",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Project-agnostic AI coding harness — skills, sub-agents, hooks, and locks that travel across repos.",
+  "scripts": {
+    "lint": "bash scripts/lint.sh",
+    "test": "bash scripts/run-tests.sh",
+    "test:unit": "bash scripts/run-tests.sh",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}

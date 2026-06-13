@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -e
+
+# Read all push refs from stdin upfront (git pipes these before hook logic runs).
+# Format per line: <local-ref> <local-sha1> <remote-ref> <remote-sha1>
+# Deletions have local-sha1 = 0000000000000000000000000000000000000000.
+PUSH_INPUT=$(cat)
+_ALL_DELETIONS=true
+while IFS=' ' read -r _lref _lsha _rref _rsha; do
+  [ -z "$_lsha" ] && continue
+  if [ "$_lsha" != "0000000000000000000000000000000000000000" ]; then
+    _ALL_DELETIONS=false
+    break
+  fi
+done <<< "$PUSH_INPUT"
+if $_ALL_DELETIONS; then
+  exit 0
+fi
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# Block pushes to branches whose PR is already merged — new commits need a new branch.
+if command -v gh >/dev/null 2>&1 && [ "$BRANCH" != "HEAD" ]; then
+  MERGED_PR=$(gh pr list --head "$BRANCH" --state merged --json number --jq '.[0].number' 2>/dev/null || true)
+  if [ -n "$MERGED_PR" ]; then
+    echo "Push blocked: PR #${MERGED_PR} for branch '${BRANCH}' is already merged." >&2
+    echo "Commits added after a merge need a new branch: git checkout -b <new-branch>" >&2
+    exit 1
+  fi
+fi
+
+if [ -t 0 ]; then
+  # Interactive (human) path — TTY prompt.
+  printf "\nHave you run /cr for this branch? [y/N] " > /dev/tty
+  read -r confirm < /dev/tty
+  if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+    echo "Push aborted: run /cr before pushing." >&2
+    exit 1
+  fi
+  # .cr-ok is validated + consumed by scripts/pr.sh at PR creation time — not checked here.
+else
+  # Non-interactive (agent) path — sentinel check (the un-forgeable-gate precursor).
+  if [ "$BRANCH" = "HEAD" ]; then
+    echo "Push blocked: repository is in detached HEAD state. Check out a branch first." >&2
+    exit 1
+  fi
+
+  SHA=$(git rev-parse HEAD)
+  SENTINEL_CR=".claude/.cr-ok"
+  EXPECTED="${BRANCH}:${SHA}"
+
+  if [ ! -f "$SENTINEL_CR" ]; then
+    echo "Push blocked: .cr-ok not found. Run /cr before pushing." >&2
+    exit 1
+  fi
+  ACTUAL=$(cat "$SENTINEL_CR")
+  if [ -z "$ACTUAL" ]; then
+    echo "Push blocked: .cr-ok is empty. Re-run /cr." >&2
+    exit 1
+  fi
+  if [ "$ACTUAL" != "$EXPECTED" ]; then
+    echo "Push blocked: .cr-ok is stale (expected ${EXPECTED}, got ${ACTUAL}). Re-run /cr." >&2
+    exit 1
+  fi
+  # .cr-ok validated — NOT consumed here; scripts/pr.sh is the sole consumer.
+fi
+
+npm test

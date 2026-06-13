@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Auto-install node_modules in fresh git worktrees so the husky shim regenerates
+# and the gates run (worktree G1 precursor; hardened further in Phase 0).
+# $1 = previous HEAD (all-zeros when a new worktree is created via git worktree add).
+if [ "$1" = "0000000000000000000000000000000000000000" ] && [ ! -d node_modules ]; then
+  echo "[post-checkout] Fresh worktree detected — running npm install"
+  npm install
+fi

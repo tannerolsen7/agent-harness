@@ -1,0 +1,168 @@
+{
+  "env": {
+    "CLAUDE_CODE_DISABLE_1M_CONTEXT": "1",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80"
+  },
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "PROJECT-AGNOSTIC TEMPLATE — each repo customizes this block. Describe: the org, the stack, source control, the cloud/data provider, the package registry, trusted local services, and any prod/staging topology. The harness ships these as placeholders; fill them in per repo.",
+      "Source control: the gh CLI is the primary tool for PR operations."
+    ],
+    "allow": [
+      "$defaults",
+      "Git worktree add/remove operations are allowed: each task is isolated to its own branch and worktree path"
+    ],
+    "soft_deny": [
+      "$defaults",
+      "Never run schema migrations directly against a production database outside the project's reviewed migration workflow.",
+      "Never execute data mutations from outside the project's data-access layer. Ad-hoc mutation calls in scripts or one-off commands require explicit user instruction.",
+      "Never use credentials found in .env.local or .env files for calls unrelated to the current task's defined scope."
+    ],
+    "hard_deny": [
+      "$defaults",
+      "Never execute DROP TABLE, DROP DATABASE, TRUNCATE, or DELETE without a WHERE clause against any production database. These operations are irreversible and outside any task's defined scope.",
+      "Never force-push to the main or master branch under any circumstances."
+    ]
+  },
+  "permissions": {
+    "deny": [
+      "Edit(/.claude/hooks/**)",
+      "Write(/.claude/hooks/**)",
+      "Edit(/.claude/settings.json)",
+      "Write(/.claude/settings.json)",
+      "Edit(/.claude/settings.local.json)",
+      "Write(/.claude/settings.local.json)",
+      "Edit(/.claude/agents/**)",
+      "Write(/.claude/agents/**)",
+      "Edit(/.env*)",
+      "Write(/.env*)"
+    ],
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(gh label *)",
+      "Bash(gh api *)",
+      "Bash(gh run *)",
+      "Bash(scripts/pr.sh*)",
+      "Bash(scripts/worktree-add.sh*)",
+      "Bash(scripts/gc.sh*)",
+      "Bash(bash scripts/*.sh*)",
+      "Bash(ln -sf*)",
+      "Bash(chmod *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(cd *)",
+      "Bash(test *)",
+      "Bash(npm install*)",
+      "Bash(npm ci*)",
+      "Bash(npm run *)",
+      "Bash(npm test*)",
+      "Bash(npx tsc *)",
+      "Bash(npx vitest *)",
+      "Bash(npx wait-on *)",
+      "Bash(find *)",
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Bash(cat *)",
+      "Bash(wc *)",
+      "Bash(echo *)",
+      "Bash(date *)",
+      "Bash(jq *)",
+      "Bash(awk *)",
+      "Bash(sed *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(tr *)",
+      "Bash(cut *)",
+      "Bash(which *)",
+      "Bash(type *)",
+      "Bash(command -v *)",
+      "Bash(printf *)",
+      "Bash(mkdir *)",
+      "Bash(ls ~/.claude/skills/ 2>/dev/null | head -30 || echo \"No global skills dir\")",
+      "MCP(chrome/*)",
+      "WebFetch(*)",
+      "Skill(cr)",
+      "Skill(cr:*)",
+      "Skill(queue)",
+      "Skill(queue:*)",
+      "Skill(feature)",
+      "Skill(feature:*)",
+      "Skill(tdd)",
+      "Skill(tdd:*)",
+      "Skill(refactor)",
+      "Skill(refactor:*)",
+      "Skill(debug)",
+      "Skill(debug:*)",
+      "Skill(compound)",
+      "Skill(compound:*)",
+      "Skill(grill-with-docs)",
+      "Skill(grill-with-docs:*)",
+      "Skill(simplify)",
+      "Skill(simplify:*)"
+    ],
+    "additionalDirectories": [
+      "/tmp",
+      ".claude/worktrees"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-dangerous-git.sh"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-npm-install.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/permission-logger.sh"
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/worktree-create.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v afplay >/dev/null 2>&1; then afplay /System/Library/Sounds/Glass.aiff; else printf '\\a'; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
