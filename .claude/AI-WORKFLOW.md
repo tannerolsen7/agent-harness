@@ -100,7 +100,10 @@ each transition.
 
 ---
 
-## Skills brought by the bootstrap
+## Skills in the harness
+
+The full universal roster is migrated (Step 0). The table lists the most-used entry points; the
+complete set is in `.claude/skills/`.
 
 | Skill | When |
 |---|---|
@@ -108,14 +111,14 @@ each transition.
 | `/feature` | Starting any feature — sized automatically |
 | `/tdd` | Implementing a confirmed behavior (red-green-refactor) |
 | `/refactor` | Restructuring without changing behavior |
-| `/debug` | Diagnosing a failing test or bug |
+| `/debug` | Investigate an unknown-cause bug → root cause + failing test |
 | `/grill-with-docs` | Stress-test a plan against the project's domain language + decisions |
 | `/compound` | After a feature that introduced a non-obvious pattern |
 | `/cr` | Before pushing — the single pre-merge review gate |
 
-`/to-issues` and `/simplify` (Matt Pocock's repo) are referenced by `/feature` but are not yet
-vendored — install them globally (`npx skills@latest add mattpocock/skills`) until a later phase
-vendors them.
+`/to-issues` (plus the adopted `/prototype`, `/zoom-out`, `/triage`, `/to-prd`, `/write-a-skill`) are
+vendored from Matt Pocock's repo, pinned to a reviewed SHA — see `.claude/skills/VENDORED.md`.
+`/simplify` is a Claude Code built-in (no vendoring needed). `/feature` resolves both natively.
 
 ---
 
