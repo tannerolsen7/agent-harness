@@ -39,6 +39,35 @@ timer until after launch.
 
 ---
 
+## Step 0 — Foundation: migrate the FULL canon FIRST (not a bootstrap subset)
+
+Before the phase work, bring the **entire** harness into this repo — the build needs the whole roster present,
+and GitHub becomes the single source of truth (this is the "Notion→GitHub canon" migration, pulled forward from
+Phase 4 because it's foundational). Three parts:
+
+1. **ALL universal skills** (from `/Users/tanner/Dev/event-vendor/.claude/skills/`, genericized as you copy):
+   `cr · cr-security · debug · incident · hotfix · post-mortem · migrate · behavior-change · perf · spike ·
+   evaluate-solution · refactor · review-strategy · setup-strategy · prioritize-tasks · queue · tdd · compound ·
+   design · feature` (fold `dev` into the one adaptive command). Plus vendor the borrowed ones
+   (`grill-with-docs · simplify · to-issues`) and adopt `zoom-out · write-a-skill · prototype · triage · to-prd`.
+   - **Do NOT bring** the stack-specific adapters `supabase` / `supabase-postgres-best-practices` (those belong
+     to a project, not the universal harness — a project plugs in its own DB-safety skill). **Cut** the empty
+     `dep-update`. Convert `notion-sync` → a `github-sync` (canon now lives in git). Keep `explain` only if you
+     want the React-learner framing (it's user-specific, not universal).
+2. **ALL agents** (from `.claude/agents/` — all 23, genericized): `reviewer` + the 4 `lens-*`, `task-runner`,
+   `implementer`, `spec-writer`, `explorer`, `investigator`, `hotfix-guard`, `incident-responder`,
+   `security-reviewer`, `refactor-extractor`, `solution-evaluator`, `doc-updater` (generalize its hardcoded doc
+   set), `ux-reviewer`, and the 6 `spike-*`.
+3. **The Notion AI-Engineering-System canon** (`notion.so/358e2971cd62812a8ba8f87d6ac1466d`) → into `docs/` as
+   GitHub markdown: the four layers, file-structure rules, context-doc guidance, memory system, settings/
+   permissions guidance, principles, anti-rationalization tables, model-capacity audit, git discipline, the
+   templates, and the roadmap ("to think about"). Reconcile any drift between the Notion docs and the working
+   skill files; GitHub wins going forward; retire Notion as canon.
+
+Commit the foundation as its own commit(s). THEN do the phase work below.
+
+---
+
 ## Build order (dependency-ordered; `/queue` the independent items WITHIN each phase)
 
 **Phase 0 — Safety floor (first, non-negotiable):** `block-dangerous-bash` (fail-closed, full non-git scope) ·
