@@ -48,6 +48,13 @@ for forbidden in notion-sync dep-update; do
   [ -e ".claude/skills/$forbidden" ] && note "forbidden skill present (cut from V2): $forbidden"
 done
 
+# The engineering-system canon (Step 0 Notion→GitHub migration) — the universal "what to build" docs.
+for c in README 02-four-layers 03-file-structure 04-context-docs 07-memory-system \
+         10-principles 11-skill-ecosystems 12-anti-rationalization 13-model-capacity-audit \
+         14-git-discipline templates; do
+  [ -f "docs/engineering-system/$c.md" ] || note "docs/engineering-system/$c.md (canon)"
+done
+
 # The full agent roster (all 23 — Step 0 migration). reviewer + the 4 isolated lenses
 # are load-bearing for /cr; the rest cover incident/security/refactor/eval/docs/ux/spike.
 for a in reviewer lens-assumption lens-composition lens-cascade lens-abuse \

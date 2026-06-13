@@ -134,6 +134,11 @@ vendored from Matt Pocock's repo, pinned to a reviewed SHA — see `.claude/skil
 | `docs/TESTING.md` | Confirmed behaviors, test infrastructure |
 | `docs/RECURRING-FINDINGS.md` | Review findings tracked toward enforcement (the learning ratchet) |
 
+**New here? Read [`docs/engineering-system/`](../docs/engineering-system/README.md)** — the universal engineering
+canon (the four layers, file structure, context docs, memory system, principles, anti-rationalization, model-capacity
+audit, git discipline, skill ecosystems, and copy-paste templates). It's the "what to build and why" reference behind
+the skills/agents/hooks; the patterns are universal, the specifics are per-project.
+
 The harness does not require these to exist; skills create or read them as the project grows.
 
 ---
