@@ -32,7 +32,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | Adopt zoom-out / write-a-skill / prototype / triage / to-prd | R4-D17 | ✅ all 5 vendored (PR-C, mattpocock@694fa30, MIT). Provenance: .claude/skills/VENDORED.md. No-empty-description asserted in harness-smoke. |
 | Drop dep-update (empty); notion-sync → github-sync | roster, R4-D30 | ✅ (PR-D) dep-update cut (never migrated); notion-sync NOT in V2 (obsolete under the Notion→GitHub move — canon lives in the repo, no sync-to-Notion). No `github-sync` skill: GitHub-canon *maintenance* = the Phase-2 reference-integrity check (CMP4), not a skill. Both kept out by a forbidden-skill guard in harness-smoke. |
 | Keep evaluate-solution | R4-D13 | ✅ migrated (PR-B) |
-| Migrate Notion canon docs (four layers, principles, templates, meta-system) → docs/ | R4-D10 (P3) | ⬜ |
+| Migrate Notion canon docs (four layers, principles, templates, meta-system) → docs/ | R4-D10 (P3) | ✅ (PR-E) core canon migrated → `docs/engineering-system/` (README + 02 four-layers, 03 file-structure, 04 context-docs, 07 memory-system, 10 principles, 11 skill-ecosystems, 12 anti-rationalization, 13 model-capacity-audit, 14 git-discipline, templates) — genericized (stack/project specifics → universal patterns), Notion syntax stripped, cross-links relative. Skipped (per scope): research surveys (in docs/v2-audit/passes/), "to think about" futures (V2 decisions are in ROUND-4), V2 plan (superseded), redundant 05/06/08 + personal 09. Asserted in harness-smoke. |
 | supabase/* NOT in universal harness (per-project adapter) | project-agnostic | ✅ (correctly excluded) |
 
 ## Phase 0 — Safety floor (DONE)
