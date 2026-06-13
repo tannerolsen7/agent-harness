@@ -22,7 +22,7 @@ done
 # The full universal skill roster (Step 0 migration). grill-with-docs is the vendored
 # Matt Pocock skill; the rest are the harness's universal core.
 for sk in queue cr cr-security feature tdd refactor debug compound grill-with-docs \
-          incident hotfix post-mortem migrate behavior-change perf spike \
+          incident hotfix post-mortem migrate behavior-change perf spike handoff \
           prioritize-tasks review-strategy setup-strategy design evaluate-solution; do
   [ -f ".claude/skills/$sk/SKILL.md" ] || note ".claude/skills/$sk/SKILL.md"
 done

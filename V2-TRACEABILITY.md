@@ -19,7 +19,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | One capable pass; spawn only for independence/parallelism/scale | R4-D21 | ⬜ Phase 1 (spawn doctrine) |
 | Comments earned (why, never what) | R4-D26 | ⬜ Phase 3 lint |
 | Human starts + merges everything | R4-D7, R4-D1 | ✅ (no auto-merge; PR-based) |
-| Frictionless handoff (checklist + commands every handback) | R4-D24 | ⬜ Phase 2 |
+| Frictionless handoff (checklist + commands every handback) | R4-D24 | ✅ `/handoff` skill (`.claude/skills/handoff/`) — emits done / in-progress / needs-human / exact-continue-commands / links; honest-state + exact-commands rules. (Optional future: a Stop-hook that auto-emits it — guard file, deferred.) |
 | Honest claims (un-fakeable = the test re-run only; never fake human metrics) | R4-D16, R4-D7#4 | 🔄 F6 ✓; UX no-fake pending |
 | Plain-language standard for founder-facing docs | R4-D5 | ✅ (standard) |
 
