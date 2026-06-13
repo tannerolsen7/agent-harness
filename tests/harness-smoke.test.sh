@@ -24,6 +24,9 @@ for sk in queue cr feature tdd refactor debug compound grill-with-docs; do
   [ -f ".claude/skills/$sk/SKILL.md" ] || note ".claude/skills/$sk/SKILL.md"
 done
 
+# Phase 1: the governance & canon pass must remain in /cr.
+grep -q 'Governance & Canon' .claude/skills/cr/SKILL.md || note "/cr governance & canon pass"
+
 # Review agents (reviewer + the 4 isolated lenses are load-bearing for /cr).
 for a in reviewer lens-assumption lens-composition lens-cascade lens-abuse task-runner implementer; do
   [ -f ".claude/agents/$a.md" ] || note ".claude/agents/$a.md"

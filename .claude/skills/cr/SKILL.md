@@ -48,7 +48,7 @@ If the diff is not docs-only: proceed to Step 1.
 
 ---
 
-## Step 2 — Spawn 9 review agents IN PARALLEL
+## Step 2 — Spawn the analytical passes IN PARALLEL
 
 Pass the full diff and plan content directly in each prompt.
 
@@ -141,6 +141,21 @@ Stress-test the reasoning. For each meaningful choice:
 
 Mark unjustified decisions as MUST FIX. Over-engineering as SUGGESTION.
 
+### Governance & Canon (Sonnet)
+Check the change against the project's **documented decisions** — not generic best practice
+(applicability is judged against what THIS project decided; R4-D14). Read first, skipping any
+that don't exist: `docs/adr/` (architecture decisions), the project's Rejected Patterns list
+(e.g. `AGENTS.md → Rejected Patterns`), and `PITFALLS.md`.
+- Does the diff contradict an accepted ADR, or re-introduce an explicitly rejected pattern?
+- Does it repeat a known pitfall recorded in `PITFALLS.md`?
+- Does it establish a NEW convention that should be an ADR but isn't recorded yet?
+
+A contradiction with an accepted decision is **MUST FIX** (cite the ADR / entry). An unrecorded
+new convention is a SUGGESTION (propose the ADR). If the project has no canon files yet, say so
+and skip — never invent a rule the project has not decided.
+
+Tag findings [Pgov].
+
 ---
 
 ### Pass 10 — Adversarial Review (@reviewer, four parallel lens agents)
@@ -172,7 +187,8 @@ Produce tiered report:
 
 Tag each item: [P1] correctness · [P2] domain safety · [P3] TS discipline ·
 [P4] layers · [P5] readability · [P6] test quality · [P7] doc drift/footprint ·
-[P8] architectural drift · [P9] devil's advocate · [P10] adversarial review
+[P8] architectural drift · [P9] devil's advocate · [Pgov] governance & canon ·
+[P10] adversarial review
 
 ### Step 3b — Recurring findings update
 
