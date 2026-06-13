@@ -28,8 +28,8 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 |---|---|---|
 | Migrate ALL universal skills (genericized) | R4-D30, roster | ✅ 21/21 universal present — PR-B added cr-security, incident, hotfix, post-mortem, migrate, behavior-change, perf, spike, prioritize-tasks, review-strategy, setup-strategy, design, evaluate-solution (Supabase/RLS/teamId/src-data → DB-safety adapter + tenant/owner/data-access-layer). Asserted in harness-smoke.test.sh. (dep-update cut + notion-sync→github-sync in PR-D; explain stays user-only.) |
 | Migrate ALL 23 agents (genericized) | roster | ✅ 23/23 — PR-A added incident-responder, security-reviewer, refactor-extractor, solution-evaluator, doc-updater, ux-reviewer (genericized: legacy tool names → modern; RLS/tenant/src-data → adapter language; backend-specific checks → DB-safety adapter). Asserted in harness-smoke.test.sh. |
-| Vendor borrowed skills (grill-with-docs ✓, simplify, to-issues) | R4-D17 | 🔄 grill-with-docs ✓; simplify/to-issues pending |
-| Adopt zoom-out / write-a-skill / prototype / triage / to-prd | R4-D17 | ⬜ |
+| Vendor borrowed skills (grill-with-docs ✓, simplify, to-issues) | R4-D17 | ✅ grill-with-docs ✓; to-issues vendored (PR-C, mattpocock@694fa30, MIT); simplify is a Claude Code built-in (not vendored — see VENDORED.md) |
+| Adopt zoom-out / write-a-skill / prototype / triage / to-prd | R4-D17 | ✅ all 5 vendored (PR-C, mattpocock@694fa30, MIT). Provenance: .claude/skills/VENDORED.md. No-empty-description asserted in harness-smoke. |
 | Drop dep-update (empty); notion-sync → github-sync | roster, R4-D30 | ⬜ |
 | Keep evaluate-solution | R4-D13 | ✅ migrated (PR-B) |
 | Migrate Notion canon docs (four layers, principles, templates, meta-system) → docs/ | R4-D10 (P3) | ⬜ |

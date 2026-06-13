@@ -30,6 +30,18 @@ done
 # Phase 1: the governance & canon pass must remain in /cr.
 grep -q 'Governance & Canon' .claude/skills/cr/SKILL.md || note "/cr governance & canon pass"
 
+# Vendored / adopted skills (mattpocock@SHA — see .claude/skills/VENDORED.md). simplify is a
+# Claude Code built-in (not vendored).
+for sk in to-issues prototype zoom-out triage to-prd write-a-skill; do
+  [ -f ".claude/skills/$sk/SKILL.md" ] || note ".claude/skills/$sk/SKILL.md (vendored)"
+done
+
+# No empty stubs: every shipped skill must have a non-empty `description:` or it can never
+# auto-invoke (it would be dead routing noise — the V1 triage/diagnose failure).
+for f in .claude/skills/*/SKILL.md; do
+  grep -qE '^description:[[:space:]]*\S' "$f" || note "$f has no non-empty description (dead routing stub)"
+done
+
 # The full agent roster (all 23 — Step 0 migration). reviewer + the 4 isolated lenses
 # are load-bearing for /cr; the rest cover incident/security/refactor/eval/docs/ux/spike.
 for a in reviewer lens-assumption lens-composition lens-cascade lens-abuse \
