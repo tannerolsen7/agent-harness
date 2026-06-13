@@ -7,6 +7,13 @@ set -euo pipefail
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 cd "$ROOT"
 
+# Hermetic git env for the tests. When `npm test` runs inside a git hook (the pre-push gate runs it),
+# git exports GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE / etc. Tests that spin up throwaway repos
+# (mktemp + git init) would inherit those and operate on THIS repo instead of their temp one —
+# passing under a direct `npm test` but failing inside the push hook. Clear them so every test
+# discovers git from its own CWD. (ROOT is already resolved above using the ambient env.)
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
+
 tests=""
 while IFS= read -r t; do tests="$tests $t"; done < <(find tests -type f -name '*.test.sh' 2>/dev/null | sort)
 
