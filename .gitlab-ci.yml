@@ -1,0 +1,17 @@
+# F6 — the un-forgeable finish line (GitLab). Re-runs the deterministic floor on the MR's exact
+# head commit, server-side. Mirror of .github/workflows/ci.yml — both call scripts/ci-verify.sh
+# so the check is identical across hosts.
+#
+# To make this BLOCK the merge button (the actual gate): Settings → Merge requests →
+# "Pipelines must succeed". One-time human step (a human owns the merge boundary).
+stages: [verify]
+
+verify:
+  stage: verify
+  image: node:22
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - npm ci
+    - bash scripts/ci-verify.sh

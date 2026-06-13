@@ -1,0 +1,23 @@
+# F6 — the un-forgeable finish line (GitHub). Re-runs the deterministic floor on the PR's exact
+# head commit, server-side. Mirror of .gitlab-ci.yml — both call scripts/ci-verify.sh so the
+# check is identical across hosts.
+#
+# To make this BLOCK the merge button (the actual gate): Settings → Branches → branch protection
+# rule for `main` → "Require status checks to pass before merging" → select the `verify` check.
+# That is a one-time human step (a human owns the merge boundary).
+name: ci
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: bash scripts/ci-verify.sh
