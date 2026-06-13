@@ -32,7 +32,13 @@ The hooks are inert until referenced in `.claude/settings.json`. The `PreToolUse
 
 And `permissions.deny` must include `Read(/.env*)` alongside the existing guard-file denies.
 
-## P0-4 — managed-settings.json (OS-level, the unbypassable floor)
+## P0-4 — managed-settings.json (OS-level, the unbypassable floor) — OPTIONAL, once per machine
+
+> The harness is fully functional and safe for **normal** use without this. The in-repo
+> `settings.json` denies + the five hooks do the enforcement. managed-settings is **optional
+> belt-and-suspenders**, placed **once per machine** (covers every repo), defending only the
+> narrow case below. It is a human step *by design* — the point is a lock the agent cannot
+> place or reach (R4-D7 #5).
 
 Project `settings.json` lives in the repo, so it can be checked out at an old commit, and its
 hooks can be `chmod -x`'d. The OS-level managed settings re-assert the critical **permission
@@ -40,13 +46,14 @@ denies** — which Claude Code enforces directly (not via a repo script) — at 
 cannot reach or edit. The deny on `Edit/Write(.claude/hooks/**)` means the agent also cannot
 modify the hook scripts to weaken them.
 
-**Place it (macOS, requires admin):**
+**Place it — one command (prompts for your admin password):**
 ```bash
-sudo mkdir -p "/Library/Application Support/ClaudeCode"
-sudo cp docs/security/managed-settings.template.json "/Library/Application Support/ClaudeCode/managed-settings.json"
-# remove the "_comment" key in the placed copy if your version rejects unknown keys
+bash scripts/install-locks.sh          # place it
+bash scripts/install-locks.sh --check   # show status only
 ```
-(Linux: `/etc/claude-code/managed-settings.json`. Confirm the path for your install.)
+The script picks the right OS path (macOS: `/Library/Application Support/ClaudeCode/`,
+Linux: `/etc/claude-code/`) and strips the `_comment` key. The agent cannot run it — it can't
+answer the sudo prompt; that is the security boundary, not an inconvenience.
 
 **Verify:** start a new session, ask the agent to `Write` to `.claude/settings.json` — it must
 be denied even though the project settings are checked out.
