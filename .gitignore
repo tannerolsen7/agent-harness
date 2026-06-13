@@ -15,6 +15,9 @@ node_modules/
 # machine-specific Claude Code settings (Read paths, per-machine overrides)
 .claude/settings.local.json
 
+# bug-catch run outputs (transient; the corpus is committed, the results are not)
+bug-catch/results/
+
 # logs / OS cruft
 *.log
 .DS_Store
