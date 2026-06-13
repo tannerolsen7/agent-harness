@@ -72,6 +72,17 @@ done
 # Husky pre-push gate wiring (the un-forgeable-gate precursor).
 [ -f ".husky/pre-push" ] || note ".husky/pre-push"
 
+# Husky v10-safe hooks: husky runs each hook under sh and v10 dropped both the shebang and
+# the auto-sourced shim line. A bash-only construct (here-string, double-bracket test, combined
+# redirect) or a stale shim-source line silently fails under sh, so the gate would no-op. Assert
+# none are present. (Patterns are anchored so the hooks' own comments don't trip this.)
+for h in .husky/pre-commit .husky/pre-push .husky/post-checkout; do
+  [ -f "$h" ] || { note "$h"; continue; }
+  head -n 1 "$h" | grep -q '^#!' && note "$h has a shebang (husky v10 hooks run under sh — drop it)"
+  grep -qE '^[[:space:]]*(\.|source)[[:space:]].*husky' "$h" && note "$h sources the removed husky v10 shim"
+  grep -qE '<<<|\[\[|&>' "$h" && note "$h uses a bash-only construct (fails silently under sh)"
+done
+
 # No project-specific stack terms must leak back into the portable core.
 if grep -rilE 'supabase|event-vendor|moodboard' .claude/skills .claude/agents .claude/hooks scripts 2>/dev/null | grep -q .; then
   echo "  LEAK: project-specific term found in portable core (run the grep to locate)" >&2

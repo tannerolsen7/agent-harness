@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+# husky runs hooks under sh and ignores any shebang; v10 also removed the auto-sourced
+# shim line. So this hook is plain POSIX sh — no shebang, no sourcing line, no bashisms.
 set -e
 
 # Read all push refs from stdin upfront (git pipes these before hook logic runs).
@@ -12,7 +13,9 @@ while IFS=' ' read -r _lref _lsha _rref _rsha; do
     _ALL_DELETIONS=false
     break
   fi
-done <<< "$PUSH_INPUT"
+done <<EOF
+$PUSH_INPUT
+EOF
 if $_ALL_DELETIONS; then
   exit 0
 fi
