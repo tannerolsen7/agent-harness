@@ -14,7 +14,13 @@ WORKTREE_PATH="${1:?Usage: scripts/worktree-add.sh <path> <branch>}"
 BRANCH="${2:?Usage: scripts/worktree-add.sh <path> <branch>}"
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
-git worktree add "$WORKTREE_PATH" "$BRANCH"
+# Create the branch if it doesn't exist yet (so a NEW feat/<slug> works — this is how
+# /queue starts each task), otherwise check out the existing branch into the worktree.
+if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+  git worktree add "$WORKTREE_PATH" "$BRANCH"
+else
+  git worktree add -b "$BRANCH" "$WORKTREE_PATH"
+fi
 
 # --- env provisioning (adapter) ---
 if [ "${UNATTENDED:-}" = "1" ] && [ -x "$REPO_ROOT/scripts/gen-local-env.sh" ]; then
