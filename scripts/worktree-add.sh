@@ -14,7 +14,18 @@ WORKTREE_PATH="${1:?Usage: scripts/worktree-add.sh <path> <branch>}"
 BRANCH="${2:?Usage: scripts/worktree-add.sh <path> <branch>}"
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
-git worktree add "$WORKTREE_PATH" "$BRANCH"
+# Reject a branch name git would read as a flag (e.g. "-f", "--detach").
+case "$BRANCH" in -*) echo "worktree-add: refusing unsafe branch name '$BRANCH'" >&2; exit 1 ;; esac
+
+# Create the branch if it doesn't exist yet (so a NEW feat/<slug> works — this is how /queue
+# starts each task), otherwise check out the existing branch into the worktree. Pin the new
+# branch to an explicit commit-ish so it doesn't silently start from whatever HEAD the *calling*
+# worktree happens to be on (run from the main worktree → branches off the current main HEAD).
+if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+  git worktree add "$WORKTREE_PATH" "$BRANCH"
+else
+  git worktree add -b "$BRANCH" "$WORKTREE_PATH" HEAD
+fi
 
 # --- env provisioning (adapter) ---
 if [ "${UNATTENDED:-}" = "1" ] && [ -x "$REPO_ROOT/scripts/gen-local-env.sh" ]; then
