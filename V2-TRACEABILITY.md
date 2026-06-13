@@ -30,7 +30,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | Migrate ALL 23 agents (genericized) | roster | ✅ 23/23 — PR-A added incident-responder, security-reviewer, refactor-extractor, solution-evaluator, doc-updater, ux-reviewer (genericized: legacy tool names → modern; RLS/tenant/src-data → adapter language; backend-specific checks → DB-safety adapter). Asserted in harness-smoke.test.sh. |
 | Vendor borrowed skills (grill-with-docs ✓, simplify, to-issues) | R4-D17 | ✅ grill-with-docs ✓; to-issues vendored (PR-C, mattpocock@694fa30, MIT); simplify is a Claude Code built-in (not vendored — see VENDORED.md) |
 | Adopt zoom-out / write-a-skill / prototype / triage / to-prd | R4-D17 | ✅ all 5 vendored (PR-C, mattpocock@694fa30, MIT). Provenance: .claude/skills/VENDORED.md. No-empty-description asserted in harness-smoke. |
-| Drop dep-update (empty); notion-sync → github-sync | roster, R4-D30 | ⬜ |
+| Drop dep-update (empty); notion-sync → github-sync | roster, R4-D30 | ✅ (PR-D) dep-update cut (never migrated); notion-sync NOT in V2 (obsolete under the Notion→GitHub move — canon lives in the repo, no sync-to-Notion). No `github-sync` skill: GitHub-canon *maintenance* = the Phase-2 reference-integrity check (CMP4), not a skill. Both kept out by a forbidden-skill guard in harness-smoke. |
 | Keep evaluate-solution | R4-D13 | ✅ migrated (PR-B) |
 | Migrate Notion canon docs (four layers, principles, templates, meta-system) → docs/ | R4-D10 (P3) | ⬜ |
 | supabase/* NOT in universal harness (per-project adapter) | project-agnostic | ✅ (correctly excluded) |

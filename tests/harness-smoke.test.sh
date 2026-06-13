@@ -42,6 +42,12 @@ for f in .claude/skills/*/SKILL.md; do
   grep -qE '^description:[[:space:]]*\S' "$f" || note "$f has no non-empty description (dead routing stub)"
 done
 
+# Forbidden skills: cut from V2 and must stay out. dep-update was an empty stub; notion-sync
+# is obsolete under the Notion→GitHub canon move (canon lives in the repo — no sync-to-Notion).
+for forbidden in notion-sync dep-update; do
+  [ -e ".claude/skills/$forbidden" ] && note "forbidden skill present (cut from V2): $forbidden"
+done
+
 # The full agent roster (all 23 — Step 0 migration). reviewer + the 4 isolated lenses
 # are load-bearing for /cr; the rest cover incident/security/refactor/eval/docs/ux/spike.
 for a in reviewer lens-assumption lens-composition lens-cascade lens-abuse \
