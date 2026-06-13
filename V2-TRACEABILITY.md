@@ -26,12 +26,12 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 ## Step 0 — Foundation: migrate the FULL canon (base to transform — NOT "V2" itself)
 | Item | Decision | Status |
 |---|---|---|
-| Migrate ALL universal skills (genericized) | R4-D30, roster | 🔄 8 of ~20 present (compound, cr, debug, feature, grill-with-docs, queue, refactor, tdd) — **GAP** |
+| Migrate ALL universal skills (genericized) | R4-D30, roster | ✅ 21/21 universal present — PR-B added cr-security, incident, hotfix, post-mortem, migrate, behavior-change, perf, spike, prioritize-tasks, review-strategy, setup-strategy, design, evaluate-solution (Supabase/RLS/teamId/src-data → DB-safety adapter + tenant/owner/data-access-layer). Asserted in harness-smoke.test.sh. (dep-update cut + notion-sync→github-sync in PR-D; explain stays user-only.) |
 | Migrate ALL 23 agents (genericized) | roster | ✅ 23/23 — PR-A added incident-responder, security-reviewer, refactor-extractor, solution-evaluator, doc-updater, ux-reviewer (genericized: legacy tool names → modern; RLS/tenant/src-data → adapter language; backend-specific checks → DB-safety adapter). Asserted in harness-smoke.test.sh. |
 | Vendor borrowed skills (grill-with-docs ✓, simplify, to-issues) | R4-D17 | 🔄 grill-with-docs ✓; simplify/to-issues pending |
 | Adopt zoom-out / write-a-skill / prototype / triage / to-prd | R4-D17 | ⬜ |
 | Drop dep-update (empty); notion-sync → github-sync | roster, R4-D30 | ⬜ |
-| Keep evaluate-solution | R4-D13 | ⬜ (not yet migrated) |
+| Keep evaluate-solution | R4-D13 | ✅ migrated (PR-B) |
 | Migrate Notion canon docs (four layers, principles, templates, meta-system) → docs/ | R4-D10 (P3) | ⬜ |
 | supabase/* NOT in universal harness (per-project adapter) | project-agnostic | ✅ (correctly excluded) |
 
