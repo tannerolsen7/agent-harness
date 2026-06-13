@@ -19,8 +19,11 @@ for s in worktree-add assert-husky-shim pr detect-forge check-routing gc test-lo
   [ -x "scripts/$s.sh" ] || note "scripts/$s.sh (executable)"
 done
 
-# Core skills brought by the bootstrap.
-for sk in queue cr feature tdd refactor debug compound grill-with-docs; do
+# The full universal skill roster (Step 0 migration). grill-with-docs is the vendored
+# Matt Pocock skill; the rest are the harness's universal core.
+for sk in queue cr cr-security feature tdd refactor debug compound grill-with-docs \
+          incident hotfix post-mortem migrate behavior-change perf spike \
+          prioritize-tasks review-strategy setup-strategy design evaluate-solution; do
   [ -f ".claude/skills/$sk/SKILL.md" ] || note ".claude/skills/$sk/SKILL.md"
 done
 
