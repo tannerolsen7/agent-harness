@@ -73,9 +73,21 @@ to-issues, tdd) · per-skill frontmatter contract · the self-contained add-on +
 skills/agents fired) · the CLAUDE.md→hooks ratchet audit · adopt zoom-out / write-a-skill / prototype / triage /
 to-prd from mattpocock.
 
-**Phase 5 — Post-launch (deferred, each with a trigger):** the front door (event auto-start) · the clock
-(timer) · risk-based auto-approval · the real-time access-control UI · fleet circuit breaker · plugin
-marketplace.
+**Phase 5 — Post-launch / next steps (deferred, each with a trigger; build the core so these slot in cleanly
+later):**
+- **The front door — 3 auto-start triggers** (a bug/request kicks off a run with no one typing): (1) a **GitHub
+  issue-label** (safe-first — no attacker-controllable text); (2) a **Slack / Linear `/fix` summon** (fires
+  where the work is reported); (3) **CI self-heal** (a red build auto-triages). The free-text doors (Slack /
+  Linear / CI) need the egress allowlist + lethal-trifecta guard built first; the label door doesn't.
+- **The clock** — timer-based scheduled discovery runs (laptop-closed).
+- **Risk-based auto-approval** — auto-merge LOW-risk changes once the catch-rate clears a measured bar (money +
+  DB always stay human; the human is never the last gate that's removed first).
+- **The real-time access-control UI** (toggle key/DB/resource access live) · the **fleet circuit breaker** (halt
+  all repos on a repeated failure) · the **plugin marketplace + push-back-up** (a fix in one repo flows to all).
+
+> Don't build Phase 5 now — but don't architect anything that *blocks* it: keep the pipeline summonable from
+> outside (so a Slack/Linear/CI event can route in), and keep the review verdict a CI-readable artifact (so an
+> external trigger can act on it). These are the known next steps once V2 launches.
 
 ---
 
