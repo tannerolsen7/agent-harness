@@ -1,0 +1,18 @@
+{
+  "_comment": "P0-4 (HIGH-2): OS-level managed settings — the unbypassable floor. This re-asserts the critical permission denies at a path the agent cannot reach or edit (outside the repo, root-owned). Project .claude/settings.json can be checked out at an old commit or its hooks chmod -x'd; these denies cannot. The deny on Edit/Write(.claude/hooks/**) means the agent also cannot modify the hook scripts to weaken them. Place per docs/security/locks.md; do NOT rely on this file in the repo — it is a template, the live copy lives at the OS path.",
+  "permissions": {
+    "deny": [
+      "Edit(/.claude/hooks/**)",
+      "Write(/.claude/hooks/**)",
+      "Edit(/.claude/settings.json)",
+      "Write(/.claude/settings.json)",
+      "Edit(/.claude/settings.local.json)",
+      "Write(/.claude/settings.local.json)",
+      "Edit(/.claude/agents/**)",
+      "Write(/.claude/agents/**)",
+      "Read(/.env*)",
+      "Edit(/.env*)",
+      "Write(/.env*)"
+    ]
+  }
+}
