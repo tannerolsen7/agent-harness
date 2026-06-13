@@ -58,6 +58,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | 4-lens adversarial reviewer + lenses | C2 | 🔄 lens agents present; verify wired |
 | Collapse 9 analytical passes → 1 + lint, GATED on bug-catch test | R4-D20, R4-D32 | ⬜ (the 9→1 question — yes, gated; keep splits where recall drops) |
 | Model tiers by ROLE + re-audit on model-id change | R4-D31, R4-D32#4 | ⬜ |
+| Skill-routing reliability: sharp descriptions (oblique/regression/screenshot) + classify-AND-route + no empty stubs | R4-D31 | 🔄 /debug triggers broadened + work-state table routes to /debug + classify-AND-route rule (debug-process PR); no-empty-stub lint ✅ (PR-C). Debug process verified sound: /debug → @investigator → /feature/hotfix; /incident → @incident-responder → /debug. Broaden other skills' triggers as field misses surface. |
 | Bounded-loop + REJECT | F7 | ⬜ |
 | Classifier guard (over-classify when unsure; in bug-catch) | R4-D32#5 | ⬜ |
 
