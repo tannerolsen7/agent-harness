@@ -3,7 +3,8 @@
 # Allows: npm ci, bare npm install, flag-only installs. Exit 2 = block.
 
 INPUT=$(cat)
-command -v jq >/dev/null 2>&1 || { echo "block-npm-install.sh: jq missing — npm guard DISABLED. Install jq." >&2; exit 0; }
+# FAIL CLOSED (HIGH-1): no jq → can't inspect → block rather than silently disable.
+command -v jq >/dev/null 2>&1 || { echo "block-npm-install.sh: jq missing — cannot inspect command, BLOCKING (fail-closed). Install jq." >&2; exit 2; }
 CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 [ -z "$CMD" ] && exit 0
 

@@ -8,9 +8,9 @@
 
 INPUT=$(cat)
 
-# No jq → can't safely extract the command; fail OPEN but loud rather than
-# brick every Bash call. CLAUDE.md still governs the agent.
-command -v jq >/dev/null 2>&1 || { echo "block-dangerous-git.sh: jq missing — git guard DISABLED. Install jq." >&2; exit 0; }
+# No jq → can't safely extract the command. FAIL CLOSED (HIGH-1): an un-inspectable
+# command is treated as dangerous. The locks are the sole safety net (R4-D8).
+command -v jq >/dev/null 2>&1 || { echo "block-dangerous-git.sh: jq missing — cannot inspect command, BLOCKING (fail-closed). Install jq." >&2; exit 2; }
 
 CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 [ -z "$CMD" ] && exit 0
