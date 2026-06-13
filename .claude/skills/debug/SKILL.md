@@ -5,8 +5,13 @@ description: Investigates an observed symptom, finds the root cause, writes
   ready to hand to /feature. Use when something is broken, behaving
   unexpectedly, or throwing an error — and the cause is unknown. Use when
   the user says "something's wrong", "this is broken", "why is X happening",
-  "track down this bug", or invokes /debug. Do not use when the cause is
-  already known — go directly to /feature (Tiny) instead.
+  "track down this bug", or invokes /debug — OR reports a symptom more
+  obliquely: "X seems off/wrong now", "this used to work", "X tends to
+  [do Y]", "is this a regression", or attaches a screenshot/URL of wrong
+  behavior. Treat "now"/"used to work" regression language and
+  symptom-with-screenshot reports as STRONG triggers whenever the cause is
+  not already known. Do not use when the cause is already known — go
+  directly to /feature (Tiny) instead.
 ---
 
 # /debug — Investigate, confirm, hand off
