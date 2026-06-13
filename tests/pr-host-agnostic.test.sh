@@ -37,6 +37,30 @@ echo "── pass-through of extra args ──"
 draft=$(PR_DRY_RUN=1 PR_FORGE=github bash "$PR" --title T --body B --draft)
 has "passthrough --draft" "$draft" "--draft"
 
+echo "── sentinel preserved when a precondition fails (no consume-before-validate) ──"
+# Regression: pr.sh must validate its preconditions (CLI present, branch on remote) BEFORE it
+# consumes the .cr-ok sentinel. A precondition abort must leave the sentinel intact so the user
+# can fix the cause and retry without re-running /cr. Hermetic: a throwaway repo with a LOCAL bare
+# remote and a branch that was never pushed → the remote-branch precondition fails (or, if gh is
+# absent, the CLI precondition does). The sentinel is VALID (matches branch:sha), so the old
+# consume-first code would have deleted it before the precondition check ran. Offline — no GitHub.
+TMP=$(mktemp -d)
+(
+  cd "$TMP" || exit 1
+  git init -q
+  git config user.email t@example.com; git config user.name tester
+  git commit -q --allow-empty --no-verify -m init
+  git checkout -q -b testbranch
+  git init -q --bare origin.git
+  git remote add origin "$TMP/origin.git"   # local bare remote — testbranch never pushed
+  mkdir -p .claude
+  printf 'testbranch:%s' "$(git rev-parse HEAD)" > .claude/.cr-ok   # VALID sentinel
+) >/dev/null 2>&1
+sentinel_out=$(cd "$TMP" && PR_FORGE=github bash "$PR" --title T --body B </dev/null 2>&1); sentinel_rc=$?
+if [ "$sentinel_rc" -ne 0 ]; then pass=$((pass+1)); else echo "  MISS (precond abort): pr.sh exited 0, expected non-zero"; fail=$((fail+1)); fi
+if [ -f "$TMP/.claude/.cr-ok" ]; then pass=$((pass+1)); else echo "  MISS (regression): .cr-ok was consumed on a precondition abort"; fail=$((fail+1)); fi
+rm -rf "$TMP"
+
 echo ""
 echo "pr-host-agnostic: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
