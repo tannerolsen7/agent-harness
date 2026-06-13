@@ -27,8 +27,14 @@ done
 # Phase 1: the governance & canon pass must remain in /cr.
 grep -q 'Governance & Canon' .claude/skills/cr/SKILL.md || note "/cr governance & canon pass"
 
-# Review agents (reviewer + the 4 isolated lenses are load-bearing for /cr).
-for a in reviewer lens-assumption lens-composition lens-cascade lens-abuse task-runner implementer; do
+# The full agent roster (all 23 — Step 0 migration). reviewer + the 4 isolated lenses
+# are load-bearing for /cr; the rest cover incident/security/refactor/eval/docs/ux/spike.
+for a in reviewer lens-assumption lens-composition lens-cascade lens-abuse \
+         task-runner implementer spec-writer explorer investigator hotfix-guard \
+         incident-responder security-reviewer refactor-extractor solution-evaluator \
+         doc-updater ux-reviewer \
+         spike-orchestrator spike-researcher spike-slice spike-synthesis \
+         spike-adversarial-verifier spike-user-verifier; do
   [ -f ".claude/agents/$a.md" ] || note ".claude/agents/$a.md"
 done
 
