@@ -73,7 +73,8 @@ name it and confirm before proceeding. When it's obvious, proceed directly.
 | Signal | Work state | Entry point |
 |---|---|---|
 | Live breakage, data loss, security event, unexpected behavior | Incident | `/incident` (classify first) |
-| Bug confirmed in our code, contained blast radius | Hotfix | `/hotfix` |
+| Bug confirmed in our code, cause KNOWN, contained blast radius | Hotfix | `/hotfix` |
+| Something broken/off/regressed, cause UNKNOWN ("seems off now", "used to work", a screenshot of wrong behavior) | Bug investigation | `/debug` (→ `/feature` Tiny or `/hotfix` with the failing test) |
 | New capability, greenfield feature, UI work | Feature | `/feature` (→ `/design` first if scoped) |
 | Multiple independent backlog tasks in parallel | Parallel execution | `/queue` |
 | Schema change, data backfill, DB restructure | Migration | `/migrate` |
@@ -83,9 +84,16 @@ name it and confirm before proceeding. When it's obvious, proceed directly.
 | Session resumed mid-task | Resumption | Check `git branch --show-current` and TASKS.md first, then confirm |
 | Exploratory ("what should we do") | Exploratory | 2–3 sentences with a recommendation + main tradeoff. No skill invoked. |
 
-> Some of these skills are vendored in this harness today; others (`/incident`, `/migrate`,
-> `/perf`, `/behavior-change`, `/design`, `/hotfix`) arrive in later build phases. A reference to a
-> not-yet-present skill should be skipped with a one-line note, not block the work.
+> The full universal roster is migrated in Step 0. If a reference points at a skill not yet present
+> in this repo, skip it with a one-line note rather than blocking the work.
+
+**Classify AND route — don't just classify.** Naming the work state is not enough: invoke its
+entry-point skill instead of proceeding manually. In particular, **a bug whose cause is not yet
+known → invoke `/debug` before any manual investigation** — and treat the regression / oblique /
+screenshot signals in the table above as bug-cause-unknown signals (they don't read like literal
+"this is broken", so they're easy to miss). Skip `/debug` only if the cause is already identified
+→ `/feature` (Tiny) or `/hotfix`. (This closes the real-world miss where a "seems off now" report
+was classified as a bugfix but never routed to `/debug`.)
 
 Work state can shift during a session (e.g. `/incident` → `/hotfix` after triage). Re-classify at
 each transition.
