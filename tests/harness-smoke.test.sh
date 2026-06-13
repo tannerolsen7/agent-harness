@@ -10,7 +10,7 @@ fail=0
 note() { echo "  MISSING: $1" >&2; fail=1; }
 
 # Executable hooks (the deterministic floor).
-for h in block-dangerous-bash block-dangerous-git block-npm-install worktree-create permission-logger session-start; do
+for h in block-dangerous-bash block-credential-read block-dangerous-git block-npm-install worktree-create permission-logger session-start; do
   [ -x ".claude/hooks/$h.sh" ] || note ".claude/hooks/$h.sh (executable)"
 done
 

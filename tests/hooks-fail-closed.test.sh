@@ -4,7 +4,7 @@
 set -u
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 BASH_BIN=$(command -v bash)
-HOOKS="block-dangerous-git block-npm-install block-dangerous-bash"
+HOOKS="block-dangerous-git block-npm-install block-dangerous-bash block-credential-read"
 
 command -v jq >/dev/null 2>&1 || { echo "hooks-fail-closed.test: jq required to build the input"; exit 1; }
 
