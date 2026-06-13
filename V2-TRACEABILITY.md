@@ -28,8 +28,8 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 |---|---|---|
 | Migrate ALL universal skills (genericized) | R4-D30, roster | 🔄 8 of ~20 present (compound, cr, debug, feature, grill-with-docs, queue, refactor, tdd) — **GAP** |
 | Migrate ALL 23 agents (genericized) | roster | 🔄 17 of 23 present — missing incident-responder, security-reviewer, refactor-extractor, solution-evaluator, doc-updater, ux-reviewer — **GAP** |
-| Vendor borrowed skills (grill-with-docs ✓, simplify, to-issues) | R4-D17 | 🔄 grill-with-docs ✓; simplify/to-issues pending |
-| Adopt zoom-out / write-a-skill / prototype / triage / to-prd | R4-D17 | ⬜ |
+| Vendor borrowed skills (grill-with-docs ✓, simplify, to-issues) | R4-D17 | ✅ grill-with-docs ✓; to-issues vendored (PR-C, mattpocock@694fa30, MIT); simplify is a Claude Code built-in (not vendored — see VENDORED.md) |
+| Adopt zoom-out / write-a-skill / prototype / triage / to-prd | R4-D17 | ✅ all 5 vendored (PR-C, mattpocock@694fa30, MIT). Provenance: .claude/skills/VENDORED.md. No-empty-description asserted in harness-smoke. |
 | Drop dep-update (empty); notion-sync → github-sync | roster, R4-D30 | ⬜ |
 | Keep evaluate-solution | R4-D13 | ⬜ (not yet migrated) |
 | Migrate Notion canon docs (four layers, principles, templates, meta-system) → docs/ | R4-D10 (P3) | ⬜ |
