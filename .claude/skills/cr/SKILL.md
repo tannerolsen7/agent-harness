@@ -217,11 +217,11 @@ If there are Must Fix items, spawn one Opus agent:
 > Flag as NEEDS HUMAN if the fix requires >~15 lines of new code, an
 > architectural decision, or the intended behavior is ambiguous.
 
-**Hook-file escape hatch:** if a Must Fix lives in a `.claude/hooks/*.sh` file, do
-NOT route it to the Opus fix agent — the `settings.json` deny on `Edit/Write(/.claude/hooks/**)`
-blocks that agent too. Route it to NEEDS HUMAN and surface a paste-ready command; the
-human is the only one allowed to change a hook. Do not write the sentinel (Step 7) until
-the human confirms the hook fix is applied.
+**Guard-file escape hatch:** if a Must Fix lives in a guard file (`.claude/hooks/**`,
+`.claude/agents/**`, or `settings.json`), do NOT route it to the Opus fix agent — the
+`settings.json` deny on `Edit/Write` of those paths blocks that agent too. Route it to NEEDS
+HUMAN and surface a paste-ready command; the human is the only one allowed to change a guard
+file. Do not write the sentinel (Step 7) until the human confirms the fix is applied.
 
 After fixes: run the test suite. One retry on failure. Surface failures after that.
 

@@ -56,10 +56,40 @@ TMP=$(mktemp -d)
   mkdir -p .claude
   printf 'testbranch:%s' "$(git rev-parse HEAD)" > .claude/.cr-ok   # VALID sentinel
 ) >/dev/null 2>&1
-sentinel_out=$(cd "$TMP" && PR_FORGE=github bash "$PR" --title T --body B </dev/null 2>&1); sentinel_rc=$?
+( cd "$TMP" && PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1 ); sentinel_rc=$?
 if [ "$sentinel_rc" -ne 0 ]; then pass=$((pass+1)); else echo "  MISS (precond abort): pr.sh exited 0, expected non-zero"; fail=$((fail+1)); fi
 if [ -f "$TMP/.claude/.cr-ok" ]; then pass=$((pass+1)); else echo "  MISS (regression): .cr-ok was consumed on a precondition abort"; fail=$((fail+1)); fi
 rm -rf "$TMP"
+
+echo "── create success consumes the sentinel; create failure restores it (stub CLI) ──"
+# The trap is the heart of the reorder: a successful create permanently consumes the sentinel; a
+# FAILED create must restore it so the PR stays retryable. Stub `gh` on PATH so no network/auth is
+# needed and we control the create's exit code. Branch is pushed to a LOCAL bare remote so the
+# remote-branch precondition passes and we actually reach the create step.
+TRAP_TMP=$(mktemp -d); STUB_BIN="$TRAP_TMP/bin"; mkdir -p "$STUB_BIN"
+setup_pushed_repo() {  # $1 = repo dir; init, push feat/x to a local bare remote, write a VALID sentinel
+  (
+    cd "$1" || exit 1
+    git init -q; git config user.email t@example.com; git config user.name tester
+    git commit -q --allow-empty --no-verify -m init
+    git checkout -q -b feat/x
+    git init -q --bare "$1/origin.git"; git remote add origin "$1/origin.git"
+    git push -q origin feat/x   # branch on the remote → precondition passes, we reach create
+    mkdir -p .claude
+    printf 'feat/x:%s' "$(git rev-parse HEAD)" > .claude/.cr-ok
+  ) >/dev/null 2>&1
+}
+# create SUCCEEDS (stub gh exits 0) → sentinel consumed
+ROK="$TRAP_TMP/ok"; mkdir -p "$ROK"; setup_pushed_repo "$ROK"
+printf '#!/bin/sh\nexit 0\n' > "$STUB_BIN/gh"; chmod +x "$STUB_BIN/gh"
+( cd "$ROK" && PATH="$STUB_BIN:$PATH" PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1 )
+if [ ! -f "$ROK/.claude/.cr-ok" ]; then pass=$((pass+1)); else echo "  MISS: sentinel not consumed on create success"; fail=$((fail+1)); fi
+# create FAILS (stub gh exits 7) → sentinel restored for retry
+RFAIL="$TRAP_TMP/fail"; mkdir -p "$RFAIL"; setup_pushed_repo "$RFAIL"
+printf '#!/bin/sh\nexit 7\n' > "$STUB_BIN/gh"; chmod +x "$STUB_BIN/gh"
+( cd "$RFAIL" && PATH="$STUB_BIN:$PATH" PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1 )
+if [ -f "$RFAIL/.claude/.cr-ok" ]; then pass=$((pass+1)); else echo "  MISS: sentinel not restored on create failure (not retryable)"; fail=$((fail+1)); fi
+rm -rf "$TRAP_TMP"
 
 echo ""
 echo "pr-host-agnostic: $pass passed, $fail failed"

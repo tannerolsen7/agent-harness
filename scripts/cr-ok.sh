@@ -37,7 +37,10 @@ mkdir -p "${REPO_ROOT}/.claude"
 SENTINEL="${REPO_ROOT}/.claude/.cr-ok"
 printf '%s:%s' "$BRANCH" "$SHA" > "$SENTINEL"
 
-# Append-only audit line: when, and for what branch:sha. Traceability only — never read as a gate.
-printf '%s\t%s:%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$BRANCH" "$SHA" >> "${REPO_ROOT}/.claude/.cr-ok.log"
+# Append-only audit line: when, and for what branch:sha. Traceability only — never read as a gate,
+# so a failed append must NOT fail an otherwise-good sentinel write (warn, don't abort).
+if ! printf '%s\t%s:%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$BRANCH" "$SHA" >> "${REPO_ROOT}/.claude/.cr-ok.log" 2>/dev/null; then
+  echo "cr-ok: warning: could not append to the audit log (the sentinel was still written)." >&2
+fi
 
 echo "cr-ok: sentinel written for ${BRANCH}:${SHA}"
