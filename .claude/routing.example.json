@@ -1,0 +1,20 @@
+{
+  "_comment": "Routing-assertion config (R4-D32 #3). Copy to .claude/routing.json and fill in YOUR project's high-risk surface + DB-safety skill. The harness ships only this .example so the harness itself stays inert. A change matching the patterns below must carry a '<requiredTrailer>: <skill>' commit trailer (added after the DB-safety skill reviews it) or the merge-time check (scripts/check-routing.sh, run in CI via ci-verify.sh) blocks. The run-time twin (docs/routing-gate.md) stops the edit live. Patterns are extended-regex (grep -E); content patterns are matched case-insensitively against the diff.",
+  "highRiskPathPatterns": [
+    "(^|/)migrations?/",
+    "(^|/)policies/",
+    "(^|/)auth/"
+  ],
+  "highRiskContentPatterns": [
+    "create policy",
+    "row level security",
+    "\\bRLS\\b",
+    "alter table",
+    "service_role",
+    "grant (all|select|insert|update|delete)",
+    "stripe",
+    "payment_intent"
+  ],
+  "requiredTrailer": "DB-Safety",
+  "safetySkill": "the project's database-safety skill (e.g. /supabase) — declared here, never hardcoded in the harness"
+}

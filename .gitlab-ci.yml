@@ -6,6 +6,9 @@
 # "Pipelines must succeed". One-time human step (a human owns the merge boundary).
 stages: [verify]
 
+variables:
+  GIT_DEPTH: "0"   # full history so the routing-assertion can diff against the base
+
 verify:
   stage: verify
   image: node:22

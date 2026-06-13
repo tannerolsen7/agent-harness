@@ -19,4 +19,7 @@ npm run lint
 echo "ci-verify: tests"
 npm test
 
+echo "ci-verify: routing-assertion"
+bash "$ROOT/scripts/check-routing.sh"
+
 echo "ci-verify: OK"
