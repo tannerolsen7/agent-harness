@@ -115,6 +115,7 @@ complete set is in `.claude/skills/`.
 | `/grill-with-docs` | Stress-test a plan against the project's domain language + decisions |
 | `/compound` | After a feature that introduced a non-obvious pattern |
 | `/cr` | Before pushing — the single pre-merge review gate |
+| `/handoff` | Wrapping up / handing off / blocked on the human — emits the continue-from-here block |
 
 `/to-issues` (plus the adopted `/prototype`, `/zoom-out`, `/triage`, `/to-prd`, `/write-a-skill`) are
 vendored from Matt Pocock's repo, pinned to a reviewed SHA — see `.claude/skills/VENDORED.md`.
