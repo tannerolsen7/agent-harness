@@ -7,8 +7,8 @@ node_modules/
 # transient sub-agent worktrees
 .claude/worktrees/
 
-# review sentinels — per-branch:sha, never committed
-.claude/.cr-ok
+# review sentinels + their audit log — per-branch:sha, never committed
+.claude/.cr-ok*
 .claude/.cr-feature-ok
 .claude/*.consumed*
 

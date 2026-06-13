@@ -30,7 +30,7 @@ Run a single Haiku doc-review pass instead of the full review:
 - Check every doc change is accurate relative to the code it describes
 - Check for broken references, outdated paths, contradictions with other docs
 - Return findings in MUST FIX / Nice to Have format
-- Write the sentinel if no MUST FIX items remain
+- Write the sentinel (Step 7 — `bash "$(git rev-parse --show-toplevel)/scripts/cr-ok.sh"`) if no MUST FIX items remain
 - Evaluate `/compound` (same criteria as Step 8) — invoke if any condition is met; state "No compound-worthy findings" if none apply
 
 **Skill-structure meta-check** — when the diff includes `.claude/skills/**/*.md`, additionally scan for user-input-wait instructions (`"Wait for user response"`, `"ask the user"`, `"(y/n)"`, `"confirm before proceeding"`, or equivalents). For each match, check position: is the wait at a natural checkpoint (end of a tier, before a destructive/irreversible action, before a sentinel write)? Or does it appear mid-pipeline, blocking later critical-path steps on a non-critical question? A user-input wait that blocks critical-path steps on a non-critical question is a MUST FIX structural bug. Example: `/cr` Step 3b promotion-candidates prompt appears before Step 4 (MUST FIX fixes) — a docs-curation question gates a correctness enforcement step.
@@ -229,22 +229,58 @@ If no Must Fix items, skip and say so.
 
 ---
 
-## Step 5 — Surface the rest
+## Step 5 — Triage the rest (fix-now / backlog / drop) + disposition report
 
-List Nice to Have and Something to Think About. If promotion candidates were
-identified in Step 3b, surface them here:
+Must Fix was handled in Step 4 and is non-negotiable. The Nice-to-Have and Something-to-Think-About
+findings are **not** reflexively logged to a backlog, nor punted with "do not implement without
+confirmation." **You (the parent agent) decide, per finding,** whether it earns a fix *now* — and if
+so, you fix it now. If it doesn't, you decide **backlog** vs **drop**. Then you report the
+disposition. Never dump raw findings and walk away; never ask the user to confirm each one (that
+friction is what this step removes — you are trusted to exercise taste and show it).
+
+Per-finding decision:
+- **Fix now** when it's cheap, safe, in or adjacent to the diff, and clearly worthwhile — e.g. a
+  latent fail-open, a one-line correctness/clarity win, hardening a guard you just touched. Fix it
+  under the same constraints as the Step 4 agent: don't refactor beyond the finding; route to
+  **NEEDS HUMAN** if it needs >~15 new lines, an architectural decision, ambiguous intent, or lives
+  in a guard file (`.claude/hooks/**`, `.claude/agents/**`, `settings.json`).
+- **Backlog** when it's real but genuinely separate scope, or needs its own design/PR.
+- **Drop** when the cost outweighs the value or it's speculative — an explicit, reasoned decision,
+  not silence.
+
+Use taste, not a quota — fixing nothing is right if nothing earns it; fixing several is right if they
+do. (Appropriate effort, not minimal: don't skip a worthwhile fix to save tokens, don't gold-plate.)
+
+After fixing any "fix now" items, re-run the test suite (one retry on failure, then surface).
+
+### Disposition report (always emit this shape; omit a bucket only if empty)
 
 ```
-## Promotion candidates
-1. [signature] — Occurrences: N. Reason: [threshold | judgment: <reason>].
-   Suggested target: PITFALLS.md | /cr pass P# prompt
-   Confirm? (y/n)
+## Disposition
+**Fixed — MUST FIX**
+- [P#] <what changed> — <which finding it resolved>
+**Fixed now — judged worthwhile**
+- [P#] <what changed> — <why it earned the fix now>
+**Backlogged**
+- [P#] <what> — recorded in <where> — <why it's separate scope>
+**Dropped / accepted**
+- [P#] <what> — <why it isn't worth doing>
 ```
 
-On confirmation: write PITFALLS.md entry, move to Promoted/retired in RECURRING-FINDINGS.md.
-On skip: leave in Active. Will re-flag after one more occurrence.
+**Backlog target:** record backlogged items in the project's real backlog — GitHub/GitLab issues if
+the repo has a remote (`gh issue create` / `glab issue create`), else append to `BACKLOG.md`.
+"Backlogged" means *recorded*, never "mentioned and forgotten." (The harness's standing backlog
+mechanism is still being finalized; until then, `BACKLOG.md` is the floor.)
 
-Do not implement Nice-to-Haves without explicit confirmation.
+### Promotion candidates (the recurring-findings ratchet)
+
+If Step 3b flagged promotion candidates, act by judgment here — do **not** gate on a y/n:
+- **Auto-flagged** (Occurrences ≥3): promote — write the `PITFALLS.md` entry (or the named `/cr`
+  pass-prompt) and move it to Promoted in `RECURRING-FINDINGS.md`.
+- **Judgment-flagged** (high-impact, lower count): promote if you'd want every future PR checked for
+  it; otherwise leave it Active with a one-line reason.
+
+List each promotion in the disposition report (under "Fixed now" — it's a canon change) so it's visible.
 
 ---
 
@@ -258,21 +294,25 @@ Conclude: "Run through this checklist before opening a PR. Anything that fails i
 
 ## Step 7 — Write push sentinel
 
-After the final report is presented and there are no unresolved Must Fix items, write the sentinel. Resolve `branch:sha` first, then write to the absolute sentinel path (the relative form `.claude/.cr-ok` does not match the harness's path-based allowlist for sub-agents):
+After the final report + disposition are presented and there are no unresolved Must Fix items, write the sentinel via the helper script:
 
 ```bash
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-SHA=$(git rev-parse HEAD)
-REPO_ROOT=$(git rev-parse --show-toplevel) || { echo "error: not in a git repo — sentinel not written" >&2; exit 1; }
-SENTINEL="${REPO_ROOT}/.claude/.cr-ok"
-printf "%s:%s" "$BRANCH" "$SHA" > "$SENTINEL"
+bash "$(git rev-parse --show-toplevel)/scripts/cr-ok.sh"
 ```
 
-If the printf-redirect form is denied (some sub-agent contexts reject shell redirects to nested paths even with the absolute form), fall back to the Write tool with the resolved absolute `$SENTINEL` path — the content is exactly `branch:sha` (no trailing newline).
+`cr-ok.sh` self-resolves `branch:sha`, **refuses a dirty tree** (so the sentinel can't certify a sha that differs from what you'd push), appends an audit line, and **runs no checks** — the un-forgeable gate is the server-side CI re-run (F6); the sentinel is a soft, local, one-shot certificate. Running it as a script (not a Write-tool call) sidesteps the sub-agent path-allowlist friction the old inline `printf > .claude/.cr-ok` hit.
+
+If `cr-ok.sh` refuses because the tree is dirty, commit first, then re-run `/cr` (a new commit changes the sha and would invalidate the sentinel anyway). If the script is somehow unavailable, the fallback is the Write tool to `<repo-root>/.claude/.cr-ok` with exactly `branch:sha` (no trailing newline).
 
 **The sentinel encodes `branch:sha`. Any commit after this point invalidates it — re-run `/cr` before opening a PR.**
 
-After pushing and opening the PR via `scripts/pr.sh`, surface the URL to the user: `gh pr view --json url -q .url`
+Then push, then open the PR (this order matters — `scripts/pr.sh` validates the branch is on the remote before it consumes the sentinel):
+
+```bash
+git push -u origin "$(git rev-parse --abbrev-ref HEAD)"
+scripts/pr.sh --title "..." --body "..."
+gh pr view --json url -q .url   # surface the PR URL to the user
+```
 
 ---
 
