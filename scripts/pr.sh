@@ -1,8 +1,11 @@
 #!/bin/bash
-# Open a PR. Enforces that /cr (full branch review) ran before the PR is created.
-# In non-interactive mode: validates .claude/.cr-ok sentinel (branch:sha).
-# In interactive mode: prompts the user.
-# Any additional arguments are passed through to gh pr create.
+# Open a PR (GitHub) or MR (GitLab) — HOST-AGNOSTIC. Enforces that /cr (full branch review)
+# ran before it is created.
+#   Non-interactive: validates + consumes the .claude/.cr-ok sentinel (branch:sha).
+#   Interactive: prompts the user.
+# Normalized interface: --title / --body. These map to each CLI's flags (gh: --body,
+# glab: --description); any other args pass through. Forge is detected from the remote
+# (override with PR_FORGE=github|gitlab). PR_DRY_RUN=1 prints the resolved command, runs nothing.
 set -e
 
 SENTINEL=".claude/.cr-ok"
@@ -16,6 +19,46 @@ HEAD_SHA=$(git rev-parse HEAD 2>/dev/null) || {
 }
 EXPECTED="${CURRENT_BRANCH}:${HEAD_SHA}"
 
+# --- parse the normalized interface (host-agnostic) ---
+TITLE=""; BODY=""; REST=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --title)   TITLE="${2:-}"; shift 2 ;;
+    --title=*) TITLE="${1#--title=}"; shift ;;
+    --body)    BODY="${2:-}"; shift 2 ;;
+    --body=*)  BODY="${1#--body=}"; shift ;;
+    *)         REST+=("$1"); shift ;;
+  esac
+done
+
+# --- detect the forge, then build the create command ---
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+FORGE="${PR_FORGE:-$("$SCRIPT_DIR/detect-forge.sh")}"
+if [ "$FORGE" = unknown ]; then
+  if command -v gh >/dev/null 2>&1 && ! command -v glab >/dev/null 2>&1; then FORGE=github
+  elif command -v glab >/dev/null 2>&1 && ! command -v gh >/dev/null 2>&1; then FORGE=gitlab
+  else
+    echo "PR aborted: couldn't tell GitHub from GitLab via the remote. Set PR_FORGE=github|gitlab, or install exactly one of gh/glab." >&2
+    exit 1
+  fi
+fi
+
+case "$FORGE" in
+  github) CLI=gh;   cmd=(gh pr create);   BODYFLAG=--body ;;
+  gitlab) CLI=glab; cmd=(glab mr create); BODYFLAG=--description ;;
+  *) echo "PR aborted: unsupported forge '$FORGE' (use PR_FORGE=github|gitlab)." >&2; exit 1 ;;
+esac
+[ -n "$TITLE" ] && cmd+=(--title "$TITLE")
+[ -n "$BODY" ]  && cmd+=("$BODYFLAG" "$BODY")
+[ ${#REST[@]} -gt 0 ] && cmd+=("${REST[@]}")
+
+# --- dry run: preview only, touch nothing (no sentinel, no network) ---
+if [ -n "${PR_DRY_RUN:-}" ]; then
+  printf '%s\n' "${cmd[*]}"
+  exit 0
+fi
+
+# --- /cr enforcement (host-agnostic) ---
 if [ -t 0 ]; then
   printf "\nHave you run /cr (full branch review)? [y/N] " > /dev/tty
   read -r confirm < /dev/tty
@@ -45,16 +88,19 @@ else
   rm -f "$CONSUMED"
 fi
 
-if ! command -v gh >/dev/null 2>&1; then
-  echo "PR aborted: gh CLI not found. Install with: brew install gh && gh auth login" >&2
+# --- live checks ---
+if ! command -v "$CLI" >/dev/null 2>&1; then
+  echo "PR aborted: $CLI not found (needed for a $FORGE remote)." >&2
+  [ "$CLI" = gh ]   && echo "Install: brew install gh && gh auth login" >&2
+  [ "$CLI" = glab ] && echo "Install: https://gitlab.com/gitlab-org/cli (then glab auth login)" >&2
   exit 1
 fi
 
-# Guard: branch must exist on remote before gh pr create; otherwise gh gives a cryptic error.
+# Branch must exist on the remote before create; otherwise the CLI gives a cryptic error.
 REMOTE=$(git config --get branch."$CURRENT_BRANCH".remote 2>/dev/null || echo "origin")
 if ! git ls-remote --exit-code "$REMOTE" "$CURRENT_BRANCH" >/dev/null 2>&1; then
   echo "PR aborted: branch '$CURRENT_BRANCH' not found on remote '$REMOTE'. Push first: git push -u $REMOTE $CURRENT_BRANCH" >&2
   exit 1
 fi
 
-gh pr create "$@"
+exec "${cmd[@]}"
