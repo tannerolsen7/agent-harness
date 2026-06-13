@@ -42,4 +42,19 @@ else
   done
 fi
 
+# G1: the gate machinery must be live in the new worktree, or refuse it (fail-closed).
+# All diagnostics go to stderr — stdout must carry only the worktree path.
+if [ -f "$WORKTREE/package.json" ] && [ -d "$WORKTREE/.husky" ]; then
+  ( cd "$WORKTREE" && npm install ) >&2 || {
+    echo "worktree-create: npm install failed — gates not provable; removing worktree (fail-closed)." >&2
+    git worktree remove --force "$WORKTREE" >&2 2>/dev/null || true
+    exit 1
+  }
+  "$CLAUDE_PROJECT_DIR/scripts/assert-husky-shim.sh" "$WORKTREE" >&2 || {
+    echo "worktree-create: gate shim missing after install; removing worktree (fail-closed)." >&2
+    git worktree remove --force "$WORKTREE" >&2 2>/dev/null || true
+    exit 1
+  }
+fi
+
 echo "$WORKTREE"

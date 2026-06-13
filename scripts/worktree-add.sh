@@ -1,6 +1,6 @@
 #!/bin/sh
-# Create a git worktree and provision its env files.
-# Usage: scripts/worktree-add.sh <path> <branch>
+# Create a git worktree, provision its env files, and assert the gate machinery is
+# live (worktree G1 — fail-closed). Usage: scripts/worktree-add.sh <path> <branch>
 #
 # UNATTENDED=1 + a per-project local-env adapter (scripts/gen-local-env.sh):
 #   write local/ephemeral backend credentials, fail-closed (no prod fallback).
@@ -16,10 +16,11 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 
 git worktree add "$WORKTREE_PATH" "$BRANCH"
 
+# --- env provisioning (adapter) ---
 if [ "${UNATTENDED:-}" = "1" ] && [ -x "$REPO_ROOT/scripts/gen-local-env.sh" ]; then
   "$REPO_ROOT/scripts/gen-local-env.sh" "$WORKTREE_PATH" || {
     echo "UNATTENDED=1: local stack unavailable — removing uncredentialed worktree. Start your project's local stack first." >&2
-    git worktree remove "$WORKTREE_PATH"
+    git worktree remove --force "$WORKTREE_PATH"
     exit 1
   }
 else
@@ -32,4 +33,19 @@ else
     fi
   done
   [ "$linked" = 0 ] && echo "No env files at repo root to symlink (fine if this project needs none)."
+fi
+
+# --- G1: the gate machinery must be live in the new worktree, or refuse it ---
+if [ -f "$WORKTREE_PATH/package.json" ] && [ -d "$WORKTREE_PATH/.husky" ]; then
+  ( cd "$WORKTREE_PATH" && npm install ) || {
+    echo "worktree-add: npm install failed — gates not provable; removing worktree (fail-closed)." >&2
+    git worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true
+    exit 1
+  }
+  "$REPO_ROOT/scripts/assert-husky-shim.sh" "$WORKTREE_PATH" || {
+    echo "worktree-add: gate shim missing after install; removing worktree (fail-closed)." >&2
+    git worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true
+    exit 1
+  }
+  echo "Gates live in $WORKTREE_PATH."
 fi
