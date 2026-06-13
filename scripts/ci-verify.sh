@@ -19,6 +19,9 @@ npm run lint
 echo "ci-verify: tests"
 npm test
 
+# Note: `npm test` above runs check-routing.test.sh (the routing logic, with mocked inputs).
+# This step runs check-routing.sh LIVE against the real branch diff — the actual gate. The two
+# are intentionally distinct: unit-test the logic, then enforce it on this branch.
 echo "ci-verify: routing-assertion"
 bash "$ROOT/scripts/check-routing.sh"
 
