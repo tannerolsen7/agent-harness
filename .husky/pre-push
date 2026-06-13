@@ -29,12 +29,17 @@ if command -v gh >/dev/null 2>&1 && [ "$BRANCH" != "HEAD" ]; then
   fi
 fi
 
-if [ -t 0 ]; then
+# git pipes the push ref-list to stdin, so `[ -t 0 ]` is ALWAYS false in a pre-push hook —
+# it would treat a human push like an automated one. Detect a human by whether a controlling
+# terminal is reachable (/dev/tty); the agent's non-interactive Bash has none, so it takes the
+# sentinel path. Fails safe: if the prompt can't be answered, the push aborts.
+if { exec 3</dev/tty; } 2>/dev/null; then
+  exec 3<&-
   # Interactive (human) path — TTY prompt.
   printf "\nHave you run /cr for this branch? [y/N] " > /dev/tty
   read -r confirm < /dev/tty
   if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-    echo "Push aborted: run /cr before pushing." >&2
+    echo "Push aborted: run /cr before pushing (or: git push --no-verify for a deliberate manual push)." >&2
     exit 1
   fi
   # .cr-ok is validated + consumed by scripts/pr.sh at PR creation time — not checked here.
