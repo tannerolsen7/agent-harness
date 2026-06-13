@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V2 — the Decisions (refreshed)</title>
+<style>
+  :root{--bg:#0f1115;--panel:#161a21;--panel2:#1c212b;--ink:#e7ecf3;--muted:#9aa6b6;--line:#2a313d;--accent:#6ea8fe;--good:#3fb950;--warn:#d29922;--bad:#f85149;--rec:#2ea043;--decide:#a371f7;--gold:#e3b341;}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16.5px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{display:grid;grid-template-columns:250px 1fr;max-width:1320px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:24px 14px;border-right:1px solid var(--line);background:var(--panel)}
+  nav h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 6px}
+  nav a{display:block;color:var(--muted);text-decoration:none;font-size:13.5px;padding:4px 8px;border-radius:6px}
+  nav a:hover{color:var(--ink);background:var(--panel2)}
+  main{padding:36px 52px 120px;min-width:0}
+  h1{font-size:29px;margin:0 0 6px}.sub{color:var(--muted);font-size:15px;margin-bottom:22px}
+  h2.sec{font-size:22px;margin:46px 0 12px;padding-top:14px;border-top:1px solid var(--line)}
+  h3{font-size:17px;margin:22px 0 6px;color:#fff}
+  p{margin:10px 0}code{background:var(--panel2);padding:1px 6px;border-radius:5px;font:13px ui-monospace,Menlo,monospace}
+  .lead{font-size:16.5px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:16px 20px}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);color:#fff}tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+  .flow{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 16px;margin:10px 0;font-size:14.5px}
+  .flow b{color:#fff}
+  .gate{background:#181a16;border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:14px 18px;margin:16px 0}
+  .now{color:#56d364}.later{color:#9aa6b6}
+  .done{color:#56d364;font-weight:600}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+  .small{font-size:13px;color:var(--muted)}
+  .pill{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;background:rgba(86,211,100,.15);color:#56d364}
+  .pill.open{background:rgba(210,153,34,.16);color:#d29922}
+  @media (max-width:880px){.wrap{grid-template-columns:1fr}nav{display:none}main{padding:22px}}
+  @media print{nav{display:none}.wrap{display:block}main{padding:0}body{background:#fff;color:#111}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <strong style="font-size:15px;color:#fff">V2 — Decisions</strong>
+  <div class="small" style="margin:4px 0 12px">refreshed · plain words</div>
+  <h2>The shape</h2>
+  <a href="#what">What v2 is now</a>
+  <a href="#feature">Building a feature (the star)</a>
+  <h2>The build</h2>
+  <a href="#build">What we're building</a>
+  <a href="#later">What's waiting</a>
+  <h2>The record</h2>
+  <a href="#decided">Every call you made</a>
+  <a href="#open">All settled</a>
+</nav>
+<main>
+
+<h1>Version 2 — the Decisions</h1>
+<div class="sub">Refreshed 2026-06-12 with every call you made. Plain words, no jargon — that's now the rule for all v2 writing. The long parked list lives in <code>V2-LATER-LIST.html</code>; the full reference is <code>V2-HARNESS-REVIEW.html</code>.</div>
+
+<div class="lead">
+<strong>Version 2 in one breath.</strong> The robot still waits for <strong>you</strong> to start every job — nothing kicks itself off yet (you chose to hold that until after launch). Once you start it, it does the whole job and only stops to ask you about the few things that are expensive to get wrong. It runs on <strong>your laptop</strong>, behind locks it <em>can't switch off</em>. And your <strong>5 projects</strong> finally share one rulebook instead of drifting into five different ones.
+</div>
+
+<!-- WHAT -->
+<h2 class="sec" id="what">What version 2 is now</h2>
+<p>Four choices set the whole shape:</p>
+<table>
+<tr><th>You decided…</th><th>So version 2…</th></tr>
+<tr><td><strong>No "front door" yet</strong> — a bug report or chat message won't start the robot on its own.</td><td>…has <em>you</em> push go on every job. The robot does all the work; you're the one who starts it.</td></tr>
+<tr><td><strong>No clock yet</strong> — no robot that wakes on a timer.</td><td>…does nothing on a schedule. Every check can still be run — you just type the command.</td></tr>
+<tr><td><strong>Runs on your laptop</strong>, behind the strongest locks.</td><td>…stays somewhere you can watch it. Because the laptop <em>can</em> reach your real systems, the locks (which the robot can't switch off) do the safety work.</td></tr>
+<tr><td><strong>One shared rulebook</strong> for the 5 projects.</td><td>…stops the five from drifting apart — a fix in one can reach all of them.</td></tr>
+</table>
+<p class="small">The big idea didn't change — just calmed down: <strong>you start it, the robot finishes it safely, and it only interrupts you for the things that are costly to get wrong.</strong></p>
+
+<!-- FEATURE -->
+<h2 class="sec" id="feature">Building a new feature (the part we spent the most care on)</h2>
+<p>The riskiest moment in building a feature is the very first one, before any code: the robot quietly decides <strong>what gets stored</strong> and <strong>what the screen looks like</strong> — and if it guesses wrong, you don't find out until everything's built on top. So we put a hard stop there.</p>
+
+<div class="gate">
+<b>1 · You ask for a feature.</b><br>
+<b>2 · Before it writes ANY code, the robot prepares two things for you to approve:</b>
+<ul>
+<li><strong>The data shape</strong> — exactly what gets stored, shown as the real tables and columns (not a vague description).</li>
+<li><strong>A rough mockup of the screen</strong> — using your <em>existing</em> colors and building blocks, so it doesn't invent a new look.</li>
+</ul>
+A <em>second</em> robot pokes holes in both first ("what did you miss? what are you assuming?"), so what reaches you is already sharpened. It also lists any open questions — and it is <strong>not allowed to answer those itself.</strong><br>
+<b>3 · <span class="now">You approve or fix</span></b> the data shape and the look. <strong>Coding literally can't start until you do.</strong><br>
+<b>4 · The robot builds</b> in small pieces, tests as it goes, then takes a <strong>picture of the finished screen</strong> so you can confirm it matches the mockup. Opens a pull request.<br>
+<b>5 · <span class="now">You merge.</span></b>
+</div>
+<p class="small">Why this shape: the data shape and the look are the two things that are both <em>expensive to change later</em> and <em>impossible to judge from reading code</em>. So we spend a few cheap robot passes to lock them down up front. (Tiny tweaks skip the mockup — no screen, nothing to lock.)</p>
+
+<!-- BUILD -->
+<h2 class="sec" id="build">What we're building (the now-pile)</h2>
+<p>Grouped by what each part is <em>for</em>. Everything here is started by you.</p>
+
+<h3><span class="now">Keep it safe</span></h3>
+<ul>
+<li><strong>The strongest locks</strong> — no deleting real data, no surprise deploys, no touching its own safety files. Built in so the robot can't switch them off. <span class="small">(One-time setup you paste in per project.)</span></li>
+<li><strong>The locks are the only net — for every project.</strong> You decided to assume <em>no</em> project has a throwaway practice copy, so the locks (which the robot can't switch off) carry all the safety. A practice copy is a <em>bonus</em> a human can add to a project that supports it (like event-vendor), never something the safety plan counts on. <span class="small">Because there's no sandbox to catch a slip, the "block dangerous commands" lock has to be exhaustive — and built first.</span></li>
+<li><strong>A retry limit + "ask a human"</strong> — if it keeps failing, it stops and pages you instead of thrashing.</li>
+</ul>
+
+<h3><span class="now">Make the output trustworthy</span></h3>
+<ul>
+<li><strong>The un-fakeable review check</strong> — a real check-mark that <em>blocks the merge</em> unless the tests passed on the exact final code, plus a plain-English note saying what was checked. (Broken today — the "passed" mark never reaches the server.) <em>The keystone.</em></li>
+<li><strong>The 4-angle reviewer + one honest "how good is it" number</strong> — independent review that hunts for bugs, plus a measured catch-rate so you know how much to trust it.</li>
+</ul>
+
+<h3><span class="now">Get smarter over time</span></h3>
+<ul>
+<li><strong>The learning loop</strong> — lessons from past mistakes load into the next job; a 3rd repeat of the same mistake becomes a hard block.</li>
+<li><strong>The progress dashboard</strong> — a page you open (no auto-emails, since there's no clock) that answers, per project, <strong>"is the robot getting smarter?"</strong> at the top — then how often it needed do-overs, how often it stopped itself, and whether changes are staying small.</li>
+</ul>
+
+<h3><span class="now">Get the 5 projects healthy <span class="pill">pulled forward</span></span></h3>
+<ul>
+<li><strong>One shared rulebook</strong> — share the parts that agree now; hold back the parts that contradict until you've settled them.</li>
+<li><strong>Lock the 15 borrowed tools</strong> to versions you've checked, so they can't change under you without warning.</li>
+<li><strong>A broken-link check</strong> that catches when the rulebook points at a file that doesn't exist (a real bug today).</li>
+</ul>
+
+<h3><span class="now">A small free win <span class="pill">pulled forward</span></span></h3>
+<ul>
+<li><strong>Name-tag the buttons and fields</strong> — an automatic rule that helps screen-reader users today and lets the robot reliably click the right thing later. Nearly free.</li>
+</ul>
+
+<!-- LATER -->
+<h2 class="sec" id="later">What's waiting for later</h2>
+<p>Most of the ~35 parked items really are fine to wait on — your "no front door, no clock" calls pushed even more of them safely back. Each has a clear "build it when ___." The full plain-English review is in <code>V2-LATER-LIST.html</code>. The headline ones:</p>
+<table>
+<tr><th>Waiting…</th><th>…until</th></tr>
+<tr><td>The front door (auto-start from a bug/chat) and the clock (timer-start)</td><td>after v2 launches</td></tr>
+<tr><td>Letting the robot merge its own small changes</td><td>the reviewer's catch-rate is measured and good (money + database always need you)</td></tr>
+<tr><td>Stress-testing the money math</td><td>the pricing setup is finalized (it's mid-redesign now)</td></tr>
+<tr><td>Packaging the shared rulebook as a proper installable add-on; auto-pushing a fix to all 5 at once</td><td>the shared rulebook above is in place first</td></tr>
+<tr><td>The heavy internet guards; the fleet-wide emergency brake</td><td>a door reads outside text, or you run many projects unattended at once</td></tr>
+</table>
+
+<!-- DECIDED -->
+<h2 class="sec" id="decided">Every call you made today (check I got these right)</h2>
+<table>
+<tr><th>The question</th><th>Your call</th></tr>
+<tr><td>Which "front door" ships first?</td><td class="done">None yet — wait until after v2 launches</td></tr>
+<tr><td>A robot that wakes on a timer?</td><td class="done">No clock — you start everything by hand</td></tr>
+<tr><td>The big parked list — pull anything forward?</td><td class="done">Yes: "get the 5 projects in sync" + the accessibility win. Money-math stays parked.</td></tr>
+<tr><td>How strict is the "answer questions before coding" gate?</td><td class="done">Strictest — grill the questions AND lock the exact data shape first</td></tr>
+<tr><td>The other hard part — the look?</td><td class="done">Approve a rough mockup before building the real screen</td></tr>
+<tr><td>What should the dashboard answer first?</td><td class="done">"Is it getting smarter?" — the repeat-mistakes trend, per project</td></tr>
+<tr><td>One "build" command or two?</td><td class="done">One command that sizes the job itself</td></tr>
+<tr><td>Where does "passed review" show?</td><td class="done">A check-mark that blocks the merge + a plain note</td></tr>
+<tr><td>How hard-wired are the locks?</td><td class="done">Strongest — built in, robot can't switch them off</td></tr>
+<tr><td>Where does the robot run?</td><td class="done">Your laptop, same as now</td></tr>
+<tr><td>How to share the rulebook across 5 projects?</td><td class="done">Share the agreeing parts now; hold the contradictions</td></tr>
+<tr><td>Practice copy / throwaway database?</td><td class="done">Assume NO project has one — the locks are the only net, everywhere. (A practice copy is an optional bonus, never assumed.)</td></tr>
+</table>
+
+<!-- OPEN -->
+<h2 class="sec" id="open">Nothing left open <span class="pill">all settled</span></h2>
+<div class="gate" style="border-left-color:var(--good);background:#13190f">
+<strong>The last open question is now answered: treat every project as if it CAN'T make a throwaway practice database.</strong><br>
+So the locks are the only safety net, for all 5 projects, always. A practice copy stays a <em>bonus</em> a human can add where it's easy (event-vendor's database supports it) — but nothing in the safety plan assumes one exists. The trade you're making: it's the most cautious setup, and it means the "block dangerous commands" lock has to be airtight and built first, because there's no sandbox behind it.
+</div>
+
+<p style="margin-top:30px" class="small">That's the whole picture, and every call is made. If the "every call you made" table matches what you meant, the plan is settled and the next step is turning it into the actual build order.</p>
+
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V2 Agent Harness — Plain-English Guide</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#161a21; --panel2:#1c212b; --ink:#e7ecf3; --muted:#9aa6b6;
+    --line:#2a313d; --accent:#6ea8fe; --good:#3fb950; --warn:#d29922; --bad:#f85149;
+    --rec:#2ea043; --decide:#a371f7; --why:#58a6ff; --code:#c9d1d9; --gold:#e3b341;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16.5px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{display:grid;grid-template-columns:280px 1fr;max-width:1480px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:24px 16px;border-right:1px solid var(--line);background:var(--panel)}
+  nav h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 6px}
+  nav a{display:block;color:var(--muted);text-decoration:none;font-size:13.5px;padding:4px 8px;border-radius:6px}
+  nav a:hover{color:var(--ink);background:var(--panel2)}
+  main{padding:40px 56px 120px;min-width:0}
+  h1{font-size:31px;line-height:1.2;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:15.5px;margin-bottom:26px}
+  h2.sec{font-size:24px;margin:54px 0 14px;padding-top:16px;border-top:1px solid var(--line)}
+  h3{font-size:19px;margin:28px 0 8px;color:#fff}
+  h4{font-size:15.5px;margin:16px 0 4px;color:var(--accent)}
+  p{margin:11px 0}
+  code{background:var(--panel2);padding:1px 6px;border-radius:5px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--code)}
+  pre{background:#0b0e13;border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow:auto;font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--code)}
+  .lead{font-size:17.5px;color:#dbe4ef;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:18px 22px}
+  table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);color:#fff;font-weight:600}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+  .box{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:16px 0;background:var(--panel)}
+  .box.rec{border-left:4px solid var(--rec)} .box.risk{border-left:4px solid var(--bad)}
+  .box.why{border-left:4px solid var(--why)} .box.decide{border-left:4px solid var(--decide)}
+  .box.gold{border-left:4px solid var(--gold)}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-right:6px}
+  .tag.rec{background:rgba(46,160,67,.16);color:#56d364}
+  .tag.risk{background:rgba(248,81,73,.16);color:#ff7b72}
+  .tag.decide{background:rgba(163,113,247,.16);color:#bc8cff}
+  .tag.new{background:rgba(110,168,254,.16);color:#79c0ff}
+  .tag.fix{background:rgba(210,153,34,.16);color:#e3b341}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .pill{font-size:12px;color:var(--muted)}
+  .good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)} .muted{color:var(--muted)} .pur{color:#bc8cff}
+  ul,ol{margin:10px 0;padding-left:22px} li{margin:6px 0}
+  .small{font-size:13.5px}
+  .anchor{scroll-margin-top:18px}
+  .gloss{background:var(--panel2);border-radius:8px;padding:4px 10px;margin:6px 0;font-size:14.5px}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 16px;margin:12px 0}
+  .step ol{counter-reset:none}
+  .you{color:#56d364;font-weight:600}
+  .ai{color:#79c0ff;font-weight:600}
+  @media (max-width:900px){.wrap{grid-template-columns:1fr}nav{display:none}main{padding:24px}.grid2{grid-template-columns:1fr}}
+  @media print{nav{display:none}.wrap{display:block}main{padding:0}body{background:#fff;color:#111}pre,code{background:#f4f4f4;color:#111}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <strong style="font-size:15px;color:#fff">V2 Harness — Plain Guide</strong>
+  <div class="pill" style="margin:4px 0 14px">2026-06-11 · rewritten for clarity</div>
+  <h2>Start here</h2>
+  <a href="#idea">0 · The one big idea</a>
+  <a href="#words">1 · The words you need</a>
+  <h2>See it work</h2>
+  <a href="#feature">2 · Story: a new feature</a>
+  <a href="#bug">3 · Story: a bug</a>
+  <a href="#more">4 · Four more stories</a>
+  <a href="#teach">5 · What the stories teach</a>
+  <h2>The pieces</h2>
+  <a href="#parts">6 · The parts</a>
+  <a href="#locks">7 · The safety locks</a>
+  <a href="#review">8 · World-class review</a>
+  <a href="#tests">9 · Are the tests real?</a>
+  <a href="#smarter">10 · How it gets smarter</a>
+  <a href="#host">11 · Lives on your git host</a>
+  <h2>Honesty</h2>
+  <a href="#better">12 · Why this beats today</a>
+  <a href="#gaps">13 · What we're unsure of</a>
+  <a href="#crash">14 · Surviving crashes</a>
+  <a href="#decide">15 · Your decisions</a>
+  <a href="#built">16 · How this was built</a>
+</nav>
+<main>
+
+<h1>The V2 Agent Harness — a plain guide you can teach from</h1>
+<div class="sub">Rewritten to be simple. Short sentences. No jargon — every special word is explained the first time it shows up, and there's a word-list in section 1. If you can read this once and then explain it to someone else, it did its job. (Nothing here is built yet — this is the plan, and it folds in your latest notes.)</div>
+
+<div class="lead">
+<strong>The whole thing in one breath.</strong> A general AI can write code, but it doesn't know <em>your</em> rules or your codebase. The "harness" is the setup that turns it into <em>your</em> trained engineer: a rulebook it reads, safety locks on the dangerous tools, an inspector that checks its work, and a notebook where lessons get written down. Today (V1) you have the rulebook and the inspector — but <strong>you still have to hand the AI every job and watch it work.</strong> V2 lets a request from <strong>Slack, Linear, or your issue tracker</strong> start the work on its own, keeps the safety locks on so it's safe to walk away, makes the inspector's sign-off <strong>impossible to fake</strong>, and writes every lesson into the notebook so the <em>next</em> job is better — across <strong>all your projects</strong>, on GitHub or GitLab. And it tells you what it's doing the whole time.
+</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="idea">0 · The one big idea</h2>
+<p>Picture hiring a brilliant contractor for your house. They can build anything — but they don't know your house rules, which walls are load-bearing, or where the water shutoff is. So you give them four things:</p>
+<ul>
+<li><strong>A rulebook</strong> — "we use these materials, we never touch that wall, here's how we like things done."</li>
+<li><strong>Safety locks</strong> on the dangerous tools — so even a tired worker can't cut the wrong pipe.</li>
+<li><strong>An inspector</strong> who checks every job before it's called done.</li>
+<li><strong>A notebook</strong> — every mistake gets written down so it never happens again.</li>
+</ul>
+<p>That bundle is the <strong>harness</strong>. The AI is the contractor; the harness is everything that makes the contractor safe and reliable in <em>your</em> house.</p>
+
+<div class="box why">
+<h4>The one problem V2 fixes</h4>
+<p>Right now (V1), you still have to <strong>walk the contractor to each job and watch them the whole time.</strong> You start every task. You notice every bug. You wait while they work. That makes <em>you</em> the bottleneck — and it doesn't matter how many contractors you can afford if you're the only one who can hand out work and check it.</p>
+<p>V2 builds the missing piece: a way for the work to <strong>start itself</strong> (you file a request, the contractor gets to it), the locks to make it <strong>safe to leave them alone</strong>, an inspector sign-off you <strong>can't fake</strong>, and a notebook that <strong>actually teaches the next job.</strong> You go from "do this, now do this, now do this" to "here's the problem — show me the finished proposal."</p>
+</div>
+
+<p><strong>The test for this whole document:</strong> after reading, you should be able to say this and mean it — <em>"V1 has all the parts but no engine: a human starts every job, watches it, and the 'it passed review' stamp can be faked. V2 adds the engine (a request starts the work), the safety locks that make running it alone safe, an inspector stamp nobody can fake, the notebook that makes it smarter each time, and a way to ship all of that to every project — and you can watch it the whole way."</em></p>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="words">1 · The words you need (read once, refer back)</h2>
+<p>Eleven words show up a lot. Here they are in plain language. After this, the rest of the page avoids jargon or re-explains as it goes.</p>
+<div class="gloss"><strong>Harness</strong> — your <code>.claude/</code> folder and a few rule files. The whole "make the AI safe and reliable for us" setup.</div>
+<div class="gloss"><strong>Skill</strong> — a saved routine the AI runs when you type a slash word. <code>/cr</code> = "review my code." <code>/feature</code> = "build this feature."</div>
+<div class="gloss"><strong>Helper agent</strong> — a focused sub-worker the main AI hires for one job (a reviewer, an investigator).</div>
+<div class="gloss"><strong>Auto-check (a "hook")</strong> — a small script the system runs <em>automatically</em> at a fixed moment, and the AI <strong>cannot skip it.</strong> Like a spell-checker that runs every time you hit save.</div>
+<div class="gloss"><strong>Scratch copy (a "worktree")</strong> — a separate copy of the code the AI works in, so it can never mess up your main copy.</div>
+<div class="gloss"><strong>Pull/merge request (PR/MR)</strong> — the "please add my change" proposal that gets reviewed before it joins the real code. GitHub calls it a pull request; GitLab calls it a merge request. Same thing.</div>
+<div class="gloss"><strong>CI</strong> — the robot on a server that automatically runs your tests every time the code changes. It's the same on GitHub and GitLab.</div>
+<div class="gloss"><strong>Production (or "prod")</strong> — the real, live system your real customers use. The opposite of a practice copy.</div>
+<div class="gloss"><strong>The floor</strong> — the safety rules that are <em>enforced by code</em>, not by politely asking the AI. The AI literally can't get past them.</div>
+<div class="gloss"><strong>The loop</strong> — the AI finding its own work and finishing it without you starting each step.</div>
+<div class="gloss"><strong>Spec</strong> — a short, plain write-up of what a feature should do and how you'll know it works. The target you aim at <em>before</em> writing code.</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="feature">2 · Story: someone wants a new feature</h2>
+<p>This is the clearest way to understand V2 — watch it happen. You asked: <em>how does someone submit a feature, and how do we make sure it's properly spec'd so the code is world-class?</em> Here's the flow.</p>
+
+<div class="step">
+<ol>
+<li><span class="you">A person</span> writes a request where they already work: a message in <strong>Slack</strong> ("we need a 'duplicate proposal' button"), a <strong>Linear</strong> ticket, or an <strong>issue</strong> in the repo. <em>All three are equal front doors</em> — no special place to go.</li>
+<li><span class="ai">The harness</span> picks it up and does the most important step <em>first</em>: it <strong>writes a short spec</strong> — what the feature should do, who uses it, and a checklist of "it works if…" lines. It does <em>not</em> start coding yet.</li>
+<li><span class="ai">It posts the spec back</span> to the same Slack thread / ticket and <strong>asks you to confirm it.</strong> This is the gate that makes the code world-class: <strong>you can't build the right thing if nobody wrote down what "right" is.</strong> If the request was vague, this is where the AI asks its questions.</li>
+<li><span class="you">You approve the spec</span> (or fix it). Now there's a clear target.</li>
+<li><span class="ai">The AI builds it in a scratch copy</span> — tests first (see section 9 for why that matters), then the code, in small steps.</li>
+<li><span class="ai">The inspector runs</span> (<code>/cr</code>, the deep review — section 8) and fixes its own small mistakes.</li>
+<li><span class="ai">It opens a pull/merge request</span> with a tidy summary: the problem, what it did, the tests, and <em>how much could break.</em> <span class="you">You review and merge.</span></li>
+</ol>
+</div>
+
+<div class="box rec"><span class="tag rec">Why this is the world-class part</span> The order is the point: <strong>spec → your OK → code.</strong> Most AI coding skips straight to code, so you get something that runs but isn't what you meant. V2 forces a written, confirmed target first — that's the single biggest lever for "the code is actually good," and it's a <em>human decision point on purpose.</em> <strong>Honest detail:</strong> this "write the spec, get your OK" step kicks in for real features. For a tiny one-line tweak, the "spec" is just the failing test — a full write-up isn't worth it. So spec-first is the rule for anything non-trivial, not a tax on every change.</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="bug">3 · Story: someone found a bug</h2>
+<p>You asked: <em>how does a bug get submitted and kicked off, so it's reviewed at PR time — or earlier, if a human decision is needed?</em> Two ways a bug arrives, and a key "stop early" path.</p>
+
+<div class="step">
+<ol>
+<li><span class="you">A bug is reported</span> from Slack, Linear, or an issue ("the total is wrong when there's a discount") — <strong>or</strong> the tests on the server go red on their own and the harness notices.</li>
+<li><span class="ai">The harness investigates</span> in a scratch copy until it finds the <em>real</em> cause (not a guess), and writes a test that <strong>fails because of the bug.</strong> A failing test is proof it actually found the problem.</li>
+<li><span class="warn">The early-stop check:</span> if fixing this means touching <strong>login/permissions or the shape of the database</strong>, the AI <strong>stops here and asks you first</strong>, before writing any fix. (Those two early stops are real today; <strong>money math</strong> currently gets its extra-careful check at review time instead — section 9 — and adding an early stop for it too is on the list.) <em>This is the "reviewed earlier if a human decision is needed" path.</em> You don't want an AI quietly redesigning your pricing rules at 2am.</li>
+<li><span class="ai">Otherwise it writes the fix</span>, the failing test now passes, the inspector reviews it.</li>
+<li><span class="ai">It opens a PR/MR</span> that shows the bug, the cause, the fix, and the test that now guards against it. <span class="you">You review and merge.</span></li>
+</ol>
+</div>
+<div class="box why">There are <strong>two</strong> places a human can catch a problem, not one: <strong>early</strong> (before coding, when the change is risky) and <strong>at the PR/MR</strong> (when it's done). The early stop is the cheaper, safer catch — it's much easier to redirect a plan than to unwind a finished change.</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="more">4 · Four more stories (the other ways it's used)</h2>
+<div class="grid2">
+<div class="box"><h4>Production is down (an incident)</h4><p><span class="you">"Checkout is broken!"</span> in Slack starts the urgent path. The harness picks one of two modes <em>up front</em> — a fast safe patch, or a full fix — writes a failing test, and a special guard double-checks before it merges. If it smells like a security problem, it <strong>isolates and stops</strong> instead of trying to fix — because the wrong "fix" to a security hole can make it worse.</p></div>
+<div class="box"><h4>"This file is a mess, clean it up" (a refactor)</h4><p>The AI splits a big file safely: it writes down a plan first (so a crash mid-way doesn't lose its place), moves code without changing behavior, and refuses lazy names like "utils" or "misc." Structure changes and behavior changes are kept in <em>separate</em> steps, so review is easy.</p></div>
+<div class="box"><h4>"Keep our libraries up to date" (dependency bumps)</h4><p>On a schedule, the AI reads what changed, makes the safe small updates into a PR/MR, and <strong>asks a human</strong> for the big risky ones. Replaces today's empty placeholder that does nothing.</p></div>
+<div class="box"><h4>"Find work nobody asked for yet" (scheduled discovery)</h4><p>On a clock (even with your laptop closed — see section 11), the AI looks for trouble: rules that drifted out of date, the same bug reported three times, a slow page. It turns each find into <strong>one tidy PR/MR</strong> — never a dump of 30 raw to-dos a human has to sort.</p></div>
+</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="teach">5 · What writing these stories taught us</h2>
+<p>Writing real flows is half the value — it exposes what's missing. Five honest lessons:</p>
+<ol>
+<li><strong>The spec-first gate is the whole ballgame for quality.</strong> Without "write it down and confirm it," the AI builds something that runs but isn't what you meant. This gate is now a required step in the feature flow, not a nice-to-have.</li>
+<li><strong>"Stop and ask early" is as important as the final review.</strong> The most valuable human catch happens <em>before</em> coding, on risky changes. We made that an explicit, named stop.</li>
+<li><strong>Every front door should produce the same shape.</strong> A Slack message, a Linear ticket, and an issue are different on the outside but should turn into <em>one</em> standard "work order" inside, or the parts downstream get messy. <strong>Today there is no such front-door router</strong> — the part that reads a request and sends it to the right place is one of the <em>new</em> pieces V2 builds, and it's what actually makes Slack and Linear first-class doors (not just talk).</li>
+<li><strong>Some triggers are bugs, some are features — route accordingly.</strong> A failing test or a "fix-me" label is usually an <em>incident</em>, not a new feature, and should go down the incident path. We made the front door choose the right path.</li>
+<li><strong>The "find work on a schedule" story only works if the clock is real.</strong> That pushed us to use the built-in cloud scheduler (section 11), not a timer that only runs while your laptop is open.</li>
+</ol>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="parts">6 · The parts (in plain terms)</h2>
+<p>The harness is made of four kinds of part. Here's what V2 keeps, changes, and adds — without the long lists.</p>
+
+<h4>Skills (the saved routines)</h4>
+<p>You have 26 today; 22 stay in the core. A few move out or go away: the Supabase-specific ones become an add-on only Supabase projects need; the Notion-sync one goes away because the rulebook moves into the repo (section 11); one empty placeholder is deleted. <strong>New routines V2 adds:</strong> a render check (take a screenshot and compare it, so an AI can't merge a visually-broken page), a drift-checker (find rules that quietly went out of date), a calibrator (measure how good the reviewer actually is — section 8), and a setup routine that lays down a new project's files.</p>
+<div class="box fix"><span class="tag fix">your correction, folded in</span> An earlier draft listed a brand-new <code>/goal</code> routine. <strong>That was a mistake — <code>/goal</code> is already built into Claude Code.</strong> You give it a finish line in plain English ("keep going until all tests pass and the page renders"), and a small fast checker confirms after each step whether it's done. We <em>use</em> the built-in; we don't rebuild it. (Same for the clock and the "run on a server" pieces — all built in. See section 11.)</div>
+
+<h4>Helper agents (the focused sub-workers)</h4>
+<p>All 23 stay. The "just merge them into one" idea is <strong>wrong</strong> — each catches a different kind of problem, and the four reviewers and six research helpers are all wired together and pulling weight. The one shared change: they were all set to use an older, cheaper model; V2 re-checks each one on the current best model, starting with the ones whose job is to <em>catch mistakes</em> (the security reviewer first).</p>
+
+<h4>Auto-checks (the "can't skip" scripts)</h4>
+<p>You have 5; V2 adds 7. The new ones are mostly safety locks (section 7) plus the un-fakeable review stamp (section 8). The important idea: an auto-check runs by itself at a fixed moment and the AI can't talk its way past it. That's what makes it trustworthy when nobody's watching.</p>
+
+<h4>Skills vs. "commands"</h4>
+<p>Short version: "commands" are the old name; "skills" are the new unified form; the harness is correctly all-skills. There's nothing to fix here except one setting per skill — a lock that says "only a human, or a trusted step, may run this," which you put on the dangerous ones (deploy, delete, send-to-Slack) so an automatic run can never fire them by accident.</p>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="locks">7 · The safety locks (what makes "leave it alone" safe)</h2>
+<p>This is the heart of "is it safe to run by itself?" There are two parts, in order: <strong>first take away the danger, then lock down what's left.</strong></p>
+
+<h3>Part 1 — the cheapest safety trick: give it a practice copy</h3>
+<p>The most powerful safety move isn't a lock at all. It's this: <strong>don't let the AI touch your real, live system in the first place.</strong></p>
+<p>Right now, when the AI works, it can reach your <em>real</em> database — the one with real customer data. Because it <em>can</em> touch the real thing, we have to pile on locks to stop it from doing harm.</p>
+<p>The simpler idea: give each job its own <strong>throwaway practice copy</strong> — a fresh database with no real data, no real passwords, and no way out to the internet. Now there's nothing dangerous for it to touch, so <em>most</em> of the locks stop being must-haves. And anything the AI tries to <em>send out</em> — an email, a Slack message, a deploy — gets <strong>caught in a list a person checks first</strong>, instead of actually happening.</p>
+<p>It's the difference between handing a new worker the keys to the real bank vault and watching them like a hawk, versus giving them a practice room with play money. The practice room is simpler <em>and</em> safer. <strong>This is now part of the V2 plan</strong> (it came out of the "background agents" article you had us study). The one thing to check before building it: can we spin up a fresh practice database fast enough for each job? — a small build question, not a big decision.</p>
+
+<h3>Part 2 — the locks that stay on anyway</h3>
+<p>Even with a practice copy, a few locks stay on — belt and suspenders. The trick V2 gets right: <strong>the must-have list is short</strong>, not giant. A request can't start a job until these are in place.</p>
+<div class="box gold"><span class="tag" style="background:rgba(227,179,65,.16);color:#e3b341">The 5 must-have locks</span>
+<ol>
+<li><strong>Block the dangerous commands.</strong> No deleting production data, no wiping folders, no deploying — these are stopped before they run. (And if the lock itself can't run for some reason, it <em>blocks</em> rather than letting things through.)</li>
+<li><strong>Hide the real keys.</strong> An automatic run is refused if it can see the real production database keys. (Today, a misread setting can hand the AI the live keys — the #1 way real incidents happened, where the AI didn't even need a clever trick to leak them.)</li>
+<li><strong>The un-fakeable review stamp.</strong> The server re-runs the checks itself (section 8). The AI can't forge "it passed."</li>
+<li><strong>A retry limit + a "give up and ask a human" state.</strong> If the AI keeps failing, it stops after a few tries and pages a person, instead of thrashing all night and producing a weird mess.</li>
+<li><strong>Lock the dangerous routines.</strong> Deploy / delete / send-message can only be fired by a trusted step, never picked by the AI on a whim.</li>
+</ol>
+</div>
+<p>The rest of the floor hardens specific paths and comes <em>after</em> the first job proves the loop works: limit what the AI can send out to the internet (so a tricked AI can't phone home), a rule that the AI checks a database change locally but a <em>human</em> applies it to production, a guard so two automatic jobs don't fight over the same branch, and a guard so the AI can never commit straight to the main code (it must go through a PR/MR). <span class="muted">(Those last two were missing from an earlier draft — your review-style pass caught it; they're back.)</span></p>
+<p class="small muted">Here's how Part 1 changes this: once a job runs in a practice copy with no real keys, "limit the internet" and "hide the real keys" go from <em>the only thing standing between the AI and your data</em> to <em>extra safety on top of an already-safe setup.</em> That's the whole point of giving it a practice room first — fewer locks have to be perfect.</p>
+
+<div class="box why"><h4>Why these are trustworthy</h4>The safety locks point at <strong>real things that actually went wrong</strong> in the industry: a real production database getting deleted, real keys getting leaked in 24 of 25 break-in attempts with no clever trick needed. We're not guessing at scary stories — we're locking the doors that were actually kicked in.</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="review">8 · World-class review (and giving humans the best shot at catching bugs)</h2>
+<p>You said the page barely used our review research. Fair. This is the part that matters most once the AI writes most of the code, because then <strong>the bottleneck isn't writing — it's checking.</strong> Two questions: how is the review itself world-class, and how do we set <em>humans</em> up to catch what slips through?</p>
+
+<h3>How the review itself is world-class</h3>
+<table>
+<tr><th>Piece</th><th>What it does (plain)</th><th>The bug it catches</th></tr>
+<tr><td><strong>A fresh, independent reviewer</strong></td><td>The reviewer is a <em>separate</em> worker who did <strong>not</strong> see the coder's reasoning — but <em>does</em> know your rulebook and past decisions. Its job is "find what's wrong with this," and it goes back and forth — find, fix, re-check — until it's clean.</td><td>A coder who's in love with their own solution polishes a confidently-wrong answer. A fresh skeptic refuses it. (In one real case this loop took "ready to merge" from 43% to 91% before a human even looked.)</td></tr>
+<tr><td><strong>Four lenses, each one angle</strong></td><td>Four reviewers attack from four fixed angles — bad inputs, wrong assumptions, knock-on damage, clashing with existing code — and each stays in its lane so they don't all check the same thing.</td><td>The "looks fine overall" miss. One angle at a time catches what a single once-over glides past.</td></tr>
+<tr><td><strong>A "REJECT" verdict</strong></td><td>Today the review can say "fix this" or "looks good." V2 adds "<strong>wrong approach — close it and start over.</strong>"</td><td>Five polished PRs that solve the <em>wrong problem</em> landing on a tired human at once.</td></tr>
+<tr><td><strong>It knows your history</strong></td><td>A reviewer that reads your past decisions, your "we decided NOT to do this" list, and your known traps.</td><td>The reviewer re-litigating a settled decision, or letting through something you already banned. <em>No outside review tool can do this — it doesn't know your history. This is your unfair advantage.</em></td></tr>
+<tr><td><strong>We measure how good it is</strong></td><td>We feed the reviewer a set of code with <strong>known planted bugs</strong> and count how many it catches — and re-measure every time the model changes.</td><td>Quietly trusting a reviewer that actually misses 1 in 3 bugs — especially right after a model swap, which we just did blind.</td></tr>
+<tr><td><strong>Cheap checks first</strong></td><td>Run the free, fast checks before the expensive deep one. On a <em>bug fix</em>, require a test that <strong>fails before the fix and passes after</strong> — that's the real proof the fix works (just counting that "tests didn't go down" is the weaker version of this). Then flag anything touching money/login/database.</td><td>A fix shipped with a test that never actually hit the bug; sneaky test deletion (the most insidious way to make a broken thing look green); silent high-risk changes.</td></tr>
+</table>
+
+<h3>How humans get the best shot at catching bugs</h3>
+<p>The review can't catch everything, so the second job is making the <em>human</em> review fast and sharp:</p>
+<ul>
+<li><strong>The PR/MR is built to be scanned quickly.</strong> Every one has the same shape: the problem, the cause, what it did, the tests, the evidence, and <strong>how much could break.</strong> A human reading a tidy summary catches far more than one squinting at a raw diff — and the harness keeps each change <em>small</em> on purpose, because reviews get much less effective once a change runs past a few hundred lines.</li>
+<li><strong>It points you at the risky lines.</strong> Instead of "here are 400 changed lines," it says "these 12 lines touch pricing — look here first."</li>
+<li><strong>It carries proof.</strong> A screenshot, the test results, the type-check — attached, so you're not taking "it works" on faith.</li>
+<li><strong>The human checklist stays.</strong> There's a short list of things only a person can judge: "did this do what I actually asked?", the "huh, why is this even here?" test, and a 60-second click-through of the real thing. The AI's review never replaces this — it sets it up.</li>
+<li><strong>The AI is never the last gate.</strong> "Auto-approved" is not "auto-merged." A code check on the server always sits between the AI and your real code.</li>
+</ul>
+
+<div class="box why"><h4>The layered defense (the honest version)</h4>
+Between "the AI thinks it's done" and "it's in your real code," here is every catch, in order: <strong>(1)</strong> the auto-checks block dangerous commands; <strong>(2)</strong> tests + type-check run and must be green; <strong>(3)</strong> the fresh independent reviewer hunts for problems and loops until clean; <strong>(4)</strong> the four lenses each attack one angle; <strong>(5)</strong> the "knows your history" reviewer checks against your past decisions; <strong>(6)</strong> the test-count and risk checks flag sneaky changes; <strong>(7)</strong> the render check confirms the page actually looks right; <strong>(8)</strong> the server re-runs the checks on the exact final code — <em>this one can't be faked</em>; <strong>(9)</strong> the tidy summary + a human's 15-minute scan and click-through.
+<p style="margin-top:8px"><strong>Be honest about step 8:</strong> the server re-running the <em>tests and type-check</em> truly can't be faked. But the <em>deep review's opinion</em> ("I found no must-fix problems") is the AI's judgment, and judgment can be wrong — so we don't pretend it's un-fakeable. Instead we <strong>measure</strong> how often that judgment misses a real bug (the calibrator), and we only let the AI auto-approve low-risk changes once that measured number is good enough. Anyone who says "the AI can never merge a bad change" is overselling. Our honest claim: the <em>tests</em> can't be faked, and the <em>judgment</em> is measured, not assumed.</p>
+</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="tests">9 · Are the tests real? (your sharpest question)</h2>
+<p>You nailed a real hole: <strong>a passing test can be worthless.</strong> It might test nothing, test a tautology ("1 equals 1"), or test what the code <em>happens</em> to do instead of what it <em>should</em> do. Writing tests first (our <code>/tdd</code> routine) helps, but it does <strong>not</strong> guarantee the test is any good. So how do we <em>verify the tests themselves?</em> Five layers, plain:</p>
+
+<table>
+<tr><th>Layer</th><th>What it means</th><th>Already have it?</th></tr>
+<tr><td><strong>1. The answer comes from the spec, not the code</strong></td><td>The "correct" result a test checks must come from the written spec or from you — <strong>never</strong> from reading what the code already returns. (Copying the code's output into the test is how you get a test that "proves" a bug is correct.)</td><td>It's a rule today; V2 adds a reviewer check that looks for it being broken.</td></tr>
+<tr><td><strong>2. The test must fail first (red), then pass (green)</strong></td><td>Before the fix exists, the new test has to <em>fail</em>. If a test passes even before the code is written, it's testing nothing. V2 records this proof so it can't be skipped.</td><td>Partly — the build helper does this; V2 makes it un-skippable and logged.</td></tr>
+<tr><td><strong>3. Break the code on purpose and check a test screams</strong> <span class="tag new">new</span></td><td>This is the big one, called <em>mutation testing</em>. A tool deliberately introduces small bugs (flips a <code>&gt;</code> to a <code>&lt;</code>, changes a number) and checks that some test goes red. <strong>A test that stays green when the code is broken is proven useless.</strong> This is the most direct way to verify a test actually tests something — and it's a genuinely new piece we should add. <strong>Honest limit:</strong> it works best on self-contained logic like the money math; code that talks to the database is checked a different way — with real tests run against a practice copy of the database (section 7). So this proof covers the math, not the whole product.</td><td><strong>No — new addition.</strong> Needs a tool choice and a place to run (the pricing math first; a real, maintained tool for this exists).</td></tr>
+<tr><td><strong>4. For math, test the rule, not examples</strong></td><td>For money math, instead of "2 items = $4," you state a rule that must <em>always</em> hold ("the total always equals the sum of the lines; tax never applies to service fees") and a tool throws hundreds of random inputs at it trying to break the rule. The AI can't quietly weaken a rule it didn't write.</td><td>Planned (needs one library approval — a decision below).</td></tr>
+<tr><td><strong>5. A reviewer asks "would this catch a real bug?"</strong> <span class="tag new">new</span></td><td>Test quality becomes its own review angle: does the test actually <em>assert</em> something? Does it check behavior, or just run the code without checking the result? We even plant <em>weak tests</em> in the calibrator's known-bad set and measure whether review catches them.</td><td><strong>Mostly new.</strong> A small but real addition to the reviewer.</td></tr>
+</table>
+
+<div class="box rec"><span class="tag rec">How we know a test is real — the checklist</span> It came from the spec (not the code) · it failed before the fix existed · it goes red when we deliberately break the code · it actually checks a result, not just runs · for money, it states a rule, not a lucky example. A test that can't pass this checklist isn't a test — it's decoration.</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="smarter">10 · How it gets smarter (the two notebooks)</h2>
+<p>You asked to <em>see the process</em>: how does one project's AI get better over time, <strong>and</strong> how does the shared harness get better so <em>every</em> project benefits? There are two loops, and they feed each other.</p>
+
+<h3>Loop A — one project gets smarter (the local notebook)</h3>
+<p>Follow one real example: <em>the AI keeps forgetting to limit a database query to one customer's data</em> (a privacy leak).</p>
+<pre>  1. The reviewer catches it once  →  it's written as a lesson (a human confirms it's real)
+  2. The lesson sits in an "inbox"
+  3. It happens a 2nd and 3rd time  →  now it PROMOTES to a real rule
+  4. From now on, that rule loads automatically whenever the AI touches database code
+  5. Because it's a checkable rule, we turn it into a hard auto-check  →  now the AI
+     literally CAN'T open a PR with an unscoped query — it's blocked
+  6. We watch the number: "first-try approvals" go up. The mistake is gone for good.</pre>
+<p>That's the journey from "the AI keeps doing this annoying thing" to "<strong>it is now impossible.</strong>" The key idea: a lesson doesn't just get <em>written down</em> (which everyone does and nobody reads) — it gets <strong>read back into the next job</strong>, and if it can become a hard block, it does.</p>
+
+<h3>Loop B — the shared harness gets smarter (the global notebook)</h3>
+<p>That privacy rule is useful in <em>every</em> project, not just this one. So:</p>
+<pre>  1. The lesson gets tagged "everyone needs this" (not just "this project")
+  2. That opens a "please add this to the shared harness" request  →  a HUMAN reviews it
+  3. It's merged into the shared harness package
+  4. Every other project pulls it down with one update command
+  5. Now all 5+ repos refuse the unscoped query — a mistake made once, fixed everywhere</pre>
+
+<div class="box why"><h4>How the two loops feed each other</h4>
+A lesson starts <strong>local</strong> (Loop A). Once it's proven useful in one project, it's promoted to <strong>global</strong> (Loop B) and shipped to all of them. And it runs the other way too: when a project installs the shared harness, a global rule <em>arrives</em> and immediately starts watching that project. <strong>The fleet gets smarter while you sleep:</strong> on a schedule, a worker scans every project for rules that drifted out of date or mistakes that repeated, and opens one tidy PR per find. Honest note: the fully-automatic "push to global" only kicks in once you actually have a second project using it — until then it's a human opening the request by hand.</p>
+</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="host">11 · It lives on your git host — GitHub <em>or</em> GitLab</h2>
+<div class="box fix"><span class="tag fix">your correction, folded in</span> The old page assumed GitHub everywhere. <strong>Fixed.</strong> Nothing here is GitHub-only. It works the same on <strong>GitLab</strong> (or any git host): they all have merge requests, a test robot (CI), protected branches, and labels. We use neutral words from here on, and the install/update mechanism works on any git host. One honest exception, below.</div>
+
+<div class="grid2">
+<div class="box"><h4>The rulebook lives in the repo</h4><p>Today the "official rulebook" lives in Notion and drifts away from the code. V2 moves it <em>into the repo</em> as plain files. Now "is the rulebook up to date?" is just a normal code comparison. The old Notion-sync routine goes away.</p></div>
+<div class="box"><h4>Install and update like any package</h4><p>The portable behavior ships as a <strong>plugin</strong> — install it once, update it with one command, pinned to a version. This works whether your repos are on GitHub or GitLab (you can host the plugin privately on either). A small setup step lays down the few things a plugin can't carry, like which permissions to allow.</p></div>
+<div class="box"><h4>How a request becomes a working AI</h4><p>A Slack message, a Linear ticket, an issue label, or a failed test on the server triggers a <strong>cloud "routine"</strong> — a built-in Claude Code feature that runs on Anthropic's servers (so it works with your <em>laptop closed</em>), gets the request, and starts the work in a scratch copy. Slack and Linear connect through a connector or a simple web call.</p></div>
+<div class="box rec"><h4>The un-fakeable stamp</h4><p>The server re-runs your tests and type-check on the <em>exact</em> code being merged, and won't let it in unless they pass. The AI writes no "I passed" note the server trusts — so that part can't be faked. (The deep review's <em>opinion</em> is measured, not faked-proof — section 8.)</p></div>
+</div>
+<div class="box risk"><span class="tag risk">one honest exception</span> Claude Code has a <em>built-in</em> trigger for <strong>GitHub</strong> events. For <strong>GitLab</strong> (and other hosts), there's no built-in button — you wire the trigger through a simple web call to the cloud routine, or a small custom runner. Same end result; a little more setup on non-GitHub hosts. We say this plainly rather than pretend it's identical.</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="better">12 · Why V2 beats what you have today</h2>
+<table>
+<tr><th>The jump</th><th>Today</th><th>V2</th></tr>
+<tr><td><strong>Tool → Engine</strong></td><td>You hand the AI every job; "weekly" routines run once and die because nothing starts them.</td><td>A request from Slack/Linear/an issue starts the work; a real clock runs the scheduled jobs.</td></tr>
+<tr><td><strong>Polite rules → Real locks</strong></td><td>Most rules are just text the AI can ignore; the key safety guard is missing; the key-firewall is a convenience script.</td><td>The dangerous stuff is blocked by code that can't be skipped, and the real keys are hidden from automatic runs.</td></tr>
+<tr><td><strong>Fakeable stamp → Real stamp</strong></td><td>The "review passed" marker is git-ignored and never reaches the server — the AI grades itself.</td><td>The server re-runs the tests on the final code; the deep-review opinion is measured, not assumed.</td></tr>
+<tr><td><strong>Forgetful → Learns</strong></td><td>Lessons get written down and never read back.</td><td>Lessons load into the next job and, when possible, become hard blocks — locally and across all repos.</td></tr>
+<tr><td><strong>Blind → You can watch</strong> <span class="tag new">your ask</span></td><td>An unattended run goes dark until it's done.</td><td>It tells you what it's doing the whole time, and logs every action, so you can step in mid-run.</td></tr>
+</table>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="gaps">13 · What we're honestly not sure about</h2>
+<p>You asked for honesty over flattery. Here's the real list.</p>
+<ul>
+<li><strong>Nothing has been tested live yet.</strong> A handful of "the platform can do X" claims are read from the docs, not tried even once (does a "block until done" check truly make the AI keep working? does the screenshot check run on the server? does the strongest lock actually take effect on a Mac?). Each is a quick one-time test we should run before relying on it.</li>
+<li><strong>Our research only looked at fans.</strong> All the sources we studied are pro-automation. We correctly refused to copy their hype numbers — but we never went looking for a team that tried this and <em>pulled back.</em> That search is worth doing. <span class="muted">(That's part of why you asked us to read the "you're overthinking background agents" article — that 3-pass read is queued; see the note at the end.)</span></li>
+<li><strong>We never did the money math.</strong> Running lots of AI jobs across many repos costs money, and so do the harness's <em>own</em> nightly self-improvement runs. Nobody added it up. A harness can pay for itself in output and bleed on upkeep.</li>
+<li><strong>The safety is designed, not attacked.</strong> We planned the defenses; we didn't try to break them.</li>
+<li><strong>No "stop everything" button.</strong> There's a per-job stop, but nothing halts all your repos at once if something goes wrong fleet-wide. That's a decision below.</li>
+<li><strong>Don't over-trust the stamp.</strong> The biggest risk is someone reading "un-fakeable gate" as "bad code can't get in." It can — the gate makes the <em>tests</em> un-fakeable, not the <em>judgment.</em> We keep saying so on purpose.</li>
+</ul>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="crash">14 · Surviving crashes (a habit, not just a footnote)</h2>
+<p>Building this plan, the AI work ran into the daily usage limit <strong>three times</strong> and lost almost nothing. Here's the simple trick, because V2 makes it a rule:</p>
+<div class="box"><strong>Write everything to disk as you go, and read results from disk — not from memory.</strong> Every worker saves its result to a file before finishing. If the run gets cut off, the finished files are already saved; only the unstarted work is lost, and it picks up by checking which files are missing. Order the work so the cheap, important stuff saves <em>first.</em></div>
+<p>Why V2 keeps this: a long automatic job that only reports at the very end <em>loses everything</em> if it's interrupted. So V2's jobs save progress as they go and narrate what they're doing — which is also exactly the "let me watch it work" feature you asked for.</p>
+<div class="box risk"><span class="tag risk">honest catch</span> This trick has its own trap, and it bit us: "the file exists" was treated as "the work is done" — but a file can be saved and still be <em>wrong</em>. We literally caught a step where the review files were saved but their fixes were never applied. The lesson, now built in: check the <em>contents</em>, not just that the file is there.</div>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="decide">15 · The decisions only you can make</h2>
+<p>Most questions were settled by evidence. These are the real choices left. <span class="tag decide">decide</span></p>
+<table>
+<tr><th>#</th><th>The choice</th><th>The lean</th></tr>
+<tr><td>1</td><td><strong>How bold is auto-approval?</strong> Should the AI ever merge low-risk changes on its own, or always wait for you? And should it <em>ever</em> auto-touch money or the database, or are those always human-only?</td><td>Highest stakes. Start with "watch only" (it suggests, you merge) until the reviewer's measured catch-rate is proven good. For a $30k-client tool, keep money/database human-only.</td></tr>
+<tr><td>2</td><td><strong>How honest is the stamp, exactly?</strong> Have the server re-run a slice of the review's logic, or accept that the deep review is "measured, not faked-proof"?</td><td>Both: re-run what can be re-run, and be honest about the rest. Decide before the first job runs.</td></tr>
+<tr><td>3</td><td><strong>Build the two missing safety guards</strong> (no two jobs on one branch; no committing straight to main) — or decide they're not needed because each job already works in its own copy?</td><td>Build them — they're cheap and the collision cost is high across many repos.</td></tr>
+<tr><td>4</td><td><strong>Add mutation testing?</strong> (The "break the code on purpose, check a test screams" tool from section 9.) Pick a tool and where it runs.</td><td>Yes, at least on money/pricing code — it's the most direct proof a test is real.</td></tr>
+<tr><td>5</td><td><strong>Which front door ships first</strong> — an issue label, a Slack/Linear summon, or auto-react to a failed test?</td><td>The label is the simplest and safest first step; Slack/Linear right after.</td></tr>
+<tr><td>6</td><td><strong>A "stop the whole fleet" button</strong> — build one, or rely on per-job stops?</td><td>Worth building once you run several repos unattended.</td></tr>
+<tr><td>7</td><td><strong>The smaller setups:</strong> where humans get paged (Slack/Linear/the git host); how aggressive the "delete outdated rules" cleanup is; whether the new-project setup is minimal or opinionated; approve the one math-testing library.</td><td>I'll bring you each with the trade-off when we get there.</td></tr>
+</table>
+
+<!-- =================================================== -->
+<h2 class="sec anchor" id="built">16 · How this plan was built (so you can trust it)</h2>
+<p>So you don't have to re-read everything — and can challenge any claim by following the trail.</p>
+<ul>
+<li><strong>We checked what's actually on disk first</strong>, and re-checked it, because notes go stale (three were corrected mid-way).</li>
+<li><strong>We re-read 37 expert sources at full ambition</strong> — pulling out the world-class move <em>before</em> the "but we're small" filter that had shrunk the earlier plan. That produced far more, bolder ideas than the cautious first draft.</li>
+<li><strong>We attacked our own conclusions, three rounds.</strong> Every piece was checked by a <em>different</em> AI worker than wrote it. The last round included a required "does this already exist / is this just rebuilding something we rejected?" gate. It <strong>passed with zero fakes.</strong></li>
+<li><strong>We folded the criticism back in</strong> — including the honest version of the stamp, a skill that got dropped by mistake, two safety guards that went missing, and the fixes from <em>your</em> notes (Slack/Linear as front doors, GitHub-<em>or</em>-GitLab, and using the built-in <code>/goal</code> instead of building a new one).</li>
+</ul>
+<p class="small muted">The full trail lives under <code>docs/research/v2-audit/</code>: the on-disk map, the 37 source re-reads, the four "what did we wrongly cut?" attacks, the vision, the design docs with their critiques, and the final review. Read them only to challenge a conclusion.</p>
+
+<div class="box rec" style="margin-top:28px"><span class="tag rec">Where we are + what's next</span> The plan is complete and has survived three rounds of attack. Still to come, after the usage limit resets: the deeper "user stories / review / test-checking / two-loops" write-ups were being expanded by helper workers (this page already folds in their substance), and your requested 3-pass read of the "overthinking background agents" article + its Notion write-up. Your move: the decisions in section 15 — especially #1 (how bold is auto-approval) and #4 (add mutation testing). Then a first build proves the five safety locks and the un-fakeable stamp on one real job.</div>
+
+</main>
+</div>
+</body>
+</html>

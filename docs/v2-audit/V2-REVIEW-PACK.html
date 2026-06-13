@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V2 — Review Pack (the whole plan, one place)</title>
+<style>
+  :root{--bg:#0f1115;--panel:#161a21;--panel2:#1c212b;--ink:#e7ecf3;--muted:#9aa6b6;--line:#2a313d;--accent:#6ea8fe;--good:#3fb950;--warn:#d29922;--bad:#f85149;--gold:#e3b341;}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16.5px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{display:grid;grid-template-columns:265px 1fr;max-width:1360px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:24px 14px;border-right:1px solid var(--line);background:var(--panel)}
+  nav h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 6px}
+  nav a{display:block;color:var(--muted);text-decoration:none;font-size:13.5px;padding:4px 8px;border-radius:6px}
+  nav a:hover{color:var(--ink);background:var(--panel2)}
+  main{padding:36px 52px 120px;min-width:0}
+  h1{font-size:30px;margin:0 0 6px}.sub{color:var(--muted);font-size:15px;margin-bottom:22px}
+  h2.sec{font-size:23px;margin:48px 0 12px;padding-top:14px;border-top:1px solid var(--line)}
+  h3{font-size:17px;margin:24px 0 6px;color:#fff}
+  p{margin:10px 0}code{background:var(--panel2);padding:1px 6px;border-radius:5px;font:13px ui-monospace,Menlo,monospace;color:#9ecbff}
+  .lead{font-size:16.5px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:16px 20px}
+  .honest{font-size:15px;background:#1a1712;border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:10px;padding:12px 18px;margin:12px 0}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);color:#fff}tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+  .flow{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 18px;margin:14px 0}
+  .flow.danger{border-left:4px solid var(--bad)}
+  .flow h3{margin:0 0 6px}.flow .steps{font-size:14.5px}.flow b{color:#fff}
+  .hood{margin-top:10px;padding:9px 13px;background:var(--panel2);border-radius:8px;font-size:13px;color:var(--muted);line-height:1.55}.hood b{color:var(--ink)}.hood code{background:#11141a;color:#9ecbff}
+  .you{color:#56d364;font-weight:600}.stop{color:#e3b341;font-weight:600}
+  .done{color:#56d364;font-weight:600}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+  .small{font-size:13px;color:var(--muted)}
+  .pill{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;background:rgba(86,211,100,.15);color:#56d364}
+  .pill.later{background:rgba(110,118,129,.18);color:#adbac7}
+  @media (max-width:900px){.wrap{grid-template-columns:1fr}nav{display:none}main{padding:22px}}
+  @media print{nav{display:none}.wrap{display:block}main{padding:0}body{background:#fff;color:#111}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <strong style="font-size:15px;color:#fff">V2 — Review Pack</strong>
+  <div class="small" style="margin:4px 0 12px">the whole plan, one place</div>
+  <h2>1 · Understand</h2>
+  <a href="#big">The big picture</a>
+  <a href="#words">A few words first</a>
+  <h2>2 · How it works</h2>
+  <a href="#flows">Every kind of job</a>
+  <a href="#quality">The quality bar</a>
+  <a href="#lean">Simple &amp; powerful</a>
+  <h2>3 · The build</h2>
+  <a href="#ship">What ships next round</a>
+  <a href="#later">What waits</a>
+  <h2>4 · The record</h2>
+  <a href="#inventory">What's in the harness</a>
+  <a href="#calls">Every call you made</a>
+</nav>
+<main>
+
+<h1>Version 2 — the Review Pack</h1>
+<div class="sub">The whole converged plan in one place, plain words. Read top to bottom: what it is → how it works for every job → the quality bar → what we build now vs. later → the record of every decision. A staff engineer reviewed this before it reached you.</div>
+
+<div class="lead">
+<strong>The whole thing in one breath.</strong> You have an AI helper ("the robot") that writes code. Version 2 makes it: <strong>safe</strong> (locks it can't switch off, since it runs on your laptop with nothing behind them), <strong>trustworthy</strong> (it can't forge a passing grade, and independent fresh-eyes attack every change), <strong>tasteful</strong> (the robot builds only from your design system so the UI stays world-class and never drifts into slop — you keep the brand taste and the final call; plus real UX and speed), <strong>self-improving</strong> (every lesson compounds), and <strong>lean</strong> (it leans on the model's own growing smarts instead of burning tokens on busywork). You start every job; the robot finishes it; it only stops to ask about the few things that are expensive to get wrong. And it's built to drop into all 5 of your projects, not just this one.
+</div>
+
+<div class="honest" style="border-left-color:var(--good);background:#13190f">
+<strong>New here? Day 1 — your first feature in 5 steps.</strong>
+<ol style="margin:8px 0 4px">
+<li>Open your terminal in the repo (or your Claude Code session).</li>
+<li><strong>Just describe what you want</strong>, in plain language: <em>"Add a date picker to the booking form."</em> You don't memorize command names — the harness picks the right skill for you. (The <code>/feature</code>, <code>/cr</code> names you'll see below are those skills <em>running</em>, shown so you can see what happened — you rarely type them.)</li>
+<li>It stops and asks you to <strong>approve the data shape, the flow, and the look</strong>. Reply to approve.</li>
+<li>It builds, tests, and reviews — handing you a checklist + the exact commands to see it.</li>
+<li>It opens a pull request. <strong>You review and merge.</strong></li>
+</ol>
+That's the whole loop. Everything below explains <em>why</em> each step is shaped this way. <span class="small">(New? Read "A few words first" + "Every kind of job"; "Every call you made" is a decision record you can skip.)</span>
+</div>
+
+<!-- WORDS -->
+<h2 class="sec" id="words">A few words first</h2>
+<ul>
+<li><strong>The robot</strong> — the AI helper + all the rules around it (you call it "the harness").</li>
+<li><strong>A skill</strong> — a written playbook the robot follows, run by typing its name (<code>/feature</code>, <code>/cr</code>).</li>
+<li><strong>A helper (sub-agent)</strong> — a focused mini-robot spun up for one job with its own fresh view. The point of a separate helper is the <em>fresh pair of eyes</em>.</li>
+<li><strong>The locks</strong> — automatic safety rules the robot literally can't turn off.</li>
+<li><strong>The feature doc</strong> — one permanent page per feature: what it does + how to check it still works. The single source of truth everything ties to.</li>
+<li><strong>The design system</strong> — your set colors, spacing, type, and building-block components. The robot builds only from these. (If a project doesn't have one yet, building it is step zero — see the quality bar.)</li>
+<li><strong>Free linting</strong> — fixed computer checks (no AI, no tokens, can't be faked) that catch mechanical mistakes.</li>
+<li><strong>The bug-catch test</strong> — a pile of code changes with bugs <em>deliberately hidden</em> in them (real bugs that actually happened in your projects), used to measure how often the robot's reviewer catches them. That number is the <strong>catch-rate</strong> — the dial that lets us trust the reviewer and safely trim duplicate checks. <em>(Different from "golden examples," which are the best examples of good code — same word "golden", totally different thing.)</em></li>
+<li><strong>PR (pull request)</strong> — a proposed change, packaged for you to review and merge.</li>
+<li><strong>Tokens</strong> — what each AI step costs to run (think: the meter). "Free" / "zero-token" = a plain computer check, no AI, no cost.</li>
+<li><strong>Red-team</strong> — a helper that actively tries to break in or break the code, instead of just reading it for problems.</li>
+</ul>
+
+<!-- BIG -->
+<h2 class="sec" id="big">The big picture — what version 2 is</h2>
+<table>
+<tr><th>You decided…</th><th>So version 2…</th></tr>
+<tr><td><strong>You start every job</strong> (no auto-start from a bug/chat yet) and <strong>no timer</strong>.</td><td>…keeps you in the driver's seat. The robot does the work; you push go. Auto-start + timer revisited after launch.</td></tr>
+<tr><td><strong>Runs on your laptop, strongest locks, no practice database assumed.</strong></td><td>…leans entirely on the locks for safety — nothing sits behind them, so they're built first and built strongest.</td></tr>
+<tr><td><strong>One shared rulebook across your 5 projects; self-contained; works on any stack.</strong></td><td>…stops the 5 from drifting apart, bundles everything it needs (no outside dependencies), and never assumes one project's choices (Supabase here, Firebase elsewhere — the robot reads each project's setup).</td></tr>
+<tr><td><strong>Simple &amp; powerful — lean on the model, don't burn tokens.</strong></td><td>…uses one capable pass wherever the model can hold the work, and only spins up separate helpers when they earn it. (See "Simple &amp; powerful.")</td></tr>
+</table>
+<p class="small">One sentence: <strong>you start it, the robot finishes it safely and tastefully, it only interrupts you for what's costly to get wrong, and it gets leaner and smarter every cycle.</strong></p>
+
+<!-- FLOWS -->
+<h2 class="sec" id="flows">How it works — every kind of job</h2>
+<p>Steps <span class="you">you</span> do are green; <span class="stop">stops where the robot must ask you</span> are gold. <strong>The amount of checking scales to the risk of the change.</strong> Each job's <b>"Under the hood"</b> box shows the real skills + helpers it uses.</p>
+
+<div class="flow">
+<h3>1 · A new feature</h3>
+<div class="steps">
+<b><span class="you">You run one command (<code>/feature</code>).</span></b> → Before any code, the robot prepares — and an independent helper pokes holes in — three things, <strong>in order</strong>:
+<b>(a) the data shape</b> (the real tables/columns);
+<b>(b) the UX — how it <em>works</em></b>: the steps a person takes, how few clicks, does it read clearly;
+<b>(c) the UI — how it <em>looks</em></b>: a rough mockup built from your design system.
+<em>(UX before UI — agree how it works before how it looks.)</em> It lists open questions and may not answer them itself. → <b><span class="stop">You approve the data shape, the flow, and the look.</span> Coding can't start until you do.</b> → It builds in small pieces, test-first, handling every data state (no data / some / lots / bad / loading). → The right-sized review runs. → A picture of the finished screen is attached. → Opens a PR. → <b><span class="you">You merge.</span></b>
+<div class="small" style="margin-top:6px">The stops fire only when they apply: no database → skip the data-shape stop; no screen → skip the UX/UI stops; a tiny change → straight to building. Everything the feature should do + how to verify lands in its <strong>feature doc</strong> (the hub).</div>
+<div class="hood"><b>Under the hood —</b> <code>/feature</code> (one command; sizes the job) → <code>/design</code> (one pass: schema + data/API layer + front-end architecture together, judged for your stack) → an independent <b>grill helper</b> → <code>@spec-writer</code> (writes the testable behaviors) → <code>@implementer</code> (builds one piece at a time, test-first) → the right-sized review (<code>/cr</code>) → a <b>design-review helper</b> + <code>@ux-reviewer</code> <em>only if there's a meaningful screen change</em>. Gates: the un-fakeable test gate before merge; <code>/cr-security</code> + the red-team pass if it touches login/permissions/payments; the project's database-safety skill first if it touches the database.</div>
+</div>
+</div>
+
+<div class="flow">
+<h3>2 · A bug</h3>
+<div class="steps">
+<b><span class="you">You report it.</span></b> → The robot finds the true cause and writes a test that fails <em>because of</em> the bug. → <b><span class="stop">If the fix needs a database-shape change, it stops and asks you first (job 5's rule).</span></b> → Otherwise it fixes it. → Review runs. → PR. → <b><span class="you">You merge.</span></b>
+<div class="hood"><b>Under the hood —</b> usually <code>/incident</code> first (what kind of problem is it?) → <code>/debug</code> (reproduce, find the true cause, write the failing test — it does NOT write the fix) → the fix then runs through the same right-sized build path as a feature. Helpers: <code>@investigator</code> (bugs spanning several files) · <code>@reviewer</code> + its 4 attack-lenses.</div>
+</div>
+</div>
+
+<div class="flow">
+<h3>3 · Production is down (emergency)</h3>
+<div class="steps">
+<b><span class="you">"Checkout is broken!"</span></b> → The robot decides up front: quick safe patch now, or full fix? → failing test → fix → review → PR → <b><span class="you">you merge, fast.</span></b> → A quick patch logs a proper full fix as follow-up. → Afterward it writes up what happened.
+<div class="hood"><b>Under the hood —</b> <code>/incident</code> first, always (classify before touching anything) → <code>/hotfix</code> (controlled quick fix) or <code>/migrate</code> (if the damage is bad data, not code) → <code>/post-mortem</code> after. Helpers: <code>@incident-responder</code> (gathers evidence, never writes code) · <code>@reviewer</code> · <code>@hotfix-guard</code> (won't let it merge without a follow-up + a failing test).</div>
+</div>
+</div>
+
+<div class="flow danger">
+<h3>4 · A security scare</h3>
+<div class="steps">
+<b><span class="you">A leaked key, a strange login, possible data exposure.</span></b> → <b><span class="stop">The robot isolates the affected area, LOGS everything into a triage packet (what it found, where, what's affected), and STOPS. It never guesses a fix.</span></b> → Hands you the packet. → <b><span class="you">You decide the next move.</span></b>
+<div class="small" style="margin-top:6px">The one job where the robot's job is to <em>not</em> act — a wrong guess destroys evidence or widens the breach. (Automating the response is deliberately a future, high-caution item. <strong>Separate thing:</strong> security-sensitive <em>code changes</em> get a red-team pass — that's the "Secure" row in the quality bar, not this live-incident response.)</div>
+<div class="hood"><b>Under the hood —</b> <code>/incident</code> (on a security signal: isolate + log + stop). Helper: <code>@incident-responder</code> (proposes the lock-down, never acts destructively).</div>
+</div>
+</div>
+
+<div class="flow">
+<h3>5 · A database change</h3>
+<div class="steps">
+<b><span class="you">You ask.</span></b> → The robot writes the exact change as a file you can read, applied nowhere. → <b><span class="stop">You approve that exact data shape first.</span></b> → It writes the tests for it. → <b>It never touches any database — there's no practice copy, so the locks are what stop it.</b> → PR → <b><span class="you">You merge, then you (not the robot) run the change against the real database yourself.</span></b>
+<div class="hood"><b>Under the hood —</b> the project's database-safety skill first (here that's <code>/supabase</code>; a Firebase project would have its own — the robot reads the project's setup) → <code>/migrate</code> (plan, back up, dry-run, your sign-off) → <code>/feature</code> for the surrounding code. Helper: <code>@security-reviewer</code> if it touches permissions.</div>
+</div>
+</div>
+
+<div class="flow">
+<h3>6 · Cleaning up messy code</h3>
+<div class="steps">
+<b><span class="you">You ask.</span></b> → Plan first → moves code without changing what it does → keeps "moving" and "changing" in separate commits → refuses lazy names → review → PR → <b><span class="you">You merge.</span></b>
+<div class="hood"><b>Under the hood —</b> <code>/refactor</code> (safety test first; structure and behavior never in the same commit) → <code>/tdd</code> first if there's no test yet. Helper: <code>@refactor-extractor</code> for big multi-file splits.</div>
+</div>
+</div>
+
+<div class="flow">
+<h3>7 · A hard "what's the right approach?" question</h3>
+<div class="steps">
+<b><span class="you">You ask.</span></b> → The robot researches, double-checks claims, and writes a recommendation with its reasoning + one test that would prove or kill it. → <b><span class="you">You decide.</span></b> No code until you pick.
+<div class="hood"><b>Under the hood —</b> <code>/spike</code>, run by <code>@spike-orchestrator</code> coordinating a small fleet: <code>@spike-researcher</code> (gathers sources) · <code>@spike-synthesis</code> (writes the recommendation) · <code>@spike-adversarial-verifier</code> (attacks it) · <code>@spike-user-verifier</code> (what it costs you if it's wrong) · <code>@spike-slice</code> (the one proving test).</div>
+</div>
+</div>
+<p class="small"><strong>Keeping outside libraries up-to-date</strong> is done by hand for now — no finished tool for it yet (a small future build). <strong>Throughout:</strong> any job that needs you ends with a <strong>handoff block</strong> — a short checklist of what to do by hand + the exact commands (go to the right worktree, start the dev server, open any file it built) so you can keep going.</p>
+
+<!-- QUALITY -->
+<h2 class="sec" id="quality">The quality bar — every front-end change clears all of this</h2>
+<p>What "world-class, no slop" actually means, made into checks rather than hopes. Each scales to the change's risk.</p>
+<table>
+<tr><th>Dimension</th><th>How it's held</th></tr>
+<tr><td><strong>Correct &amp; safe</strong></td><td>One smart review pass (matches the plan, safe DB use, right place, real tests) + the mechanical checks done by <em>free linting</em> + <strong>4 independent "attack" helpers</strong> that try to break it from fresh angles. <strong>One part is un-fakeable:</strong> your server already runs the tests on every change, and now the merge <em>waits</em> for that result and ties the "passed" mark to the exact final code — so the robot can't forge it (the existing run becomes the gate; it's not a second run). The review <em>opinion</em> is trusted because we measure its catch-rate, not because it can't be faked.</td></tr>
+<tr><td><strong>Tests that actually catch bugs</strong></td><td>Tests are written test-first, then <em>verified</em> two ways: the <strong>"delete-the-code" check</strong> (if you removed the real code, would a test fail? if not, it's a fake test that just mirrors the code) and <strong>break-the-code testing</strong> (deliberately introduce a bug — a test must scream). A test-writer plus a test-checker.</td></tr>
+<tr><td><strong>Clean &amp; readable</strong></td><td>Well-structured, well-named code does the explaining. <strong>Comments are earned</strong> — last resort, one line, and only the <em>why</em> when it's non-obvious, never the <em>what</em>. (Agents over-comment; the review flags it.)</td></tr>
+<tr><td><strong>Secure</strong></td><td>A security review on auth/permissions/payments/public changes, plus a <strong>red-team pass that actively tries to break in</strong> (only on those security-sensitive changes). A <em>live</em> security incident is handled differently — the robot isolates, logs, and hands off to you; it never auto-responds (job 4).</td></tr>
+<tr><td><strong>Well-designed</strong></td><td>A design step (<em>one</em> pass) designs the schema, the data/API layer, and the front-end component architecture together — using best practices <em>judged for this project's stack</em>, never cargo-culted. An independent helper grills it.</td></tr>
+<tr><td><strong>World-class UI (no slop)</strong></td><td><strong>Prerequisite:</strong> a design system must exist — if a project doesn't have one, building it is step zero. Then: the robot may only build from it (colors/spacing/components) — never invent styles; a <strong>token check fails the commit</strong> on any off-system value, plus a <strong>zero-token slop detector</strong> (the <code>impeccable</code> tool) that catches AI "tells" (purple gradients, bad easing, tiny touch targets) for free; a design-review helper looks at the rendered screen <em>only on meaningful UI changes</em> (it's token-expensive); you approve the mockup. Every fix/approval feeds <code>/compound</code> so it improves every project. <em>You keep the brand taste and the final call.</em></td></tr>
+<tr><td><strong>Easy to use (UX)</strong></td><td>A usability reviewer counts clicks/steps, walks the flow, and checks it reads clearly — measuring what a machine honestly can, and <strong>never faking human numbers</strong> (real "does a person get it" stays a real person). Click/step targets live in the feature doc.</td></tr>
+<tr><td><strong>Accessible</strong></td><td>A hard accessibility gate (blocks the merge on real violations) + a name-the-buttons lint rule. <em>Free.</em></td></tr>
+<tr><td><strong>All data states</strong></td><td>Every change handles <strong>no data · some · lots · bad data · loading</strong> — with no page shift. (Loading strategy is per-project: architect the spinner away, or a layout-stable skeleton.)</td></tr>
+<tr><td><strong>Fast</strong></td><td>Speed (load / layout-shift / snappiness) is <strong>measured and logged with a warning</strong> if a change blows its budget — not blocking. <code>/perf</code> fixes real slowness.</td></tr>
+</table>
+
+<!-- LEAN -->
+<h2 class="sec" id="lean">Simple &amp; powerful — how it stays lean on tokens</h2>
+<p>All that quality could blow through tokens if every job fanned out into dozens of helpers. So the harness runs its own prune, on one rule:</p>
+<div class="honest" style="border-left-color:var(--accent);background:#11151c">
+<strong>Spin up a separate helper only when it buys something one pass can't:</strong> a <strong>fresh independent set of eyes</strong> (catches what the author can't), <strong>true parallel work</strong> (separate, unrelated items at once), or <strong>something too big to hold</strong> (want the conclusion, not the file-dump). <strong>Otherwise — one capable pass.</strong> Never split work the model can hold; never stuff it with context it can already figure out (that actually makes it <em>worse</em> and costs more).
+</div>
+<ul>
+<li><strong>Scale to the risk.</strong> Tiny change → almost no checking. Only auth/payments/database/public changes get the full battery. A simple risk-classifier picks the set — minimal is the default.</li>
+<li><strong>Measure, don't assume.</strong> Wherever we <em>could</em> fold many checks into one pass (the review's many checks; the design specialists), we don't just decide it — we <strong>measure it</strong>: run the split version vs. the combined version against the bug-catch test (real bugs hidden in code, which grows every time one slips past), and <strong>keep separate helpers exactly where they catch more.</strong> If one pass catches just as much, combine and save the tokens; if the split catches more, the extra tokens are buying real quality — keep it. (The 4 attack-helpers always stay separate — their fresh-eyes value can't be faked by one pass.) The mechanical checks leave the AI entirely either way — free linting does those.</li>
+<li><strong>Reviewers run on the strongest model.</strong> Folding checks into fewer passes is only safe if the one doing the checking is the most capable model.</li>
+<li><strong>Feed it the slice, not everything.</strong> Each helper gets the relevant section of the feature doc + the past lessons about the files it's touching — not the whole rulebook. (Safety rules are the one thing always loaded in full.)</li>
+<li><strong>Get leaner as the model grows.</strong> Re-run this prune whenever you upgrade the model — scaffolding the smarter model outgrew gets re-checked and trimmed. Every helper spin-up is logged so you can <em>see</em> the fan-out.</li>
+<li><strong>Can't silently skip a safety step.</strong> Since the robot picks which skill to run, a guard double-checks it: if a change touches the database / login / payments but the matching safety step didn't run, it's blocked. And when the robot's unsure how risky a change is, it assumes <em>more</em> risk (more checking), never less.</li>
+</ul>
+
+<!-- SHIP -->
+<h2 class="sec" id="ship">What ships next round</h2>
+<h3><span style="color:var(--good)">Safety (built first)</span></h3>
+<ul><li>Block dangerous commands (exhaustive) · keep the master password out of reach · lock the deploy/delete/send skills · a retry limit then ask you (instead of thrashing for hours).</li></ul>
+<h3><span style="color:var(--good)">Trust</span></h3>
+<ul><li>The un-fakeable test gate (the keystone) · the one-pass review + free linting + the 4 attack-helpers · <strong>the catch-rate measurement (built first — it's what lets us prune safely)</strong> · the before-coding gate (data shape + UX + UI mockup).</li></ul>
+<h3><span style="color:var(--good)">Taste</span></h3>
+<ul><li>The design step (one designer + grill, framework-adapted) · the UI system (design-system exists-or-bootstrap-it → design-system-only + token check + gated design-review helper + <code>/compound</code> feedback) · the UX reviewer (clicks/steps/clarity, no faked numbers) · the accessibility gate + lint · the all-data-states rule · perf measured+logged.</li></ul>
+<h3><span style="color:var(--good)">Compounding</span></h3>
+<ul><li>The learning loop (repeat mistakes → blocked) · a <strong>patterns + golden-exemplars registry</strong> (the canonical way to do recurring multi-file things, captured by <code>/compound</code> and read when writing code) · the feature-doc hub (one source of truth per feature) · <strong>the deep dashboard</strong> — per project AND per AI task: is-it-getting-smarter, do-overs, self-stops, change size, speed, helper fan-out, <em>plus which tasks AI did, the commit, how it was kicked off (Linear/Slack/you), and which model + skills/agents ran</em>.</li></ul>
+<h3><span style="color:var(--good)">Fleet &amp; flow</span></h3>
+<ul><li>Get the 5 projects on one shared rulebook (the agreeing parts now) · lock the borrowed tools · the broken-link check · package it as the self-contained add-on + starter kit · adopt <code>zoom-out</code>, <code>write-a-skill</code>, <code>prototype</code>, <code>triage</code> + <code>to-prd</code> · the spawn doctrine · <strong>handoff blocks</strong> (every task hands you a checklist + the exact commands to keep going).</li></ul>
+
+<!-- LATER -->
+<h2 class="sec" id="later">What waits <span class="pill later">with a clear trigger</span></h2>
+<table>
+<tr><th>Waits…</th><th>…until</th></tr>
+<tr><td>Auto-start (bug/chat) + the timer; let the robot merge its own work; summon-from-outside</td><td>after v2 launches / the catch-rate clears a bar (money + DB always need you)</td></tr>
+<tr><td>Auto-push a fix to all 5 repos; the fleet-wide emergency brake</td><td>the shared rulebook is proven / you run many projects unattended at once</td></tr>
+<tr><td>Stress-test the money math; a finished "update libraries" tool; an automated security response</td><td>pricing schema is finalized / it's worth a small build / never, unless deliberately (highest-caution)</td></tr>
+<tr><td>The full internet allow-list + "dangerous-combination" guard; the full drift scanner; auto-forget-old-rules</td><td>a free-text auto-start door ships (the <em>basic</em> internet limit is already build-now — research already pulls outside text in) / the timer returns / rules pile up</td></tr>
+</table>
+
+<!-- INVENTORY -->
+<h2 class="sec" id="inventory">What's in the harness today (the full inventory)</h2>
+<p>Every piece that exists right now, so you can see the whole machine. The V2 work mostly <em>sharpens and connects</em> these — it doesn't start from scratch.</p>
+
+<h3>Hooks — the automatic guards (5)</h3>
+<p class="small">Run automatically by the computer (wired in <code>settings.json</code> on <code>PreToolUse</code> / <code>SessionStart</code> / <code>Stop</code>). These are the deterministic floor — V2 keeps all of them and adds more.</p>
+<ul>
+<li><code>block-dangerous-git.sh</code> — stops dangerous git (force-push, reset --hard, force-delete).</li>
+<li><code>block-npm-install.sh</code> — stops surprise package installs.</li>
+<li><code>permission-logger.sh</code> — records what the agent did (the seed of the deep dashboard).</li>
+<li><code>session-start.sh</code> — runs at the start of every session.</li>
+<li><code>worktree-create.sh</code> — sets up an isolated scratch copy for a job.</li>
+</ul>
+
+<h3>Skills — the playbooks you (or the robot) run (26)</h3>
+<p class="small">behavior-change · compound · cr · cr-security · debug · <em>dep-update (empty — to cut)</em> · design · dev · evaluate-solution · explain · feature · hotfix · incident · migrate · notion-sync · perf · post-mortem · prioritize-tasks · queue · refactor · review-strategy · setup-strategy · spike · supabase · supabase-postgres-best-practices · tdd</p>
+
+<h3>Helpers — the focused sub-agents skills spin up (23)</h3>
+<p class="small">doc-updater · explorer · hotfix-guard · implementer · incident-responder · investigator · the 4 review lenses (lens-abuse / assumption / cascade / composition) · refactor-extractor · reviewer · security-reviewer · solution-evaluator · spec-writer · the 6 spike helpers (orchestrator / researcher / synthesis / adversarial-verifier / user-verifier / slice) · task-runner · ux-reviewer</p>
+
+<h3>Scripts &amp; gates (9)</h3>
+<p class="small"><code>pr.sh</code> (opens PRs, consumes the review sentinel) · <code>worktree-add.sh</code> · <code>gc.sh</code> (cleans merged branches/worktrees) · <code>test-local.sh</code> · <code>gen-local-env.sh</code> · <code>seed.ts</code> / <code>seed_monica_data.py</code> · others.</p>
+
+<h3>The written canon</h3>
+<p class="small"><strong>Root:</strong> CLAUDE.md (process rules) · AGENTS.md (product/architecture) · PITFALLS.md · TASKS.md. <strong>.claude/:</strong> INDEX · SOUL · AI-WORKFLOW · mcp · memory · rituals · agent-contract · TASK-TEMPLATE · questions. <strong>docs/:</strong> adr/ · agents/ · design/ · planning/ · research/ · solutions/ · specs/ · teaching/.</p>
+
+<h3>Memory (~55 files + an index)</h3>
+<p class="small">Lessons the robot carries between sessions: ~38 <code>feedback_*</code> (how to work), ~15 <code>project_*</code> (facts about this codebase), 4 <code>reference_*</code> (links), and your background. <code>MEMORY.md</code> is the one-line index loaded each session.</p>
+
+<p class="small"><em>V2 changes to this inventory:</em> cut the empty <code>dep-update</code>; bundle the borrowed skills so nothing depends on a global install; add the impeccable slop-detector; strengthen <code>ux-reviewer</code>; ratchet enforceable CLAUDE.md rules down into hooks/lints; and package the whole thing as the self-contained add-on.</p>
+
+<!-- CALLS -->
+<h2 class="sec" id="calls">Every call you made (check I got these right)</h2>
+<table>
+<tr><th>The question</th><th>Your call</th></tr>
+<tr><td>Auto-start door + timer?</td><td class="done">Neither yet — you start everything, by hand</td></tr>
+<tr><td>Robot merges its own work?</td><td class="done">No — you merge everything (until catch-rate proves out)</td></tr>
+<tr><td>Where it runs / locks / practice DB?</td><td class="done">Your laptop · strongest (unreachable) locks · assume NO practice DB → locks are the only net</td></tr>
+<tr><td>Before-coding gate?</td><td class="done">Strictest — grill the questions; lock the data shape, then the UX (flow), then the UI (mockup) — in that order</td></tr>
+<tr><td>Dashboard headline?</td><td class="done">"Is it getting smarter?" per project</td></tr>
+<tr><td>One build command? · share rulebook?</td><td class="done">One adaptive command · share the agreeing parts now, hold contradictions</td></tr>
+<tr><td>Packaging / portability?</td><td class="done">Self-contained add-on now · stack-agnostic adapters · <strong>never bake in one project's choices</strong></td></tr>
+<tr><td>Permanent feature doc?</td><td class="done">Yes — the hub everything ties to (tests, agents, marketing)</td></tr>
+<tr><td>UI quality?</td><td class="done">Design system must exist (bootstrap if not) → design-system-only + token check + gated design-review + <code>/compound</code>; adopt existing skills, don't build a custom one</td></tr>
+<tr><td>UX?</td><td class="done">Strengthen the reviewer; measure what's honest; never fake human metrics; targets in the feature doc</td></tr>
+<tr><td>Design phase?</td><td class="done">One designer (schema + API + front-end) — best practices, judged for the project (not cargo-culted)</td></tr>
+<tr><td>Front-end architecture?</td><td class="done">A universal skeleton (layers, one-way imports, arch tests, golden exemplars) + framework-specific fill-in</td></tr>
+<tr><td>Security?</td><td class="done">Response stays human-driven (isolate + log + triage packet) + a red-team pass on sensitive code changes</td></tr>
+<tr><td>Data states · loading · performance?</td><td class="done">All states always (no page shift) · loading per-project · speed measured + warned, not blocking</td></tr>
+<tr><td>Roster?</td><td class="done">1 skill cut (empty) · 0 agents cut · vendor the borrowed skills · adopt 4 from mattpocock</td></tr>
+<tr><td>Tokens / spawning?</td><td class="done">Prune to "simple &amp; powerful," gated on the catch-rate · reviewers on the strongest model · spawn only for independence/parallelism/scale · trust + log it</td></tr>
+<tr><td>Design-review cost?</td><td class="done">Gate the rendered review to meaningful UI changes only (free checks run on everything)</td></tr>
+<tr><td>Keeping you moving?</td><td class="done">Every task ends with a checklist + the exact commands (worktree, dev server, open the file)</td></tr>
+<tr><td>Router / models?</td><td class="done">No separate router — describe what you want, it picks the skill; each runs on the right model by kind-of-work (plain-check / normal / hard-thinking); every choice logged</td></tr>
+<tr><td>External skills (superpowers, etc.)?</td><td class="done">Keep your curated set — adopt impeccable's free slop-detector, borrow taste-skill's "dials," skip the rest</td></tr>
+<tr><td>Tests + clean code?</td><td class="done">Tests verified by delete-the-code + break-the-code checks · comments earned (why-only)</td></tr>
+<tr><td>Reliability hardening?</td><td class="done">The bug-catch test (real hidden bugs, auto-grows) gates every trim · block if a safety step got skipped · assume more risk when unsure</td></tr>
+</table>
+
+<p style="margin-top:30px" class="small">That's the whole of v2. If the calls above match what you meant, the plan is settled and the next step is the build order — which starts with the locks and the catch-rate measurement.</p>
+
+</main>
+</div>
+</body>
+</html>

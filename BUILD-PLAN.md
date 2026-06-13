@@ -1,0 +1,94 @@
+# agent-harness — BUILD PLAN (START HERE)
+
+This repo is the **agent-harness**: a curated, self-contained, **project-agnostic** AI coding harness
+(skills + sub-agents + hooks + locks) that travels across multiple repos. This file is the single entry point
+for building it. The full design record + decisions + reviews live in `docs/v2-audit/` — start with
+`docs/v2-audit/ROUND-4-DECISIONS-AND-HANDOFF.md` (the decisions + the same build plan) and
+`docs/v2-audit/V2-REVIEW-PACK.html` (the plain-English plan). `docs/v2-audit/V2-LAUNCH-SCOPE-AND-DEFERRED-BACKLOG.md`
+is the build-now set.
+
+---
+
+## What V2 is (one breath)
+You start every job; the harness finishes it safely and tastefully and only stops to ask about the few things
+expensive to get wrong. It runs on the operator's laptop behind **locks it can't switch off** (the locks are the
+*sole* safety net — no practice DB assumed). It's **project-agnostic** (no project's specifics baked in — stack
+choices live in each project's config, read via adapters), **token-lean** (one capable pass wherever the model
+can hold the work; separate agents only for independence/parallelism/scale), and **self-improving** (every
+lesson compounds). No autonomy yet: a human starts and merges everything; no event-trigger "front door" and no
+timer until after launch.
+
+## Non-negotiable principles (honor in every task)
+1. **Project-agnostic.** The harness holds only universal patterns. NEVER bake one project's stack/banned-libs/
+   conventions in — read them from that project's config (adapters/roles, e.g. "run THIS project's DB-safety
+   skill," not hardcoded `/supabase`).
+2. **Locks are the sole net.** Deterministic guards (block-dangerous-bash fail-closed, credential firewall,
+   disable-model-invocation, OS-level managed-settings) carry safety; build them first; assume nothing behind them.
+3. **Deterministic > advisory.** Every mechanically-checkable rule is a hook/lint/CI gate, not a CLAUDE.md line;
+   CLAUDE.md is judgment-only.
+4. **One capable pass; spawn only for independence/parallelism/scale.** Never split work the model can hold;
+   never load context it can already infer. Collapses (9 review passes → 1 + lint; 3 designers → 1) are **gated
+   on a real-defect "bug-catch test"** — keep splits only where catch-rate drops. Keep the 4 isolated lenses.
+5. **Comments earned** (why, never what). Self-documenting code does ~90%.
+6. **Human in control.** Human starts and merges everything; the un-forgeable CI gate is the merge boundary.
+7. **Frictionless handoff.** Every task that needs the human ends with a checklist + exact commands (cd to the
+   worktree, start the dev server, open any artifact built).
+8. **Honest claims.** "Un-fakeable" = the deterministic test re-run only (the model's review *opinion* is
+   measured-trust). AI enforces taste, can't originate it — the human keeps the brand + final call. Never emit a
+   faked human metric (e.g. "92% task success").
+
+---
+
+## Build order (dependency-ordered; `/queue` the independent items WITHIN each phase)
+
+**Phase 0 — Safety floor (first, non-negotiable):** `block-dangerous-bash` (fail-closed, full non-git scope) ·
+credential firewall (prod creds not reachable; migrations human-applied) · `disable-model-invocation` on
+side-effect skills · fail-closed any `jq`-dependent hooks · `managed-settings.json` (OS-level) · basic egress
+allowlist · worktree fixes: run `npm install` + assert the husky hook exists (fail-closed); standardize on
+`.claude/worktrees/<slug>`.
+
+**Phase 1 — Trust:** the un-forgeable CI verdict gate (sentinel SHA == head SHA + required deterministic checks
+green) · **the bug-catch test (catch-rate), seeded from REAL escaped defects — BUILD FIRST; it gates the
+collapses** · the 4-lens adversarial reviewer + governance lens · collapse the 9 analytical review passes → 1 +
+free lint (gated on the bug-catch test) · model tiers by ROLE (deterministic / generation / judgment) +
+re-audit on model-id change · the routing-assertion gate (block if a DB-touch skipped the DB-safety skill) ·
+bounded-loop + REJECT.
+
+**Phase 2 — The loop (human-started):** one adaptive build command + `/goal` · incident subsystem (carry
+forward) · narration · shared Stop-hook · **the strict before-coding gate: data shape → UX (flow/clicks) → UI
+(mockup), human-approved before any code** + the design phase (1 designer covering schema + API + front-end
+architecture, judged-for-the-stack, + an independent grill) · the feature-doc hub (one source of truth per
+feature) + patterns/golden-exemplars registry · the learning loop (read-path + finding→enforcement ratchet) +
+reference-integrity check.
+
+**Phase 3 — Quality systems:** UI (design-system bootstrap-if-missing → design-system-only + token-lint +
+`impeccable` detector + gated rendered design-review + `/compound` feedback) · UX (tiered usability reviewer +
+axe a11y gate + feature-doc click/step targets; never fake human metrics) · perf (Core-Web-Vitals budget,
+measured + logged + warn, not blocking) · the data-state matrix (no data / some / lots / bad / loading; no page
+shift) · clean-code / comments-earned · tests verified by delete-the-code + break-the-code (mutation).
+
+**Phase 4 — Fleet / platform:** GitHub canon · pin + vendor the borrowed skills (grill-with-docs, simplify,
+to-issues, tdd) · per-skill frontmatter contract · the self-contained add-on + thin `/init` starter kit +
+`sync-harness.sh` · the deep AI-activity dashboard (per task: which task, commit SHA, trigger source, model,
+skills/agents fired) · the CLAUDE.md→hooks ratchet audit · adopt zoom-out / write-a-skill / prototype / triage /
+to-prd from mattpocock.
+
+**Phase 5 — Post-launch (deferred, each with a trigger):** the front door (event auto-start) · the clock
+(timer) · risk-based auto-approval · the real-time access-control UI · fleet circuit breaker · plugin
+marketplace.
+
+---
+
+## How to run the build
+1. Build in phase order. Do NOT start a later phase until the earlier phase's gates exist.
+2. Slice each phase into INDEPENDENT tasks, each with a clear contract (inputs · outputs · what it must NOT do ·
+   what done looks like). Independent tasks run in parallel worktrees.
+3. Run them via `/queue` → each goes through `/cr` → opens a PR. **The human merges everything** (no auto-merge).
+4. Honor the non-negotiable principles above in every task.
+5. Show the operator the Phase 0 task list + dependency order for approval BEFORE queuing. After each phase lands
+   and is verified, surface the next phase's slice for go-ahead.
+
+> Priority signal (from the cost/ROI review): the highest-value core is the locks (Phase 0), the un-forgeable
+> gate, the direct collapses, the free UI floor (token-lint + impeccable + axe), the before-coding gate, and
+> vendor-skills + sync. Lead with those. (Its "ship the product first" argument is struck — the harness is a
+> separate project.)

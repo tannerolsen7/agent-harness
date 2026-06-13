@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V2 — The "Later" List (review each)</title>
+<style>
+  :root{--bg:#0f1115;--panel:#161a21;--panel2:#1c212b;--ink:#e7ecf3;--muted:#9aa6b6;--line:#2a313d;--accent:#6ea8fe;--good:#3fb950;--warn:#d29922;--bad:#f85149;--rec:#2ea043;--decide:#a371f7;--gold:#e3b341;}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16.5px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{display:grid;grid-template-columns:250px 1fr;max-width:1320px;margin:0 auto}
+  nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:24px 14px;border-right:1px solid var(--line);background:var(--panel)}
+  nav h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 6px}
+  nav a{display:block;color:var(--muted);text-decoration:none;font-size:13.5px;padding:4px 8px;border-radius:6px}
+  nav a:hover{color:var(--ink);background:var(--panel2)}
+  main{padding:36px 52px 120px;min-width:0}
+  h1{font-size:29px;margin:0 0 6px}.sub{color:var(--muted);font-size:15px;margin-bottom:22px}
+  h2.sec{font-size:22px;margin:46px 0 12px;padding-top:14px;border-top:1px solid var(--line)}
+  h3{font-size:17px;margin:22px 0 6px;color:#fff}
+  p{margin:10px 0}code{background:var(--panel2);padding:1px 6px;border-radius:5px;font:13px ui-monospace,Menlo,monospace}
+  .lead{font-size:16.5px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:16px 20px}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);color:#fff}tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+  .card{border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:14px 18px;margin:16px 0;background:#181a16}
+  .card.wait{border-left-color:var(--muted);background:var(--panel)}
+  .card h3{margin:0 0 8px;font-size:18px}
+  .card .row{display:grid;grid-template-columns:140px 1fr;gap:8px;margin:6px 0;font-size:15px}
+  .card .row .k{color:var(--muted);font-weight:600}
+  .pick{color:#56d364;font-weight:600}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:middle}
+  .tag.pull{background:rgba(227,179,65,.16);color:#e3b341}.tag.wait{background:rgba(110,118,129,.18);color:#adbac7}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+  .small{font-size:13px;color:var(--muted)}
+  @media (max-width:880px){.wrap{grid-template-columns:1fr}nav{display:none}main{padding:22px}.card .row{grid-template-columns:1fr}}
+  @media print{nav{display:none}.wrap{display:block}main{padding:0}body{background:#fff;color:#111}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <strong style="font-size:15px;color:#fff">V2 — The "Later" List</strong>
+  <div class="small" style="margin:4px 0 12px">review each · plain words</div>
+  <h2>Start here</h2>
+  <a href="#how">How to read this</a>
+  <a href="#facts">What changed since last time</a>
+  <h2>Decide</h2>
+  <a href="#pull">3 we might be wrong to wait on</a>
+  <h2>Just check</h2>
+  <a href="#wait">The stuff that's fine to wait on</a>
+</nav>
+<main>
+
+<h1>The "Later" List — let's actually look at it</h1>
+<div class="sub">Last time you said: "What are the other ~35 things we're saving for later? Let's look — this already turned up holes." Here they are, in plain words. Each one says what it is, why we parked it, and where the idea came from. You only have to make a few calls at the end.</div>
+
+<div class="lead">
+<strong>The short version.</strong> Most of the parked stuff really is fine to wait on — and now that you've said "no auto-start for now," even more of it is. But three things were parked for a <em>wrong reason</em>, and I want to flag them. The biggest: a lot of it was parked because someone thought you only run the robot in <strong>one</strong> project. You run it in <strong>five</strong>. That one wrong fact buried a pile of "get your projects healthy" work that's actually needed <em>now</em>.
+</div>
+
+<!-- HOW -->
+<h2 class="sec" id="how">How to read this</h2>
+<ul>
+<li><strong>The robot</strong> = the AI helper and all the rules around it (what you call "the harness").</li>
+<li><strong>The rulebook</strong> = the files that tell the robot how to behave in a project.</li>
+<li>Each parked item is marked one of two ways:
+  <ul>
+  <li><span style="color:#e3b341;font-weight:600">Worth a second look</span> — I think we parked it for a bad reason. There are 3.</li>
+  <li><span style="color:#9aa6b6;font-weight:600">Fine to wait</span> — parked for a good reason, with a clear "build it when ___."</li>
+  </ul>
+</li>
+<li>At the very end there are <strong>3 simple yes/no picks</strong>. That's all you have to do.</li>
+</ul>
+
+<!-- FACTS -->
+<h2 class="sec" id="facts">What changed since last time (the 4 facts this is built on)</h2>
+<table>
+<tr><th>The fact</th><th>What it does to the list</th></tr>
+<tr><td><strong>You said: no auto-start by a "front door" yet.</strong> (A bug report or a chat message won't kick off the robot on its own — you'll start every run by hand, until v2 is out.)</td><td>Several "doors" and their heavy security guards move to <em>after launch</em>. The robot still does all the work; you're just the one who pushes go.</td></tr>
+<tr><td><strong>You said: no clock yet either.</strong> (No robot that wakes up on a timer on its own.)</td><td>Every "runs on a schedule" item moves to after launch too. The same checks can still be run — you just type the command instead of a timer firing it.</td></tr>
+<tr><td><strong>You run the robot in 5 projects, not 1.</strong> (The old audit got this wrong; you corrected it.)</td><td>This is the big one. A whole group of "get your projects in sync and healthy" work was parked as "wait for a 2nd project." You're already at five. <em>That wait is over.</em></td></tr>
+<tr><td><strong>Not every project has a throwaway practice database.</strong> (You flagged this.)</td><td>So the safety locks stay switched on everywhere as the net — we don't lean only on the practice copy.</td></tr>
+</table>
+
+<!-- PULL -->
+<h2 class="sec" id="pull">3 things we might be wrong to wait on</h2>
+<p>These got parked, but the reason doesn't hold up. Read them and tell me if you agree they should move to "build now."</p>
+
+<div class="card">
+<h3>1 · Get your 5 projects healthy and in sync <span class="tag pull">the big miss</span></h3>
+<div class="row"><span class="k">What it is</span><span>Right now each of your 5 projects has its <em>own</em> copy of the robot's rulebook, and they've quietly drifted into 5 different versions. This is: put them all on <strong>one shared rulebook</strong> (so a fix in one reaches all five), <strong>lock the 15 tools you borrowed from someone else's project</strong> to a version you've checked (so they can't change under you without warning), and add <strong>a small check that catches when the rulebook points at a file that doesn't exist</strong> (yours does this today — a real, current bug).</span></div>
+<div class="row"><span class="k">Why we parked it</span><span>The audit said "you only have 1 project, so syncing projects is a problem you don't have yet."</span></div>
+<div class="row"><span class="k">Why that's wrong</span><span>You have <strong>five</strong>. The problem isn't in the future — it's here now, getting worse every week as they drift apart. <em>(This is the exact hole you predicted last time: "we keep finding things that got hidden by bad assumptions.")</em></span></div>
+<div class="row"><span class="k">Where it came from</span><span>Your own correction last session, plus the research on running an AI helper across many projects.</span></div>
+<div class="row"><span class="k">My pick</span><span class="pick">Pull it forward. The cheap part (one shared rulebook + locking the borrowed tools + the broken-link check) is build-now. The fancy "auto-push a change to all 5 at once" can still wait.</span></div>
+</div>
+
+<div class="card">
+<h3>2 · Stress-test the money math <span class="tag pull">core risk</span></h3>
+<div class="row"><span class="k">What it is</span><span>Add a tool that throws <em>hundreds</em> of weird number combinations at the pricing math and checks the total is never wrong — never negative, never taxes the wrong thing, never off by a penny. Normal tests only check the few cases a person thought of; this checks the ones nobody thought of.</span></div>
+<div class="row"><span class="k">Why we parked it</span><span>It needs one small extra library, and "needs a library" got it filed under "decide later."</span></div>
+<div class="row"><span class="k">Why that's wrong</span><span>A wrong total on a $30k quote is the single worst thing this product can do — and it has nothing to do with the robot working on its own. It's a risk <em>today</em>. The only thing blocking it is you saying "yes, add the library." Even the "where can we cut?" pass marked this one <strong>"do NOT cut."</strong></span></div>
+<div class="row"><span class="k">Where it came from</span><span>The research on AI tools that quietly weaken their own tests over time — money math is where that hurts most.</span></div>
+<div class="row"><span class="k">My pick</span><span class="pick">Pull it forward. The library is a well-known, widely-used one; I'll show you the exact safety stats (how popular, last updated) before we actually install anything.</span></div>
+</div>
+
+<div class="card">
+<h3>3 · The easy accessibility win <span class="tag pull">nearly free</span></h3>
+<div class="row"><span class="k">What it is</span><span>Add a rule that makes the buttons and fields in your app easy to <em>find by name</em>. The exact same thing that lets the robot reliably click the right button also makes your app work for people using screen readers. Today your app has none of these name-tags, so any robot click is a guess.</span></div>
+<div class="row"><span class="k">Why we parked it</span><span>Its main payoff (the robot checking screens by itself) waits until the robot does visual work on its own — which is later.</span></div>
+<div class="row"><span class="k">Why that's worth a look</span><span>It's nearly free — it's an automatic rule that runs when code is saved — and it helps <em>real human users</em> right now, today, regardless of the robot.</span></div>
+<div class="row"><span class="k">Where it came from</span><span>The research on letting an AI safely test a real web page.</span></div>
+<div class="row"><span class="k">My pick</span><span class="pick">Pull it forward — it's a tiny, low-risk yes that pays off both for users and for later robot work.</span></div>
+</div>
+
+<!-- WAIT -->
+<h2 class="sec" id="wait">The stuff that's genuinely fine to wait on</h2>
+<p>Everything else, grouped. Each has a real reason and a clear "build it when ___." Skim it — if any jump out as wrong to wait on, tell me.</p>
+
+<h3>Things you already chose to wait on</h3>
+<table>
+<tr><th>The thing (plain words)</th><th>Build it when…</th></tr>
+<tr><td><strong>The "front door"</strong> — a bug report or chat message starts the robot on its own.</td><td>…v2 is out and you're ready to let go of pushing go yourself. <em>(Your call this session.)</em></td></tr>
+<tr><td><strong>The clock</strong> — a robot that wakes on a timer to find work.</td><td>…v2 is out. <em>(Your call this session.)</em></td></tr>
+<tr><td><strong>Let the robot merge its own small changes.</strong></td><td>…we've measured how good the reviewer actually is and it clears a bar. Money + database always need you. <em>(Your "watch-only" rule.)</em></td></tr>
+<tr><td><strong>Let the robot be summoned from outside</strong> (e.g. by another tool).</td><td>…the front door above ships — they're two halves of one thing.</td></tr>
+</table>
+
+<h3>The "many projects at once" machinery (needs the shared rulebook first)</h3>
+<table>
+<tr><th>The thing (plain words)</th><th>Build it when…</th></tr>
+<tr><td><strong>Package the shared rulebook as a proper installable add-on</strong> (with versions you can pin).</td><td>…the shared rulebook from pull-forward #1 is cleaned up. The packaging sits on top of that.</td></tr>
+<tr><td><strong>A starter kit</strong> that drops the right files into a brand-new project.</td><td>…the add-on above exists (they're built together).</td></tr>
+<tr><td><strong>Auto-push a fix from one project up to all the others.</strong></td><td>…the shared rulebook is in place and proven by hand a few times first.</td></tr>
+<tr><td><strong>Ship all 23 helper roles + 26 skills inside the add-on.</strong></td><td>…the add-on exists and we've removed the dead/duplicate ones first.</td></tr>
+</table>
+
+<h3>Safety guards that only matter once the robot reads outside text or runs alone</h3>
+<table>
+<tr><th>The thing (plain words)</th><th>Build it when…</th></tr>
+<tr><td><strong>The internet allow-list</strong> — the robot can only reach a short list of approved sites.</td><td>…a "door" that reads outside text ships, or a project runs the robot fully unattended. No door = no outside text to worry about yet.</td></tr>
+<tr><td><strong>The "dangerous combination" guard</strong> — block the robot when it can see private data, read outside text, AND reach the internet all at once.</td><td>…a door that reads outside text ships. Until then the dangerous third ingredient isn't present.</td></tr>
+<tr><td><strong>The fleet brake</strong> — if the robot makes the same mistake across many projects, slam the brakes on all of them.</td><td>…you're actually running many projects on their own at the same time.</td></tr>
+</table>
+
+<h3>"Get smarter over time" extras (the basic version ships now; these are upgrades)</h3>
+<table>
+<tr><th>The thing (plain words)</th><th>Build it when…</th></tr>
+<tr><td><strong>Auto-forget old rules</strong> — rules nobody's used in 90 days get retired automatically.</td><td>…rules have actually piled up enough to cause problems. You don't have the pile yet.</td></tr>
+<tr><td><strong>Auto-suggest a new rule</strong> from a mistake it saw this session (you approve it).</td><td>…doing it by hand gets annoying. The review step already jots these down today.</td></tr>
+<tr><td><strong>Brain-upgrade safety check</strong> — when you upgrade the robot's brain, double-check it didn't lose a skill the rulebook was counting on.</td><td>…you start trimming the rulebook <em>and</em> upgrade the brain. (One-time check of today's brain ships now.)</td></tr>
+<tr><td><strong>The full per-angle reviewer score-card</strong> (how good each reviewer is, broken out).</td><td>…you're fine-tuning individual reviewers. One overall "how good is the reviewer" number is enough to start.</td></tr>
+</table>
+
+<h3>Bigger features that wait for the work that needs them</h3>
+<table>
+<tr><th>The thing (plain words)</th><th>Build it when…</th></tr>
+<tr><td><strong>The screenshot proof</strong> — robot takes a picture of the screen to prove a visual fix worked (and that it's logged in as the right customer).</td><td>…the robot is doing visual fixes on its own. While you check its screen work yourself, you don't need it.</td></tr>
+<tr><td><strong>The full "what should this feature do + how do we know it still works" doc, for every feature.</strong></td><td>…the simpler "ask the hard design questions before coding" step (which <em>is</em> build-now) shows we need the bigger version.</td></tr>
+</table>
+
+<p style="margin-top:30px" class="small">That's the whole parked list. Most of it is genuinely fine to wait on. The 3 cards up top are the ones I think we got wrong — the picks at the end are just yes/no on those.</p>
+
+</main>
+</div>
+</body>
+</html>
