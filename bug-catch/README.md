@@ -42,6 +42,10 @@ small set (R4-D32 #1). To allow a review change: run the test **before**, apply 
 **after**; keep the change only if the after lower-bound is **not below** the before lower-bound.
 `score.sh` prints the number; the before/after comparison is the gate.
 
+Under `--traps` there are **two** lower bounds (overall, and the trap subset). The composite rule:
+a change is blocked if **either** drops below its before value — the overall catch rate and the
+classifier-guard under-call rate both have to hold.
+
 ## Honesty rules (from the plan)
 
 - **Real bugs beat invented ones.** Bugs the robot would imagine are bugs it already catches —
@@ -62,16 +66,31 @@ the rule that decides which review battery fires. Under-tiering one of these (ra
 whole safety battery on the diff that needed it most, so the classifier must **over-tier when unsure**
 (the spec + rule: [docs/risk-classifier.md](../docs/risk-classifier.md)).
 
-A trap case carries `tier: HIGH` (the correct minimum tier) and `trap: true`. A trap **missed** is an
-**under-call**. Measure it:
+**What makes a case a trap** (the inclusion criterion, so the subset is reproducible): the diff must
+read as trivial/cleanup *and* its correct risk tier is HIGH (it touches auth / RLS / payments /
+public routes / schema). "Looks dangerous and is dangerous" is an ordinary case, not a trap — the
+trap is specifically the *disguise*. A trap case carries `tier: HIGH` (the correct minimum tier) and
+`trap: true`; both fields are optional and a case without them is a normal, non-trap case. `holdout:
+true` and `trap: true` can coexist — a held-out trap still counts toward the guard subset (it is a
+held-out check, which is the point).
+
+**Proxy caveat (honest framing).** The classifier does not exist yet (it is a Phase-1 build,
+[docs/risk-classifier.md](../docs/risk-classifier.md)). Until it is wired in, a trap **missed**
+measures the *reviewer* failing to catch the planted hole — a *proxy* for the classifier's
+under-call, not the classifier itself. When the classifier ships, wire `--traps` to its tier output
+(checklist in the spec).
+
+A trap **missed** is an **under-call**. Measure it:
 
 ```
 bash bug-catch/score.sh --traps results/<run>.tsv
 ```
 
-prints the normal catch rate plus a trap-subset block — `trap cases`, `under-calls`, `trap recall`,
-and the 95% Wilson lower bound (the classifier-guard gate). Every escaped under-call becomes a new
-trap case (same auto-grow loop as below).
+prints the normal catch rate plus a trap-subset block — `trap cases` (with `of N in corpus`
+coverage), `under-calls`, `trap recall`, and the 95% Wilson lower bound (the classifier-guard gate).
+It **fails loud**: a run with no trap cases exits non-zero (the guard measured nothing — never a
+silent pass), and a run missing some trap cases prints a `PARTIAL` coverage warning. Every escaped
+under-call becomes a new trap case (same auto-grow loop as below).
 
 ## Auto-grow (a missed bug → a new case)
 

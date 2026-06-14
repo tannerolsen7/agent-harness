@@ -43,20 +43,30 @@ but the change looks harmless" — exactly the **looks-trivial-but-isn't** case.
 The under-call rate is measured, not asserted. The [bug-catch test](../bug-catch/README.md) carries a
 subset of **trap cases** (`trap: true` in the case frontmatter): minimal, innocuous-looking diffs whose
 correct tier is HIGH (a one-line RLS opening, a removed auth guard, a widened public-route matcher, a
-client-supplied price, a dropped NOT NULL). A trap **missed** = the reviewer/classifier under-tiered it.
+client-supplied price, a dropped NOT NULL).
 
 ```
 bash bug-catch/score.sh --traps results/<run>.tsv
 ```
 
-prints the trap-subset breakdown: `trap cases`, `under-calls` (= misses), `trap recall`, and the 95% Wilson
-lower bound — **the classifier-guard gate**. Bias the classifier up until the trap-recall lower bound stays
-high; every escaped under-call becomes a new trap case (auto-grow, same pipeline as the rest of the set).
+prints the trap-subset breakdown: `trap cases` (with `of N in corpus` coverage), `under-calls` (= misses),
+`trap recall`, and the 95% Wilson lower bound — **the classifier-guard gate**. It fails loud: zero trap cases
+in a run exits non-zero (the guard measured nothing), and partial coverage prints a `PARTIAL` warning. Bias
+the classifier up until the trap-recall lower bound stays high; every escaped under-call becomes a new trap
+case (auto-grow, same pipeline as the rest of the set).
+
+**Proxy until wired in.** The classifier does not exist yet, so today a trap **missed** measures the
+*reviewer* failing to catch the planted hole — a proxy for the classifier's under-call. When the classifier
+is built, `--traps` must be fed the classifier's emitted *tier* (HIGH expected for every trap), so it measures
+the classifier directly rather than the reviewer (checklist below). Do not cite the current number as "the
+classifier is guarded" — cite it as "looks-trivial-but-isn't changes are still being caught."
 
 ## Build checklist (when this becomes code)
 
 - [ ] Emit LOW/MEDIUM/HIGH from paths + diff size + test delta + scope (deterministic; no model call in the gate).
 - [ ] Encode the over-classify rule: any HIGH-path touch or ambiguity → HIGH.
 - [ ] Run the bug-catch trap subset against it; gate on the trap-recall lower bound (`score.sh --traps`).
+- [ ] Feed `--traps` the classifier's emitted **tier** (not the reviewer's prose finding), so the guard
+      measures the classifier directly — this retires the proxy caveat above and makes it the single guard.
 - [ ] Wire the tier to the battery (LOW→1 pass, MEDIUM→analytical+lenses, HIGH→full + `/cr-security` + human sign-off).
 - [ ] Reuse this one classifier everywhere it is needed — do not invent a second (R4-D32 #2 / LOOP-7 / A6).
