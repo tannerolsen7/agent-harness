@@ -35,6 +35,7 @@ Before spawning any agents, verify:
 
 - `scripts/worktree-add.sh` exists and is executable
 - `scripts/pr.sh` exists and is executable
+- `scripts/gc.sh` exists and is executable (Step 7 post-merge cleanup uses it)
 - `gh` is installed (`command -v gh`)
 - Any env/credential files this project's tests require exist in the repo root
   (e.g. `.env.local`) — skip this check for projects that need none
@@ -62,9 +63,12 @@ Agent prompt template (fill in per task):
 > You are implementing a single scoped task. Follow the agent contract in
 > `.claude/agent-contract.md` exactly.
 >
-> **WORKTREE (do this first):** `cd` into your worktree from the repo root —
-> `cd .claude/worktrees/<task-slug>`. ALL your work — edits, commits, and the `.cr-ok`
-> sentinel — happens there, on branch `feat/<task-slug>`. Never work in the repo root.
+> **WORKTREE (do this first — and re-verify before every commit):** your worktree is
+> `.claude/worktrees/<task-slug>`, on branch `feat/<task-slug>`. `cd` into it now. Because a shell
+> CWD can reset between steps, **before each commit confirm you are still in it** —
+> `git rev-parse --show-toplevel` must end in `/.claude/worktrees/<task-slug>`; if not, `cd` back
+> (or run git with `-C .claude/worktrees/<task-slug>`). ALL edits, commits, and the `.cr-ok` sentinel
+> happen there. A commit run from the repo root lands on the wrong branch — never work in the repo root.
 >
 > **SETUP:** if this project's tests need a root env file, symlink it in — the worktree does not
 > inherit it, and integration tests fail without it. Example:

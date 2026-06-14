@@ -31,6 +31,13 @@ TMP=$(mktemp -d)
   git worktree add -q .claude/worktrees/wip -b feat/wip >/dev/null 2>&1
   ( cd .claude/worktrees/wip && git commit -q --allow-empty --no-verify -m wip )
   git push -q -u origin feat/wip >/dev/null 2>&1
+
+  # UNMERGED branch: feat/orphan — remote deleted WITHOUT merging. A [gone] remote is NOT a merge,
+  # so the worktree, branch, and untracked WIP must all SURVIVE (the --force-before-merge-check bug).
+  git worktree add -q .claude/worktrees/orphan -b feat/orphan >/dev/null 2>&1
+  ( cd .claude/worktrees/orphan && git commit -q --allow-empty --no-verify -m orphan && echo wip > WIP.txt )
+  git push -q -u origin feat/orphan >/dev/null 2>&1
+  git push -q origin --delete feat/orphan >/dev/null 2>&1   # remote gone, never merged into main
 ) >/dev/null 2>&1
 
 # Run gc.sh in the temp repo.
@@ -43,6 +50,11 @@ TMP=$(mktemp -d)
 # Active branch's worktree + branch survive (live remote → never touched).
 [ -d "$TMP/.claude/worktrees/wip" ]; chk "$?" "active worktree .claude/worktrees/wip must survive"
 ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/wip >/dev/null 2>&1 ); chk "$?" "active branch feat/wip must survive"
+
+# Unmerged-but-remote-gone branch + worktree + untracked WIP all survive (data-loss guard).
+[ -d "$TMP/.claude/worktrees/orphan" ]; chk "$?" "unmerged worktree must survive (remote gone != merged)"
+( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/orphan >/dev/null 2>&1 ); chk "$?" "unmerged branch must survive"
+[ -f "$TMP/.claude/worktrees/orphan/WIP.txt" ]; chk "$?" "untracked WIP in the unmerged worktree must survive (no --force eat)"
 
 rm -rf "$TMP"
 echo ""

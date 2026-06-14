@@ -22,6 +22,12 @@
   `gc.sh` now removes a merged branch's worktree before deleting the branch (also fixed the pre-existing
   `git branch -vv` "+ " worktree-prefix bug that made worktree branches un-gc'able; tested in
   `tests/gc.test.sh`). `/feature` and `/queue` both document post-merge cleanup via `gc.sh`.
+- **Branch-naming convention mismatch (`/queue` ↔ agent-contract ↔ task-runner)** — MEDIUM. `/queue`
+  Step 5, `pr.sh`, and `gc.sh` all assume `feat/<task-slug>`, but `.claude/agent-contract.md` BRANCH
+  format is `<working-branch>/<short-task-slug>`, and `/queue` Step 3 doesn't name `task-runner` as the
+  `subagent_type`. Step 5's `.cr-ok` check is an EXACT `feat/<slug>:<sha>` match, so a divergent branch
+  name breaks it. Reconcile the convention across the three (task-runner.md is a guard file → human
+  reconciliation). Surfaced by /cr on the worktree-lifecycle PR.
 - **Backlog mechanism research** — per-project target (Linear / Issues / file) + an aging/severity
   mechanism that prevents this list from building forever. Produces the durable replacement for
   this interim file.
