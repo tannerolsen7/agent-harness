@@ -58,37 +58,11 @@ if [ -n "${PR_DRY_RUN:-}" ]; then
   exit 0
 fi
 
-# --- /cr enforcement (host-agnostic) ---
-if [ -t 0 ]; then
-  printf "\nHave you run /cr (full branch review)? [y/N] " > /dev/tty
-  read -r confirm < /dev/tty
-  if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-    echo "PR aborted: run /cr before opening a PR." >&2
-    exit 1
-  fi
-else
-  if [ ! -f "$SENTINEL" ]; then
-    echo "PR aborted: no /cr sentinel found. Run /cr before opening a PR." >&2
-    exit 1
-  fi
-  CONSUMED="${SENTINEL}.consumed.$$"
-  trap 'rm -f "$CONSUMED"' EXIT INT TERM
-  if ! mv "$SENTINEL" "$CONSUMED" 2>/dev/null; then
-    echo "PR aborted: /cr sentinel was consumed by another process. Re-run /cr." >&2
-    exit 1
-  fi
-  ACTUAL=$(cat "$CONSUMED")
-  if [ -z "$ACTUAL" ] || [ "$ACTUAL" != "$EXPECTED" ]; then
-    mv "$CONSUMED" "$SENTINEL" 2>/dev/null || true
-    BRANCH_SAFE=$(printf '%s' "$CURRENT_BRANCH" | tr -dc 'A-Za-z0-9/_.:-' | cut -c1-200)
-    ACTUAL_SAFE=$(printf '%s' "$ACTUAL" | tr -dc 'A-Za-z0-9/_.:-' | cut -c1-200)
-    echo "PR aborted: /cr sentinel is stale (expected ${BRANCH_SAFE}:<sha>, got ${ACTUAL_SAFE}). Re-run /cr after your last commit." >&2
-    exit 1
-  fi
-  rm -f "$CONSUMED"
-fi
-
-# --- live checks ---
+# --- live preconditions: validated BEFORE the /cr sentinel is consumed, so an abort here never
+#     destroys it. The sentinel is the proof /cr ran at this sha; a missing CLI or un-pushed
+#     branch must not cost you that proof — fix the cause and retry without re-running /cr.
+#     (Regression: pr.sh used to consume the sentinel first, then fail the remote-branch check,
+#     leaving you sentinel-less and unable to push.) ---
 if ! command -v "$CLI" >/dev/null 2>&1; then
   echo "PR aborted: $CLI not found (needed for a $FORGE remote)." >&2
   [ "$CLI" = gh ]   && echo "Install: brew install gh && gh auth login" >&2
@@ -103,4 +77,46 @@ if ! git ls-remote --exit-code "$REMOTE" "$CURRENT_BRANCH" >/dev/null 2>&1; then
   exit 1
 fi
 
-exec "${cmd[@]}"
+# --- /cr enforcement: consume the sentinel LAST, only once we are about to create. Any failure
+#     after this point (stale sentinel, or the create itself) restores it via the trap, so the
+#     PR stays retryable without re-running /cr. ---
+restore_sentinel() {
+  [ -n "${CONSUMED:-}" ] && [ -f "${CONSUMED:-}" ] && mv "$CONSUMED" "$SENTINEL" 2>/dev/null || true
+}
+if [ -t 0 ]; then
+  printf "\nHave you run /cr (full branch review)? [y/N] " > /dev/tty
+  read -r confirm < /dev/tty
+  if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+    echo "PR aborted: run /cr before opening a PR." >&2
+    exit 1
+  fi
+else
+  if [ ! -f "$SENTINEL" ]; then
+    echo "PR aborted: no /cr sentinel found. Run /cr before opening a PR." >&2
+    exit 1
+  fi
+  CONSUMED="${SENTINEL}.consumed.$$"
+  trap 'restore_sentinel' EXIT INT TERM
+  if ! mv "$SENTINEL" "$CONSUMED" 2>/dev/null; then
+    echo "PR aborted: /cr sentinel was consumed by another process. Re-run /cr." >&2
+    exit 1
+  fi
+  ACTUAL=$(cat "$CONSUMED")
+  if [ -z "$ACTUAL" ] || [ "$ACTUAL" != "$EXPECTED" ]; then
+    BRANCH_SAFE=$(printf '%s' "$CURRENT_BRANCH" | tr -dc 'A-Za-z0-9/_.:-' | cut -c1-200)
+    ACTUAL_SAFE=$(printf '%s' "$ACTUAL" | tr -dc 'A-Za-z0-9/_.:-' | cut -c1-200)
+    echo "PR aborted: /cr sentinel is stale (expected ${BRANCH_SAFE}:<sha>, got ${ACTUAL_SAFE}). Re-run /cr after your last commit." >&2
+    exit 1  # trap restore_sentinel puts the sentinel back
+  fi
+fi
+
+# --- create (run, don't exec, so a failed create restores the sentinel for retry) ---
+if "${cmd[@]}"; then
+  if [ -n "${CONSUMED:-}" ]; then rm -f "$CONSUMED" 2>/dev/null || true; fi  # success → consumed for good
+  trap - EXIT INT TERM
+  exit 0
+else
+  status=$?
+  echo "PR aborted: '$CLI' create failed (exit $status). /cr sentinel preserved — fix the cause and retry." >&2
+  exit "$status"
+fi

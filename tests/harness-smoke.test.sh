@@ -15,7 +15,7 @@ for h in block-dangerous-bash block-credential-read block-egress block-dangerous
 done
 
 # Executable scripts.
-for s in worktree-add assert-husky-shim pr detect-forge check-routing gc test-local lint run-tests ci-verify; do
+for s in worktree-add assert-husky-shim pr cr-ok detect-forge check-routing gc test-local lint run-tests ci-verify; do
   [ -x "scripts/$s.sh" ] || note "scripts/$s.sh (executable)"
 done
 
