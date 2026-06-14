@@ -9,7 +9,9 @@ SCRIPT="$ROOT/scripts/install-locks.sh"
 
 pass=0; fail=0
 ck() { if [ "$1" = 0 ]; then pass=$((pass+1)); else echo "  MISS: $2"; fail=$((fail+1)); fi; }
-mode_of() { stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null || echo "?"; }
+# GNU stat (-c) first, then BSD/macOS (-f): on Linux `stat -f` is --file-system and "succeeds" with
+# the wrong output, so a BSD-first order returns filesystem text on CI instead of the mode.
+mode_of() { stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1" 2>/dev/null || echo "?"; }
 
 TMP=$(mktemp -d)
 DEST="$TMP/managed/managed-settings.json"
