@@ -15,8 +15,10 @@ cases get caught? — R4-D32 #5).
 ```
 bug-catch/
   cases/NNN-slug.md   one planted bug each: frontmatter (id, category, severity, bug, catch,
-                      holdout) + the code under review
+                      holdout) + the code under review. Trap cases (the classifier guard, below)
+                      add tier: HIGH + trap: true.
   score.sh            reads a results TSV → catch rate + a conservative lower bound
+                      (--traps also prints the trap-subset under-call rate)
   results/            run outputs (gitignored); one TSV per run: "<case-id>\t caught|missed"
 ```
 
@@ -50,6 +52,26 @@ small set (R4-D32 #1). To allow a review change: run the test **before**, apply 
   which ones are held out over time.
 - **Plant bugs from a different source than the reviewer** where possible (avoids shared blind
   spots).
+
+## The classifier guard (trap cases — R4-D32 #5)
+
+A subset of cases (`trap: true`) are **"looks-trivial-but-isn't"** changes: a tiny, innocuous-reading
+diff whose correct risk tier is HIGH (a one-line RLS opening, a removed auth guard, a widened
+public-route matcher, a client-supplied price, a dropped NOT NULL). They guard the risk-classifier —
+the rule that decides which review battery fires. Under-tiering one of these (rating it LOW) skips the
+whole safety battery on the diff that needed it most, so the classifier must **over-tier when unsure**
+(the spec + rule: [docs/risk-classifier.md](../docs/risk-classifier.md)).
+
+A trap case carries `tier: HIGH` (the correct minimum tier) and `trap: true`. A trap **missed** is an
+**under-call**. Measure it:
+
+```
+bash bug-catch/score.sh --traps results/<run>.tsv
+```
+
+prints the normal catch rate plus a trap-subset block — `trap cases`, `under-calls`, `trap recall`,
+and the 95% Wilson lower bound (the classifier-guard gate). Every escaped under-call becomes a new
+trap case (same auto-grow loop as below).
 
 ## Auto-grow (a missed bug → a new case)
 
