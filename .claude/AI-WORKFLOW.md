@@ -59,7 +59,9 @@ There is no auto-delete. Worktree directories persist until explicitly removed (
 
 - One agent window per worktree directory (one session, one branch, one worktree).
 - Never run `git checkout` in a shared directory — use worktrees instead.
-- Remove the worktree immediately after merging.
+- Remove the worktree after the PR merges (not before — review fixes may need it). `scripts/gc.sh`
+  is the mechanism: it removes each merged branch's worktree and then deletes the branch. Run it
+  after a merge (or in a batch / via the stale-branch ritual); unmerged and WIP worktrees are never touched.
 - If a new session starts in the repo root and the branch has uncommitted work from a prior session,
   create a worktree before writing any code. Two sessions must never share a branch.
 

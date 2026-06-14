@@ -163,3 +163,13 @@ Needs human: <list or "None">
 - If feature changed a documented pattern: affected solution doc updated
 - PITFALLS.md checked: if feature revealed new footgun, entry proposed
 - Spec sync: if any spec assumption changed during build, TESTING.md and CONTEXT.md updated to reflect what was actually learned
+
+---
+
+## Worktree cleanup (after merge)
+
+If this feature ran in a dedicated worktree (`.claude/worktrees/<slug>`), leave it in place while the
+PR is open — review fixes may need it. After the PR **merges**, `scripts/gc.sh` removes the worktree
+and deletes the branch (it removes the worktree before the branch, since git won't delete a branch
+that is still checked out). Run `gc.sh` after merging, or let the weekly `stale-branch-audit` ritual
+do it. Never remove the worktree before the PR merges.

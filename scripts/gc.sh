@@ -18,33 +18,58 @@ git fetch --prune
 echo "Pruning stale worktree entries..."
 git worktree prune
 
-# Delete local branches whose remote tracking branch is gone ([gone] in git branch -vv).
-# A branch only shows [gone] after its remote was deleted — WIP branches with live
-# remotes are never matched here.
-GONE=$(git branch -vv | awk '/: gone\]/{print $1}' | grep -v '^\*$' || true)
+# Clean up local branches whose remote tracking branch is gone ([gone] in git branch -vv) AND
+# that are actually merged. A branch only shows [gone] after its remote was deleted — but a
+# deleted remote does NOT prove a merge (someone could delete a remote branch without merging),
+# so every branch is merge-verified below before anything is touched.
+#
+# Parsing notes: `git branch -vv` marks the current branch "* " and a worktree-checked-out branch
+# "+ ", so for those the name is $2, not $1 (the bug that made worktree branches un-gc'able). The
+# `[... : gone]` match is anchored inside the tracking bracket so a commit subject containing the
+# literal "gone]" can't false-trigger. The current branch is skipped (can't delete what you're on).
+GONE=$(git branch -vv | awk '/\[[^]]*: gone\]/ && $1 != "*" { print ($1 == "+") ? $2 : $1 }' || true)
 if [ -n "$GONE" ]; then
-  echo "Cleaning up local branches with deleted remotes:"
+  echo "Cleaning up merged branches with deleted remotes:"
   while IFS= read -r b; do
-    if git branch -d "$b" 2>/dev/null; then
-      echo "  deleted: $b"
-    elif command -v gh &>/dev/null; then
-      # -d refused (squash-merged branches have different SHAs). Verify via GitHub
-      # that the PR is actually merged before force-deleting.
-      # Assumes branch names are not reused after a squash-merge — safe for this repo's naming conventions.
-      MERGED=$(gh pr list --head "$b" --state merged --json number -q '.[0].number' 2>/dev/null || true)
-      if [ -n "$MERGED" ]; then
-        # [gone] means the remote-tracking ref was pruned (squash-merge), not a proven
-        # ancestor merge — so -D is required. Print the SHA first so the force-delete is
-        # recoverable via: git branch <name> <sha>.
-        SHA=$(git rev-parse --short "$b" 2>/dev/null || echo "unknown")
-        git branch --delete --force "$b"
-        echo "  deleted: $b (squash-merged, PR #$MERGED confirmed; was at $SHA — recover: git branch $b $SHA)"
-      else
-        echo "  skipped: $b (no merged PR found — delete manually if safe: git branch -D $b)"
-      fi
-    else
-      echo "  skipped: $b (gh unavailable, cannot confirm merged — delete manually: git branch -D $b)"
+    # MERGE-VERIFY FIRST — before removing any worktree or branch. A [gone] remote is not a merge.
+    # We can't use `git branch -d` as the probe (it refuses while the branch is checked out in a
+    # worktree), so test merged-ness non-destructively: ancestor of where gc runs (normal merge),
+    # or a gh-confirmed merged PR (squash-merge, which isn't an ancestor).
+    MERGED=false
+    if git merge-base --is-ancestor "$b" HEAD 2>/dev/null; then
+      MERGED=true
+    elif command -v gh >/dev/null 2>&1; then
+      PR=$(gh pr list --head "$b" --state merged --json number -q '.[0].number' 2>/dev/null || true)
+      [ -n "$PR" ] && MERGED=true
     fi
+    if [ "$MERGED" != true ]; then
+      echo "  skipped: $b (remote gone but NOT merged — your commits are safe; delete manually if sure: git branch -D $b)"
+      continue
+    fi
+
+    # Merged → safe to clean. If it's checked out in one of our worktrees, remove that first
+    # (git refuses to delete a checked-out branch). The awk reads the full path after "worktree "
+    # so paths with spaces aren't truncated.
+    WT=$(git worktree list --porcelain | awk -v br="refs/heads/$b" \
+      '/^worktree /{ p=$0; sub(/^worktree /,"",p) } $0=="branch "br { print p }')
+    if [ -n "$WT" ]; then
+      case "$WT" in
+        */.claude/worktrees/*)
+          if git worktree remove --force "$WT" 2>/dev/null; then
+            echo "  removed worktree: $WT (branch $b, merged)"
+          else
+            echo "  WARN: could not remove worktree $WT — remove it manually, then re-run gc" >&2
+            continue   # leave the branch; deleting it would fail while still checked out
+          fi ;;
+        *)
+          echo "  skipped worktree $WT (branch $b) — outside .claude/worktrees/, remove manually" >&2
+          continue ;;
+      esac
+    fi
+    # -D (force) is justified: merged-ness is already proven above. Print the SHA so it's recoverable.
+    SHA=$(git rev-parse --short "$b" 2>/dev/null || echo "unknown")
+    git branch --delete --force "$b" >/dev/null 2>&1 \
+      && echo "  deleted: $b (merged; was at $SHA — recover: git branch $b $SHA)"
   done <<< "$GONE"
 else
   echo "No stale branches found."
