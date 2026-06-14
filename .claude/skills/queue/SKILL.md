@@ -49,18 +49,25 @@ a partial setup — a worktree missing a required env file will fail integration
 For each confirmed task, in a single message (parallel tool calls):
 
 1. Determine branch name: `feat/<task-slug>` (slugify the task title)
-2. Create worktree: `scripts/worktree-add.sh .claude/worktrees/<task-slug> feat/<task-slug>`
-3. Spawn `Agent` with `isolation: "worktree"` — **do not use the worktree created in step 2**;
-   the Agent tool creates its own isolated worktree. Use the task slug as the branch prefix.
+2. Create the task's worktree: `scripts/worktree-add.sh .claude/worktrees/<task-slug> feat/<task-slug>`
+   (this runs the G1 setup — env symlinks, npm install, husky-shim assert).
+3. Spawn the agent to run **in that worktree**. Do **not** pass `isolation: "worktree"` — the
+   per-task worktree from step 2 IS this task's isolation (separate dir, branch, and index, so
+   parallel agents don't conflict). Passing `isolation: "worktree"` would make the Agent tool
+   create a *second*, separate worktree and leave the step-2 one orphaned (registered, unused,
+   never cleaned). The agent's first action is to `cd` into its worktree.
 
 Agent prompt template (fill in per task):
 
 > You are implementing a single scoped task. Follow the agent contract in
 > `.claude/agent-contract.md` exactly.
 >
-> **SETUP (run first, before any other step):** if this project's tests need a
-> root env file, symlink it in — the worktree does not inherit it, and integration
-> tests fail without it. Example:
+> **WORKTREE (do this first):** `cd` into your worktree from the repo root —
+> `cd .claude/worktrees/<task-slug>`. ALL your work — edits, commits, and the `.cr-ok`
+> sentinel — happens there, on branch `feat/<task-slug>`. Never work in the repo root.
+>
+> **SETUP:** if this project's tests need a root env file, symlink it in — the worktree does not
+> inherit it, and integration tests fail without it. Example:
 > `ln -sf "$(git rev-parse --show-toplevel)/.env.local" .env.local`
 > Skip for projects that need no env file.
 >
@@ -134,3 +141,14 @@ If the sentinel is missing or stale, the task-runner did not complete its review
 
 Update `TASKS.md`: mark completed tasks `[x]` and update the **Current State** block. Leave blocked/failed
 tasks unchecked with a note appended to their **Notes** field.
+
+---
+
+## Step 7 — Worktree cleanup (after merge)
+
+Task worktrees persist until their PRs **merge** — you may still need them for review fixes, so do
+**not** remove a worktree while its PR is open. Once the PRs merge, run `scripts/gc.sh`: it removes
+each merged branch's `.claude/worktrees/<slug>` worktree and then deletes the branch (the worktree
+must go first — git refuses to delete a branch that is still checked out in a worktree). Run it after
+a merge batch, or let the weekly `stale-branch-audit` ritual run it. WIP worktrees (live remote) are
+never touched.

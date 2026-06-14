@@ -15,10 +15,13 @@
 | **Custom diff-review UI** (better than GitHub's merge screens) | IDEA / explore | Backlog | **Goal:** make every PR so simple to review that the operator could *teach the change to another person* by the time it's pushed. GitHub's merge screens don't give a good enough feel for *what* changed and *why*. Build on what the harness already produces — the spec, the feature-doc hub (R4-D9), `/grill-with-docs`, and the `/cr` disposition report — rendered into one teachable view (the change + its intent + the review verdict, side by side). Distinct from F6/CI: this is about *human comprehension*, not the gate. |
 
 ## Promoted to the active plan (tracked, NOT parked here)
-- **`/queue` orphaned-worktree** — MEDIUM, core skill, small fix. `/queue` Step 3 pre-creates a
-  worktree the agent then ignores → orphan. On the near-term plan (worktree-lifecycle branch).
-- **Worktree/branch cleanup in `/feature` + `/queue`** — the skills don't reference cleanup at all;
-  `gc.sh` doesn't remove a merged PR's worktree. Bundle with the worktree-lifecycle branch.
+- ✅ **`/queue` orphaned-worktree** — RESOLVED (worktree-lifecycle branch). `/queue` Step 3 no longer
+  passes `isolation: "worktree"`; the agent works in the pre-created `.claude/worktrees/<slug>` (which
+  IS its isolation), so no second worktree is orphaned.
+- ✅ **Worktree/branch cleanup in `/feature` + `/queue`** — RESOLVED (worktree-lifecycle branch).
+  `gc.sh` now removes a merged branch's worktree before deleting the branch (also fixed the pre-existing
+  `git branch -vv` "+ " worktree-prefix bug that made worktree branches un-gc'able; tested in
+  `tests/gc.test.sh`). `/feature` and `/queue` both document post-merge cleanup via `gc.sh`.
 - **Backlog mechanism research** — per-project target (Linear / Issues / file) + an aging/severity
   mechanism that prevents this list from building forever. Produces the durable replacement for
   this interim file.

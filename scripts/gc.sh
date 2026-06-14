@@ -21,10 +21,32 @@ git worktree prune
 # Delete local branches whose remote tracking branch is gone ([gone] in git branch -vv).
 # A branch only shows [gone] after its remote was deleted — WIP branches with live
 # remotes are never matched here.
-GONE=$(git branch -vv | awk '/: gone\]/{print $1}' | grep -v '^\*$' || true)
+# `git branch -vv` marks the current branch with "* " and a worktree-checked-out branch with "+ ",
+# so for those the branch name is $2, not $1 (the bug that made worktree branches un-gc'able). Skip
+# the current branch (can't delete what you're on); keep worktree ("+") and plain branches.
+GONE=$(git branch -vv | awk '/: gone\]/ && $1 != "*" { print ($1 == "+") ? $2 : $1 }' || true)
 if [ -n "$GONE" ]; then
   echo "Cleaning up local branches with deleted remotes:"
   while IFS= read -r b; do
+    # If this merged branch is still checked out in one of our worktrees, remove the worktree
+    # FIRST. Otherwise `git branch -d/-D` refuses ("checked out at <path>") and both the branch
+    # and the worktree dir linger forever — the exact merged-PR-worktree leak this is meant to fix.
+    WT=$(git worktree list --porcelain | awk -v br="refs/heads/$b" \
+      '$1=="worktree"{p=$2} $1=="branch" && $2==br {print p}')
+    if [ -n "$WT" ]; then
+      case "$WT" in
+        */.claude/worktrees/*)
+          if git worktree remove --force "$WT" 2>/dev/null; then
+            echo "  removed worktree: $WT (branch $b merged)"
+          else
+            echo "  WARN: could not remove worktree $WT — remove it manually, then re-run gc" >&2
+            continue   # leave the branch alone; deleting it would still fail while checked out
+          fi ;;
+        *)
+          echo "  skipped worktree $WT (branch $b) — outside .claude/worktrees/, remove manually" >&2
+          continue ;;
+      esac
+    fi
     if git branch -d "$b" 2>/dev/null; then
       echo "  deleted: $b"
     elif command -v gh &>/dev/null; then
