@@ -1,6 +1,7 @@
 ---
 name: ux-reviewer
-description: Runs a full UX review using Chrome MCP on any diff containing
+description: |
+  Runs a full UX review using Chrome MCP on any diff containing
   component or CSS changes. Two sequential passes: (1) DMMT structural audit
   against Don't Make Me Think principles with a confusion score, (2) multi-persona
   friction review through five built-in personas plus any project personas in

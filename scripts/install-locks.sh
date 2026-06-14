@@ -27,8 +27,10 @@ esac
 DEST="${INSTALL_LOCKS_DEST:-$DEST_DEFAULT}"
 SUDO="${INSTALL_LOCKS_SUDO-sudo}"
 
-# Print a file's permission bits portably (macOS stat vs GNU stat).
-_mode() { stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null || echo "?"; }
+# Print a file's permission bits portably. GNU stat (`-c`) FIRST, then BSD/macOS (`-f`): on Linux
+# `stat -f` means --file-system and "succeeds" with the wrong output, so a BSD-first order silently
+# returns filesystem text on CI instead of the mode. (That broke install-locks.test.sh on CI.)
+_mode() { stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1" 2>/dev/null || echo "?"; }
 
 if [ "${1:-}" = "--check" ]; then
   if [ ! -f "$DEST" ]; then

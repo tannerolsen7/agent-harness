@@ -1,6 +1,7 @@
 ---
 name: explorer
-description: Performs broad codebase search and returns structured findings.
+description: |
+  Performs broad codebase search and returns structured findings.
   Use when a task requires searching 3 or more locations, understanding how
   a pattern is used across the codebase, or mapping dependencies before
   implementation. Pass a specific question and a breadth level: quick
