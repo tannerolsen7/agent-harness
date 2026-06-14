@@ -58,6 +58,19 @@ answer the sudo prompt; that is the security boundary, not an inconvenience.
 **Verify:** start a new session, ask the agent to `Write` to `.claude/settings.json` — it must
 be denied even though the project settings are checked out.
 
+**Permissions matter — the policy file MUST be world-readable.** Claude Code reads the managed
+policy on every startup and **exits (code 1) if it can't read it** ("Unable to read managed policy
+settings… EACCES"). The file must be **`644` (root-owned, `rw-r--r--`)**: root-writable so the agent
+can't tamper with it, world-readable so Claude Code can load it. `install-locks.sh` now `chmod 644`s
+it after placing (earlier it inherited the `mktemp` `600`, which silently broke startup). If startup
+fails with that error, fix the existing file:
+```bash
+sudo chmod 644 "/Library/Application Support/ClaudeCode/managed-settings.json"   # macOS
+# Linux: sudo chmod 644 /etc/claude-code/managed-settings.json
+```
+Do **not** `chown` it to your user — that would make the policy user-writable and defeat the lock.
+`install-locks.sh --check` now reports this state (present-but-unreadable → non-zero + the fix).
+
 ### Residual risk (honest)
 - **checkout-old-commit:** `git checkout <old-sha>` predating the hooks removes the hook *files*
   from the working tree; the `PreToolUse` commands then point at missing scripts. The OS-level
