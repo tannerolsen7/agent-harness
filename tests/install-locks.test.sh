@@ -19,6 +19,8 @@ INSTALL_LOCKS_DEST="$DEST" INSTALL_LOCKS_SUDO= bash "$SCRIPT" >/dev/null 2>&1
 [ -f "$DEST" ]; ck "$?" "managed-settings placed at the override dest"
 [ "$(mode_of "$DEST")" = "644" ] && ck 0 "mode is 644 (world-readable, root-writable only)" \
   || { echo "  MISS: mode is $(mode_of "$DEST"), not 644 — Claude Code needs world-read"; fail=$((fail+1)); }
+[ "$(mode_of "$(dirname "$DEST")")" = "755" ] && ck 0 "dir mode is 755 (world-traversable)" \
+  || { echo "  MISS: dir mode is $(mode_of "$(dirname "$DEST")"), not 755 — file unreachable"; fail=$((fail+1)); }
 [ -r "$DEST" ]; ck "$?" "placed file is readable by the current user"
 if command -v jq >/dev/null 2>&1; then
   jq -e . "$DEST" >/dev/null 2>&1; ck "$?" "placed file is valid JSON"

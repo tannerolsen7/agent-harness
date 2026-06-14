@@ -50,6 +50,7 @@ fi
 
 # Strip the _comment key (some versions reject unknown keys) before placing.
 TMP=$(mktemp)
+trap 'rm -f "${TMP:-}"' EXIT   # never leak the temp policy, even if a chmod/cp fails under set -e
 if command -v jq >/dev/null 2>&1; then jq 'del(._comment)' "$TEMPLATE" > "$TMP"; else grep -v '"_comment"' "$TEMPLATE" > "$TMP"; fi
 
 echo "Placing the OS-level managed settings (the unbypassable floor)."
@@ -64,8 +65,10 @@ $SUDO cp "$TMP" "$DEST"
 # Force 644: root-owned + root-writable (tamper-resistant) but WORLD-READABLE so Claude Code can read it.
 $SUDO chmod 644 "$DEST"
 rm -f "$TMP"
+# Hard-fail if the policy still isn't readable — don't claim success on a state that breaks startup.
 if [ ! -r "$DEST" ]; then
-  echo "install-locks: WARNING — $DEST is not readable after install (mode $(_mode "$DEST"))." >&2
+  echo "install-locks: ERROR — $DEST is not readable after install (mode $(_mode "$DEST"))." >&2
   echo "  Claude Code will fail to start. Fix: sudo chmod 644 \"$DEST\"" >&2
+  exit 1
 fi
 echo "Done. Verify with: bash scripts/install-locks.sh --check"
