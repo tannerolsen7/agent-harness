@@ -7,7 +7,7 @@ description: Runs /compound after a task completes — reads the task diff
   are answered. Only runs on projects with .claude/agentic-system-enabled.
   Produces a draft for human review — never writes to actual files directly.
 tools: Read,Edit,Glob,Grep,Bash
-model: sonnet
+model: haiku
 permissionMode: plan
 ---
 
