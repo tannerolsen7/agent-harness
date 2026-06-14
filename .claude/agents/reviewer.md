@@ -8,7 +8,7 @@ description: |
   Each lens runs in isolation — no shared context between them. High findings
   block progression. Reviewer does not fix — it surfaces only.
 tools: Read,Glob
-model: sonnet
+model: opus
 permissionMode: plan
 ---
 

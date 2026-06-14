@@ -1,10 +1,11 @@
 ---
 name: cr-security
-description: Security-focused 3-pass review for changes touching authentication,
-access policies, public endpoints, or data boundaries. Pass 3 defers backend-specific
-deep checks to the project's database-safety adapter skill. Every finding is MUST FIX.
-Auto-fixes with Opus after review. Triggers on changes to auth, middleware, public-path
-config, access policies, server actions, share tokens, or cross-tenant isolation.
+description: |
+  Security-focused 3-pass review for changes touching authentication,
+  access policies, public endpoints, or data boundaries. Pass 3 defers backend-specific
+  deep checks to the project's database-safety adapter skill. Every finding is MUST FIX.
+  Auto-fixes with Opus after review. Triggers on changes to auth, middleware, public-path
+  config, access policies, server actions, share tokens, or cross-tenant isolation.
 ---
 
 # /cr-security — Security review

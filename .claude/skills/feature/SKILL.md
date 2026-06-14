@@ -1,10 +1,11 @@
 ---
 name: feature
-description: Guides the user through a complete feature development workflow,
-orchestrating discovery, planning, implementation, and review steps sized to
-feature complexity. Use when starting a new feature, building something new,
-or when the user says "new feature", "build X", "implement X", "plan a feature",
-or invokes /feature.
+description: |
+  Guides the user through a complete feature development workflow,
+  orchestrating discovery, planning, implementation, and review steps sized to
+  feature complexity. Use when starting a new feature, building something new,
+  or when the user says "new feature", "build X", "implement X", "plan a feature",
+  or invokes /feature.
 ---
 
 # Feature Pipeline

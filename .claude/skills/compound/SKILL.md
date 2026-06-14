@@ -1,8 +1,9 @@
 ---
 name: compound
-description: Capture a solved problem as a reusable solution doc in docs/solutions/.
-Use after a feature merges when the implementation introduced a non-obvious pattern
-or approach worth preserving. Invoke with /compound.
+description: |
+  Capture a solved problem as a reusable solution doc in docs/solutions/.
+  Use after a feature merges when the implementation introduced a non-obvious pattern
+  or approach worth preserving. Invoke with /compound.
 ---
 
 # /compound — Capture solved problems

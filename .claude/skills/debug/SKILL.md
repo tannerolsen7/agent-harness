@@ -1,6 +1,7 @@
 ---
 name: debug
-description: Investigates an observed symptom, finds the root cause, writes
+description: |
+  Investigates an observed symptom, finds the root cause, writes
   a failing test that confirms it, and produces a filled TASK-TEMPLATE.md
   ready to hand to /feature. Use when something is broken, behaving
   unexpectedly, or throwing an error — and the cause is unknown. Use when

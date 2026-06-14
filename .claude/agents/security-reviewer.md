@@ -6,7 +6,7 @@ description: Runs /cr-security on code changes touching authentication,
   of these areas, or when @task-runner detects auth-adjacent file changes.
   Returns MUST FIX findings only — no suggestions. Read-only.
 tools: Read,Grep,Glob
-model: sonnet
+model: opus
 permissionMode: plan
 ---
 
