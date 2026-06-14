@@ -46,9 +46,10 @@ done
 # non-empty check above does NOT catch this (a non-empty but malformed description still loads dead).
 # A plain `description:` scalar breaks when a continuation line is unindented, or when the value
 # contains ": " or " #" (YAML reads those as structure). A `description: |` / `>` block scalar is
-# immune. Assert each skill's description is a block scalar, or a plain value with neither breaker.
-# (Agents are guard files the human keeps block-scalar; this guards the agent-editable skills.)
-for f in .claude/skills/*/SKILL.md; do
+# immune. Assert each skill AND agent description is a block scalar, or a plain value with neither
+# breaker. (Skills are agent-editable; agents are guard files — both are guarded so neither side
+# can silently reintroduce an unparseable frontmatter that fails Claude Code's loader.)
+for f in .claude/skills/*/SKILL.md .claude/agents/*.md; do
   risky=$(awk '
     NR==1 && $0=="---"{infm=1; next}
     infm && $0=="---"{exit}

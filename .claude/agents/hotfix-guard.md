@@ -1,6 +1,7 @@
 ---
 name: hotfix-guard
-description: Merge gate enforcer for hotfix branches. Checks three gates before
+description: |
+  Merge gate enforcer for hotfix branches. Checks three gates before
   merge is allowed: required TASKS.md entries exist for the hotfix mode, a failing
   test was added targeting the root cause, and the diff does not exceed the declared
   scope. Spawned by /hotfix before merge. Read-only — never writes files.

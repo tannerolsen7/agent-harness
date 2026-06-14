@@ -1,6 +1,7 @@
 ---
 name: investigator
-description: Investigates a bug report across the codebase and returns a
+description: |
+  Investigates a bug report across the codebase and returns a
   root cause, a failing test, and a filled TASK-TEMPLATE.md. Use when a
   bug crosses a layer boundary (regardless of file count) or spans 3 or
   more files within the same layer. Spawned by /debug or directly when
