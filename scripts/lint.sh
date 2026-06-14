@@ -8,7 +8,13 @@ ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 cd "$ROOT"
 
 files=""
-while IFS= read -r f; do files="$files $f"; done < <(find .claude scripts -type f -name '*.sh' 2>/dev/null)
+# Lint OUR shell only. Exclude: transient worktrees under .claude/worktrees/ (each carries its own
+# copy of everything + husky's generated _/husky.sh, which has no shebang → SC2148), any node_modules,
+# and husky's internal _/ shim dir. Without this, running from the repo root descends into a leftover
+# worktree and lints husky-generated files we don't own (broke the pre-commit gate; CI has no worktrees
+# but the exclusion keeps local + CI identical).
+while IFS= read -r f; do files="$files $f"; done < <(find .claude scripts -type f -name '*.sh' \
+  -not -path '*/worktrees/*' -not -path '*/node_modules/*' -not -path '*/.husky/_/*' 2>/dev/null)
 for h in .husky/pre-commit .husky/pre-push .husky/post-checkout; do
   [ -f "$h" ] && files="$files $h"
 done
