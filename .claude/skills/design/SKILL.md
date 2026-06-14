@@ -1,12 +1,13 @@
 ---
 name: design
-description: System design skill with two modes. Use 'explore' when you don't
-know the right design and need options with tradeoffs before committing. Use
-'contract' when you know the design and need to formalize it into a handoff
-document for Claude Code. Triggers on: "I want to build X", "how should I
-structure this", "what's the best approach for", "help me design", "I need to
-add a feature", or any time a feature is described without defined inputs,
-outputs, or constraints. Always runs before /grill-with-docs for Small+ tasks.
+description: |
+  System design skill with two modes. Use 'explore' when you don't
+  know the right design and need options with tradeoffs before committing. Use
+  'contract' when you know the design and need to formalize it into a handoff
+  document for Claude Code. Triggers on: "I want to build X", "how should I
+  structure this", "what's the best approach for", "help me design", "I need to
+  add a feature", or any time a feature is described without defined inputs,
+  outputs, or constraints. Always runs before /grill-with-docs for Small+ tasks.
 ---
 
 # /design

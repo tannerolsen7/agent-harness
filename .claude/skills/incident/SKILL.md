@@ -1,6 +1,7 @@
 ---
 name: incident
-description: Something is wrong and the type of problem is not yet known. Runs
+description: |
+  Something is wrong and the type of problem is not yet known. Runs
   before any fix, debug, or hotfix. Classifies the incident through structured
   evidence gathering and routes to the correct resolution path. Use when the user
   says "something is broken", "a user reported", "production issue", "bug report",

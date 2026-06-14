@@ -1,6 +1,7 @@
 ---
 name: refactor
-description: Safe, incremental code refactoring with test gates enforced at every step. One mode: extract-module (move code into one or more new files). Use when splitting a large file, or when user says "refactor", "extract this", "split this file", "this file is too big", or "move this to its own module". For renaming a symbol or extracting a function, apply the two-hat and test-first rules from CLAUDE.md and proceed — no skill invocation needed.
+description: |
+  Safe, incremental code refactoring with test gates enforced at every step. One mode: extract-module (move code into one or more new files). Use when splitting a large file, or when user says "refactor", "extract this", "split this file", "this file is too big", or "move this to its own module". For renaming a symbol or extracting a function, apply the two-hat and test-first rules from CLAUDE.md and proceed — no skill invocation needed.
 ---
 
 # /refactor
