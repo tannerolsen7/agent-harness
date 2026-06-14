@@ -1,5 +1,7 @@
+# shellcheck shell=sh
 # husky runs hooks under sh and ignores any shebang; v10 also removed the auto-sourced
 # shim line. So this hook is plain POSIX sh — no shebang, no sourcing line, no bashisms.
+# (The shell directive above replaces the shebang as shellcheck's hint — without it: SC2148.)
 set -e
 
 # Read all push refs from stdin upfront (git pipes these before hook logic runs).
