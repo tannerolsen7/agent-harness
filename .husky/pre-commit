@@ -1,3 +1,5 @@
+# shellcheck shell=sh
 # husky runs hooks under sh; v10 removed the shebang + auto-sourced shim. Plain POSIX sh.
+# (The directive replaces the shebang as shellcheck's shell hint — without it shellcheck errors SC2148.)
 set -e
 npm run lint

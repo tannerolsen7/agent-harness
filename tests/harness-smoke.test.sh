@@ -81,11 +81,15 @@ done
 # substring also covers `&>>`), or `==` inside a single-bracket test (`[ x == y ]`). Patterns are
 # anchored so the hooks' own comments don't trip them. (Syntax-error bashisms — arrays, `function`,
 # `<(...)` — abort loudly under sh on CI rather than no-opping, so they're not enumerated here.)
+# Also require a `# shellcheck shell=sh` directive: with the shebang gone, shellcheck has no shell
+# hint and errors SC2148 in CI — and lint.sh skips shellcheck when it's absent locally, so the only
+# way to catch this BEFORE CI is to assert the directive here (this runs with or without shellcheck).
 for h in .husky/pre-commit .husky/pre-push .husky/post-checkout; do
   [ -f "$h" ] || { note "$h"; continue; }
   head -n 1 "$h" | grep -q '^#!' && note "$h has a shebang (husky v10 hooks run under sh — drop it)"
   grep -qE '^[[:space:]]*(\.|source)[[:space:]].*husky' "$h" && note "$h sources the removed husky v10 shim"
   grep -qE '<<<|\[\[|&>|\[[^]]*==' "$h" && note "$h uses a bash-only construct (fails silently under sh)"
+  grep -q '^# shellcheck shell=sh' "$h" || note "$h missing '# shellcheck shell=sh' (CI shellcheck SC2148s a shebang-less hook without it)"
 done
 
 # No project-specific stack terms must leak back into the portable core.
