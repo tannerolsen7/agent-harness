@@ -59,7 +59,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | Collapse 9 analytical passes → 1 + lint, GATED on bug-catch test | R4-D20, R4-D32 | ⬜ (the 9→1 question — yes, gated; keep splits where recall drops) |
 | Model tiers by ROLE + re-audit on model-id change | R4-D31, R4-D32#4 | ✅ audit done (`docs/model-tier-audit.md`); all guard-file model changes applied by human: reviewer → opus, security-reviewer → opus, doc-updater → haiku; implementer never-touch rule added (regression gate + `.claude/agents/**`). |
 | Skill-routing reliability: sharp descriptions (oblique/regression/screenshot) + classify-AND-route + no empty stubs | R4-D31 | 🔄 /debug triggers broadened + work-state table routes to /debug + classify-AND-route rule (debug-process PR); no-empty-stub lint ✅ (PR-C). Debug process verified sound: /debug → @investigator → /feature/hotfix; /incident → @incident-responder → /debug. Broaden other skills' triggers as field misses surface. |
-| Bounded-loop + REJECT | F7 | ⬜ |
+| Bounded-loop + REJECT | F7 | ✅ `/cr` Step 3c: REJECT terminal state (wrong approach → paste-ready `gh pr close` + redirect, no sentinel, halt). Step 4: explicit 2-attempt ceiling; after attempt 2 → NEEDS HUMAN block with exact test command. |
 | Classifier guard (over-classify when unsure; in bug-catch) | R4-D32#5 | ✅ classifier built (`scripts/classify-risk.sh`): deterministic path+content HIGH/MEDIUM/LOW; over-classify-when-unsure rule encoded; `bug-catch/run-classifier.sh` feeds TSV to `score.sh --traps`; 59 classifier tests pass; all 5 trap cases caught (100% trap recall, lower bound 56.6%); `path:` field added to cases 009–013 so the gate measures the classifier tier directly, not reviewer prose. |
 
 ## Phase 2 — The loop (TODO)
