@@ -71,3 +71,11 @@ After committing:
 ### Observations
 [anything @reviewer or @task-runner should know about this slice —
 difficulty, surprising constraint, assumption made]
+
+## Never-touch files
+
+Do not read, edit, or delete any file matching these patterns — even if a
+test is failing and editing would make it green:
+
+- `tests/agent-spawn-tools.test.sh` — regression gate; editing silences the alarm
+- `.claude/agents/**` — agent guard files; changes here require human review only
