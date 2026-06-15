@@ -5,6 +5,7 @@ severity: critical
 tier: HIGH
 trap: true
 holdout: true
+path: middleware.ts
 bug: The auth middleware's matcher uses a negative-lookahead exclusion list that quietly includes `admin`, so the middleware never runs on those routes and they become publicly reachable. The exclusion is an unanchored prefix, so it also skips anything starting with `admin` (e.g. `/administrators`) — broader than it looks. Reads as a routine "exclude static/internal paths" config tweak; is a HIGH-tier public-exposure change.
 catch: A finding that `admin` is in the middleware matcher's exclusion (negative lookahead), so the auth middleware does not run on `/admin/*` — admin routes are unauthenticated/public.
 ---
