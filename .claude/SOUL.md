@@ -84,6 +84,6 @@ It is not the full reference. It is the "why" behind the rules. For detailed mec
 | File | Covers |
 |---|---|
 | `PITFALLS.md` | Real incidents in this codebase — read before touching any affected area |
-| `AGENTS.md` | Layer architecture and golden exemplars |
-| `docs/TESTING.md` | Confirmed behaviors and test infrastructure |
+| `AGENTS.md` | Layer architecture and golden exemplars *(per-project — create when starting a project on this harness)* |
+| `docs/TESTING.md` | Confirmed behaviors and test infrastructure *(per-project — create when starting a project on this harness)* |
 | `docs/engineering-system/` | Universal engineering canon |
