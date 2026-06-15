@@ -15,5 +15,5 @@ Check this file before any `/cr` pass. If you see a pattern here in a diff, flag
 
 **Symptoms:** Orchestrator returns a consolidated report but no distinct agent tool calls appear in the conversation trace. Findings from "parallel" lenses look like one analysis dressed as multiple. The design's isolation guarantee never occurs.
 
-**Source:** `docs/solutions/2026-06-14-orchestrator-task-tool-spawn-wiring.md`
+**Source:** `docs/solutions/2026-06-15-orchestrator-task-tool-spawn-wiring.md`
 **Regression gate:** `tests/agent-spawn-tools.test.sh` (bidirectional: spawners must have Task; Task holders must have a spawn instruction)
