@@ -6,7 +6,7 @@ description: Orchestrates the full specialist pipeline for a single task
   @security-reviewer, and @doc-updater, manages the questions.md blocking
   protocol, and returns a summary to /queue. Use only via /queue — not
   invoked directly.
-tools: Read,Edit,Bash,Glob,Grep
+tools: Task,Read,Edit,Bash,Glob,Grep
 model: opus
 permissionMode: auto
 ---

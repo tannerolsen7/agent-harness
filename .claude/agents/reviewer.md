@@ -7,9 +7,9 @@ description: |
   - Implementation mode: spawned by /cr as Pass 11, receives full branch diff
   Each lens runs in isolation — no shared context between them. High findings
   block progression. Reviewer does not fix — it surfaces only.
-tools: Read,Glob
+tools: Task,Read,Glob
 model: opus
-permissionMode: plan
+permissionMode: default
 ---
 
 ## Contract
