@@ -8,6 +8,8 @@ Read before every task. Keep it current; every agent depends on it.
 
 Build the minimum that solves the problem. Nothing more. Scale effort to what the task warrants — in code, in tokens, in agent spawns.
 
+**Always start work on a feature branch — never commit directly to main.** Run `git checkout -b feat/<slug>` before the first commit. The harness blocks commits and pushes on main/master/develop.
+
 ---
 
 ## Sub-agent spawn doctrine (R4-D21)
