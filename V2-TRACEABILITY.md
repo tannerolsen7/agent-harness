@@ -16,7 +16,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | Project-agnostic (no project's specifics baked in; adapters/roles) | R4-D10, project-agnostic correction | 🔄 host-agnostic pr.sh ✓; roster genericization pending |
 | Locks are the sole safety net | R4-D8 | ✅ Phase 0 |
 | Deterministic > advisory (mechanical rules → hooks/lint, not CLAUDE.md) | R4-D33 | ⬜ Phase 4 audit |
-| One capable pass; spawn only for independence/parallelism/scale | R4-D21 | ⬜ Phase 1 (spawn doctrine) |
+| One capable pass; spawn only for independence/parallelism/scale | R4-D21 | ✅ `.claude/SOUL.md` — spawn doctrine (independence/parallelism/scale) + two-layer model (deterministic BATTERY vs ad-hoc judgment) + governance (trust + log) |
 | Comments earned (why, never what) | R4-D26 | ⬜ Phase 3 lint |
 | Human starts + merges everything | R4-D7, R4-D1 | ✅ (no auto-merge; PR-based) |
 | Frictionless handoff (checklist + commands every handback) | R4-D24 | ✅ `/handoff` skill (`.claude/skills/handoff/`) — emits done / in-progress / needs-human / exact-continue-commands / links; honest-state + exact-commands rules. (Optional future: a Stop-hook that auto-emits it — guard file, deferred.) |
