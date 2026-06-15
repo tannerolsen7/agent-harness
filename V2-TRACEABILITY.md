@@ -60,7 +60,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | Model tiers by ROLE + re-audit on model-id change | R4-D31, R4-D32#4 | 🔄 audit done (`docs/model-tier-audit.md`: role→tier for all 23 agents vs the Opus 4.8 lineup + re-audit ritual). 3 `model:` changes queued for human (guard files): reviewer + security-reviewer → opus, doc-updater → haiku; lenses flagged for the bug-catch baseline. |
 | Skill-routing reliability: sharp descriptions (oblique/regression/screenshot) + classify-AND-route + no empty stubs | R4-D31 | 🔄 /debug triggers broadened + work-state table routes to /debug + classify-AND-route rule (debug-process PR); no-empty-stub lint ✅ (PR-C). Debug process verified sound: /debug → @investigator → /feature/hotfix; /incident → @incident-responder → /debug. Broaden other skills' triggers as field misses surface. |
 | Bounded-loop + REJECT | F7 | ⬜ |
-| Classifier guard (over-classify when unsure; in bug-catch) | R4-D32#5 | ⬜ |
+| Classifier guard (over-classify when unsure; in bug-catch) | R4-D32#5 | 🔄 guard delivered: 5 "looks-trivial-but-isn't" trap cases (009–013: RLS/auth/public-path/payments/schema) in bug-catch with `tier`/`trap` frontmatter; `score.sh --traps` measures the under-call rate (Wilson lower bound = the gate); over-classify-when-unsure rule spec'd in `docs/risk-classifier.md`. REMAINING: wire the gate into the classifier when it's built (Phase-1 "SCALE-TO-TASK", R4-D20). |
 
 ## Phase 2 — The loop (TODO)
 | Item | Decision | Status |

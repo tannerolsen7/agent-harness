@@ -35,6 +35,36 @@ num_in "$l" 68 74 && ok || no "10/10 lower ($l) outside expected band 68-74"
 printf 'x\ty\n\n' | bash "$SCORE" >/dev/null 2>&1; rc=$?
 [ "$rc" -eq 2 ] && ok || no "no verdicts should exit 2, got $rc"
 
+# --traps: the classifier-guard breakdown over the real trap subset (009-013 are trap:true cases).
+# Non-trap ids (001) are excluded from the trap tally; under-calls = missed traps (R4-D32 #5).
+out=$(printf '001\tcaught\n009\tcaught\n010\tcaught\n011\tcaught\n012\tmissed\n013\tmissed\n' | bash "$SCORE" --traps /dev/stdin)
+tc=$(printf '%s' "$out" | awk '/^trap cases:/{print $3}')
+uc=$(printf '%s' "$out" | awk '/^under-calls:/{print $2}')
+tr=$(field 'trap recall' "$out")
+[ "$tc" = "5" ] && ok || no "--traps trap cases = $tc (want 5; non-trap 001 excluded)"
+[ "$uc" = "2" ] && ok || no "--traps under-calls = $uc (want 2; 012+013 missed)"
+[ "$tr" = "60.0" ] && ok || no "--traps trap recall = $tr (want 60.0)"
+# default output is unchanged by the feature: overall recall still prints (4/6 = 66.7%)
+orec=$(field 'recall' "$out")
+[ "$orec" = "66.7" ] && ok || no "--traps overall recall = $orec (want 66.7; trap block must not disturb it)"
+# coverage line shows n-of-corpus; full coverage (all 5 traps in the run) → no PARTIAL warning
+printf '%s' "$out" | grep -q 'of 5 in corpus' && ok || no "--traps should print 'of 5 in corpus' coverage"
+printf '%s' "$out" | grep -q 'PARTIAL' && no "--traps full-coverage run must NOT warn PARTIAL" || ok
+
+# --traps honored in ANY arg position (a forgotten-first flag must not silently no-op to green)
+out=$(printf '009\tcaught\n012\tmissed\n013\tmissed\n' | bash "$SCORE" /dev/stdin --traps)
+tc=$(printf '%s' "$out" | awk '/^trap cases:/{print $3}')
+[ "$tc" = "3" ] && ok || no "--traps after the path should still run (trap cases = $tc, want 3)"
+
+# partial coverage (2 of 5 traps in the run) → visible WARN, not a silent shrink
+out=$(printf '009\tcaught\n010\tcaught\n' | bash "$SCORE" --traps /dev/stdin)
+printf '%s' "$out" | grep -q 'WARN:.*PARTIAL' && ok || no "--traps partial run should WARN PARTIAL coverage"
+
+# --traps but NO trap cases in the run → guard measured nothing → exit 3 (must not read as pass)
+out=$(printf '001\tcaught\n002\tmissed\n' | bash "$SCORE" --traps /dev/stdin); rc=$?
+[ "$rc" -eq 3 ] && ok || no "--traps with no trap rows should exit 3, got $rc"
+printf '%s' "$out" | grep -q 'measured nothing' && ok || no "--traps empty subset should print 'measured nothing'"
+
 echo ""
 echo "bug-catch-score: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
