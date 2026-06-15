@@ -55,7 +55,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | Routing-assertion gate | R4-D32#3 | ✅ |
 | C5 governance/canon pass in /cr | R4-D14b, C5 | ✅ |
 | Host-agnostic pr.sh (gh/glab) | R4-D7, project-agnostic | ✅ |
-| 4-lens adversarial reviewer + lenses | C2 | 🔄 lens agents present; verify wired |
+| 4-lens adversarial reviewer + lenses | C2 | ✅ wired: reviewer.md tools: Task,Read,Glob + permissionMode: default; regression test agents/spawn-wiring |
 | Collapse 9 analytical passes → 1 + lint, GATED on bug-catch test | R4-D20, R4-D32 | ⬜ (the 9→1 question — yes, gated; keep splits where recall drops) |
 | Model tiers by ROLE + re-audit on model-id change | R4-D31, R4-D32#4 | 🔄 audit done (`docs/model-tier-audit.md`: role→tier for all 23 agents vs the Opus 4.8 lineup + re-audit ritual). 3 `model:` changes queued for human (guard files): reviewer + security-reviewer → opus, doc-updater → haiku; lenses flagged for the bug-catch baseline. |
 | Skill-routing reliability: sharp descriptions (oblique/regression/screenshot) + classify-AND-route + no empty stubs | R4-D31 | 🔄 /debug triggers broadened + work-state table routes to /debug + classify-AND-route rule (debug-process PR); no-empty-stub lint ✅ (PR-C). Debug process verified sound: /debug → @investigator → /feature/hotfix; /incident → @incident-responder → /debug. Broaden other skills' triggers as field misses surface. |
