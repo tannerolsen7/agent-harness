@@ -203,8 +203,46 @@ Identify promotion candidates:
 - Auto-flag: any active finding with Occurrences ≥3
 - Judgment-flag: any finding assessed as high-impact at lower count
 
-Collect promotion candidates but do NOT surface them here. Proceed to Step 4.
+Collect promotion candidates but do NOT surface them here. Proceed to Step 3c.
 Present candidates at Step 5 alongside Nice-to-Have and Something to Think About items.
+
+---
+
+## Step 3c — REJECT check (F7)
+
+Before entering the fix loop, evaluate whether the **REJECT** terminal state applies.
+
+**REJECT when the approach itself is wrong** — not the implementation of a sound approach:
+- The Must Fix items collectively indicate the *direction* is wrong: fixing every single one would still leave the PR solving the wrong problem, or require reconceiving the core design.
+- The diff contradicts a locked ADR or PITFALLS entry *at its core* — not a peripheral detail, but the central mechanism.
+- The scope of changes required to make this approach correct exceeds the scope of the diff itself (patching costs more than starting over).
+
+**REJECT does NOT apply when:**
+- There are many Must Fix items on an otherwise sound approach (those get fixed in Step 4 — this is normal).
+- A single architectural drift finding exists (MUST FIX, not REJECT).
+- Issues can be fixed without reconceiving the fundamental approach.
+
+**If REJECT applies**, emit and halt — do not proceed to Step 4:
+
+```
+## ⛔ REJECT — approach cannot be fixed in-place
+
+**Reason:** [specific: which decision is contradicted at its core, or why fixing everything
+still leaves the approach wrong]
+
+**The right path:**
+1. Close this PR:
+   `gh pr close $(gh pr view --json number -q .number) --comment "Closing: [reason]. Redoing with [new approach]."`
+2. Delete the branch (if no useful commits to salvage):
+   `git push origin --delete $(git rev-parse --abbrev-ref HEAD)`
+3. [Specific redirect: what the new approach should be and why]
+
+Patching a wrong approach wastes time. Do not fix the Must Fix items listed above.
+```
+
+Do not write the sentinel. Stop.
+
+If REJECT does not apply, proceed to Step 4.
 
 ---
 
@@ -223,7 +261,20 @@ If there are Must Fix items, spawn one Opus agent:
 HUMAN and surface a paste-ready command; the human is the only one allowed to change a guard
 file. Do not write the sentinel (Step 7) until the human confirms the fix is applied.
 
-After fixes: run the test suite. One retry on failure. Surface failures after that.
+After fixes: run the test suite. **Attempt ceiling: 2 (initial run + one retry).** If still failing after attempt 2 → stop; do NOT attempt a third time. Emit NEEDS HUMAN and halt:
+
+```
+## NEEDS HUMAN — fix-loop ceiling reached (F7)
+
+The test suite is still failing after 2 fix attempts.
+
+**What was fixed:** [list]
+**Still failing:** [exact test output]
+**Run tests with:** `npm run test`
+**Suggested next step:** [what the agent tried, what might be wrong]
+```
+
+Do not write the sentinel.
 
 If no Must Fix items, skip and say so.
 
