@@ -83,7 +83,7 @@ free lint (gated on the bug-catch test) · model tiers by ROLE (deterministic / 
 re-audit on model-id change · the routing-assertion gate (block if a DB-touch skipped the DB-safety skill) ·
 bounded-loop + REJECT.
 
-**Phase 2 — The loop (human-started):** one adaptive build command + `/goal` · incident subsystem (carry
+**Phase 2 — The loop (human-started):** one adaptive build command — `/feature` is the single front door (no separate `/goal`/router skill; the `/goal` continuation primitive is deferred to Claude's built-in) · incident subsystem (carry
 forward) · narration · shared Stop-hook · **the strict before-coding gate: data shape → UX (flow/clicks) → UI
 (mockup), human-approved before any code** + the design phase (1 designer covering schema + API + front-end
 architecture, judged-for-the-stack, + an independent grill) · the feature-doc hub (one source of truth per

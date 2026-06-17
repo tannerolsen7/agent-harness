@@ -65,7 +65,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 ## Phase 2 — The loop (TODO)
 | Item | Decision | Status |
 |---|---|---|
-| One adaptive build command + /goal | R4-D7#3 | ⬜ |
+| One adaptive build command + /goal | R4-D7#3 | 🔄 **Decision: no dedicated front-door/router skill.** `/feature` IS the one adaptive front door — its Step 0 sizes Tiny/Small/Medium/Large and drives `/tdd` as the under-the-hood engine (R4-D7#3's "engine inside; no user choice"). A bare goal reaches it via native skill-dispatch on a sharp `description`, not a wrapper skill. A `/goal`→`/tdd`/`/feature` router was built (PR #22, merged) then removed — redundant: it duplicated `/feature` Step 0's sizing criteria, and `/tdd` is the engine, never a front-door peer (no front-door case routes to `/tdd`). Residual: keep `/feature`'s `description` sharp enough that bare goals route there reliably. **`/goal` continuation primitive (L2, run-until-graded) = decide later** — Anthropic ships a built-in `/goal` (v2.1.139) that natively provides it (separate checker model), which also resolves the T1-2 force-continue uncertainty. |
 | Strict before-coding gate: data shape → UX → UI mockup | R4-D4 | ⬜ |
 | Design phase: 1 designer (schema+API+front-end) + grill; framework-adapted | R4-D14/14a/14b | ⬜ |
 | Feature-doc-as-hub + patterns/golden-exemplars registry | R4-D9, R4-D25 | ⬜ |
