@@ -70,7 +70,32 @@ Write to `docs/solutions/YYYY-MM-DD-short-description.md` where:
 
 ---
 
-## Step 5 — Check for PITFALLS.md promotion
+## Step 5 — Capture patterns into the patterns registry
+
+Did this feature establish a reusable **multi-file recipe** — the canonical way to do a
+recurring thing that spans several files (e.g. "add a custom field," "subscribe to a live
+data source," "add a new public endpoint")? This is distinct from the single-file golden
+exemplars in AGENTS.md and from the point-in-time solution doc written above: the registry
+holds forward-looking, replicable recipes that agents read before writing code that matches
+one.
+
+If yes:
+1. Open `docs/patterns-registry.md` (create it from the entry format documented in that file
+   if it does not exist yet).
+2. Add a new entry — or update an existing one if this feature changed an established recipe —
+   using the registry's entry format (What / When to use / When NOT to use / The recipe /
+   Golden exemplar / Established by / Gotchas).
+3. Link the entry from this feature's `docs/features/<feature-slug>.md` → "Patterns
+   established" (see `docs/feature-doc-template.md`). The feature doc indexes the recipe; the
+   registry holds the canonical steps.
+
+If the feature established no new cross-file pattern, say so explicitly — do not invent one.
+A single-file convention belongs in AGENTS.md golden exemplars, not here; a one-off fix to a
+non-recurring problem stays in `docs/solutions/`.
+
+---
+
+## Step 6 — Check for PITFALLS.md promotion
 
 Did this feature reveal a new trap that isn't in PITFALLS.md?
 If yes, propose adding it with the standard format (Area, Rule, Why, Symptoms, Source).
@@ -78,7 +103,7 @@ If no, say so explicitly.
 
 ---
 
-## Step 6 — Check for memory.md update
+## Step 7 — Check for memory.md update
 
 Did this session correct a mistake that should become a permanent rule?
 If yes, propose the memory.md entry in the standard format.
@@ -86,7 +111,7 @@ If no, say so explicitly.
 
 ---
 
-## Step 7 — Review permission log and suggest allowlist additions
+## Step 8 — Review permission log and suggest allowlist additions
 
 Read the session permission log:
 ```
@@ -106,7 +131,7 @@ If the log is empty or every pattern is already covered, say so explicitly.
 
 ---
 
-## Step 8 — Notion AI engineering system update
+## Step 9 — Notion AI engineering system update
 
 Did this feature introduce or change anything in the system's tooling, settings, or processes?
 This includes: changes to `.claude/settings.json` allowlist/blocklist, hook scripts, pipeline
@@ -137,7 +162,7 @@ Log the answer alongside the coding retrospective. This data feeds future system
 
 ---
 
-## Step 9 — Quarterly memory review (run every ~90 days)
+## Step 10 — Quarterly memory review (run every ~90 days)
 
 This step is optional. Run it approximately every 90 days, not after every feature.
 
