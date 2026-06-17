@@ -97,7 +97,7 @@ while IFS= read -r f; do
     [ "$tag" = "CHECK" ] || continue
     checked=$((checked + 1))
     if [ ! -e "$path" ]; then
-      echo "BROKEN: $src -> $tgt (resolved: $path) does not exist" >&2
+      echo "check-integrity: BROKEN $src -> $tgt (resolved: $path)" >&2
       broken=$((broken + 1))
     fi
   done < <(run_one "$f")

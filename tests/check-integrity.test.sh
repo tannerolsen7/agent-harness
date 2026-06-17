@@ -103,8 +103,9 @@ clean "$D"
 echo "── broken ../ link from nested doc is caught ──"
 D=$(mk)
 ( cd "$D" && mkdir -p docs/sub && printf 'up [b](../nope.md).\n' > docs/sub/a.md )
-rc=$(cd "$D" && bash scripts/check-integrity.sh >/dev/null 2>&1; echo $?)
+out=$(cd "$D" && bash scripts/check-integrity.sh 2>&1); rc=$?
 if [ "$rc" -ne 0 ]; then pass=$((pass+1)); else echo "  MISS: broken ../ link should fail"; fail=$((fail+1)); fi
+hasout "$out" "nope.md" "names the dead target in ../ case"
 clean "$D"
 
 echo "── pure-anchor link (#heading, same file) is skipped ──"
