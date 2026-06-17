@@ -25,14 +25,15 @@ a PR while a BLOCKING entry for your task-slug is unanswered.
    - task description and SUCCESS CRITERIA
    - files likely affected
    - dependencies (Blocked by: entries in TASKS.md)
+2. Read SOUL.md, CLAUDE.md, AGENTS.md, CONTEXT.md, PITFALLS.md
+3. Claim the task in TASKS.md: append `(@task-runner)` to the task line
+4. Read .claude/questions.md — if any BLOCKING entry exists for this
+   task-slug from a prior interrupted run, surface it immediately
+   and do not proceed until answered
+
 1.5. Design gate: read this task's TASKS.md entry. If it has `Size: LARGE`,
    `Size: FEATURE`, `Type: LARGE`, or `Type: FEATURE` AND does NOT have a
-   `design:` line, stop immediately. A LARGE task needs a human-signed-off
-   design before any spec — `/design contract`'s before-coding gate runs
-   `@designer` (data shape + API contract + front-end shape in one pass), then
-   `@design-griller` (adversarial stress test), then human sign-off, then
-   `scripts/design-confirm.sh`. The `design:` line points at that confirmed
-   design. Write to .claude/questions.md:
+   `design:` line, stop immediately. Write to .claude/questions.md:
    ```
    ## [task-slug] — BLOCKING
    Type: BLOCKING
@@ -43,11 +44,6 @@ a PR while a BLOCKING entry for your task-slug is unanswered.
    Can do while waiting: nothing
    ```
    Update TASKS.md entry to [~] and return a blocked status immediately.
-2. Read SOUL.md, CLAUDE.md, AGENTS.md, CONTEXT.md, PITFALLS.md
-3. Claim the task in TASKS.md: append `(@task-runner)` to the task line
-4. Read .claude/questions.md — if any BLOCKING entry exists for this
-   task-slug from a prior interrupted run, surface it immediately
-   and do not proceed until answered
 
 ## Context assembly — slice files, don't dump them
 
@@ -125,7 +121,9 @@ For each finding, pick exactly one bucket:
   ```
 
 - **drop** — cost outweighs the value, or the finding is speculative.
-  Discard silently. No log entry needed — silence IS the decision.
+  Do not record in questions.md and do not surface to the human. List
+  it in the disposition block only (so the triage is auditable).
+
 
 - **surface** — genuinely outside your authority. Surface these and ONLY
   these to the human. Items that belong here:
