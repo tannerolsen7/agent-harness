@@ -1,3 +1,12 @@
+<!-- context-meta
+owner: tanner
+last-reviewed: 2026-06-17
+review-frequency: monthly
+drift-signals:
+  - links to engineering-system docs that were renamed or removed
+  - the section list is out of date with docs/engineering-system/
+-->
+
 # Engineering System — Start Here
 
 *Universal patterns — adapt to your project; specifics here are illustrative. This is the index for `docs/engineering-system/`.*
