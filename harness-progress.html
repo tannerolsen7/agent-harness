@@ -142,6 +142,9 @@
 
     .spacer { height: 28px; }
 
+    /* ── Backlog cards (no icon) ── */
+    .card .card-header .card-body:first-child { padding-left: 0; }
+
     /* ── Deferred note ── */
     .deferred-note {
       margin-top: 20px; padding: 14px 16px;
@@ -342,6 +345,16 @@
         <div class="card-title">Git hook blocks direct commits or pushes to main/master/develop</div>
         <div class="card-desc">A pre-commit + pre-push hook rejects any direct write to protected branches. Includes a stub-git test harness so the guard itself is tested without touching the real repo. Verified on push.</div>
         <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Orchestration patterns documented</div>
+        <div class="card-desc">A new engineering-system doc (<code>docs/engineering-system/15-orchestration-patterns.md</code>) covers when to use a Skill vs Agent vs Workflow, use cases in this harness, anti-patterns, and code patterns. Added to the engineering-system index.</div>
       </div>
     </div>
   </div>
@@ -567,6 +580,47 @@
 
     <div class="deferred-note">
       <strong>Deferred until after launch:</strong> GitHub-label / Slack summons to trigger the AI · scheduled recurring runs · risk-based auto-approval once catch-rate clears a floor · real-time access-control UI · fleet circuit breaker. These require launch + a paid GitHub plan.
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <!-- ── BACKLOG ── -->
+  <div class="section-label">Backlog</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">/queue rewrite: resumable overnight batch runner <span style="font-size:11px;font-weight:600;background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:99px;margin-left:6px;">Medium</span></div>
+        <div class="card-desc">Replace the current /queue autonomous runner with a Workflow script so that if a session dies mid-run, it can resume without re-running completed tasks. Each task-runner spawn becomes explicit and recoverable. Depends on the branch-naming convention fix.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">Require a design doc before /queue accepts large tasks <span style="font-size:11px;font-weight:600;background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:99px;margin-left:6px;">Medium</span></div>
+        <div class="card-desc">New behavior / UX / architecture tasks must have a linked design doc in TASKS.md before the queue starts working on them. Bug fixes and small changes proceed without one. Without this, the spec-writer agent makes wrong assumptions and blocks overnight — wasted run.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">Gate out-of-band deploy steps (deploy-drift gate) <span style="font-size:11px;font-weight:600;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:99px;margin-left:6px;">Explore</span></div>
+        <div class="card-desc">The harness gates code at PR → CI → merge, but manual deploy steps (database migrations, environment variable changes, feature flags) happen after that boundary with no gate. A sibling project's ungated manual migration broke production. Proposed: a deploy-targets manifest + two checks — one deterministic (no creds, can run in CI) and one stateful live-drift check (credentialed, separate job). First slice is the manifest + the free deterministic check.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">Research routing: three tiers instead of two <span style="font-size:11px;font-weight:600;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:99px;margin-left:6px;">Low</span></div>
+        <div class="card-desc">Right now there's no lightweight path between a quick inline search and the full 5-agent /spike pipeline. Add a /research routing guide: (1) inline — quick factual, answer fits in context; (2) /deep-research — background knowledge, landscape survey; (3) /spike — gates a build decision, needs a go/no-go + a test that confirms the approach works. Decision rule: does the answer determine what you build next? If yes → spike.</div>
+      </div>
     </div>
   </div>
 

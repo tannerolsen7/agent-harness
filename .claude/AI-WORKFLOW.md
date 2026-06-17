@@ -102,6 +102,23 @@ each transition.
 
 ---
 
+## Choosing the right orchestration tool
+
+Once you know the work state and entry point, choose how to structure the AI work itself.
+Three tools exist; picking the wrong one wastes budget or loses overnight work with no recovery.
+
+| Tool | Use when |
+|---|---|
+| **Skill** | Human is present and may decide mid-flow. The pipeline pauses for approval, a grill session, or a STOP question. 3–7 linear steps. |
+| **Agent tool** | One specialist, one bounded task, one result. Recovery on failure is not needed. |
+| **Workflow script** | Batch or list work (5+ items in parallel), overnight or background runs, typed results needed from each agent, or must resume after an API failure (`resumeFromRunId`). |
+
+Quick test: *Will the human be present the whole time?* → Skill. *One specialist, one task?* → Agent tool. *Batch, list, or overnight?* → Workflow script.
+
+Full decision rules, anti-patterns, and harness use cases: [`docs/engineering-system/15-orchestration-patterns.md`](../docs/engineering-system/15-orchestration-patterns.md)
+
+---
+
 ## Skills in the harness
 
 The full universal roster is migrated (Step 0). The table lists the most-used entry points; the
