@@ -73,11 +73,75 @@ Receive: MUST FIX / IMPORTANT / NITS report + compound questions.
 If MUST FIX items exist: loop @implementer to fix each one, then
 re-run @reviewer. Max 2 fix loops before surfacing to human.
 
+### Step 4b — Triage non-must-fix items
+
+After @reviewer returns and all MUST FIX items are resolved, triage
+every remaining finding (IMPORTANT / NITS / Nice to Have / Something
+to Think About). Do not return these raw to the human — you decide
+the disposition for each one and act on it.
+
+For each finding, pick exactly one bucket:
+
+- **fix-now** — cheap, safe, within the diff's scope, and clearly
+  worthwhile. Fix it before moving on. Same constraints as the Step 4
+  fix loop: don't refactor beyond the finding; route to **surface** if
+  it needs >~15 new lines, an architectural decision, or ambiguous intent.
+  Guard files (`.claude/hooks/**`, `.claude/agents/**`, `settings.json`)
+  always route to **surface**, never fix-now.
+
+- **backlog** — real issue but separate scope, needs its own PR or design.
+  Record it in .claude/questions.md with Type: BACKLOG (not BLOCKING) so
+  the human sees a consolidated record at PR time but is not interrupted now:
+  ```
+  ## [task-slug] — BACKLOG
+  Type: BACKLOG
+  Item: [short description]
+  Context: [why it's real but separate scope]
+  ```
+
+- **drop** — cost outweighs the value, or the finding is speculative.
+  Discard silently. No log entry needed — silence IS the decision.
+
+- **surface** — genuinely outside your authority. Surface these and ONLY
+  these to the human. Items that belong here:
+  - Requires editing a guard file (`.claude/hooks/**`, `.claude/agents/**`,
+    `settings.json`) — you cannot edit these; the human must
+  - Requires a merge decision or resolving a conflict that depends on
+    intent you don't know
+  - Requires an external dependency change (third-party API, infra, secrets)
+  - Requires a judgment call that should not be automated (e.g., "should
+    we change this public interface?")
+
+Use taste, not a quota. Fixing nothing is right if nothing earns it.
+Fixing several is right if they do. Don't skip a worthwhile fix to save
+tokens; don't gold-plate.
+
+After fixing any fix-now items, run the test suite (one retry on failure,
+then surface as a MUST FIX).
+
+Emit a disposition block before moving to Step 5:
+
+```
+## Triage disposition — [task-slug]
+**Fixed now**
+- [finding summary] — [why it earned the fix]
+**Backlogged** (recorded in .claude/questions.md)
+- [finding summary] — [why it's separate scope]
+**Dropped**
+- [finding summary] — [why it isn't worth doing]
+**Surface to human** (only items here reach the return summary)
+- [finding summary] — [what authority is missing and what the human must decide]
+```
+
+Omit any bucket that is empty.
+
 ### Step 5 — UX review (conditional)
 If the diff contains any component or CSS file changes:
 Invoke @ux-reviewer on the affected surface.
 Receive: FRICTION REPORT.
 If MUST FIX items exist: loop @implementer to address each one.
+Apply the same triage logic from Step 4b to any non-must-fix UX
+findings before they reach the return summary.
 
 ### Step 6 — Security review (conditional)
 If the diff touches auth, middleware, permissions/access policies, credentials,
@@ -142,4 +206,7 @@ This check runs before every commit, without exception.
    - FRICTION REPORT path (if UX review ran)
    - compound-draft path
    - any NON-BLOCKING assumptions for human review
+   - **surface items only** — findings from Steps 4b/5 that are outside your authority
+     (guard-file edits, merge decisions, external dependencies, human judgment calls).
+     Do NOT include raw reviewer output, already-triaged findings, or backlogged items.
    - branch name for PR opening
