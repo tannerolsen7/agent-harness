@@ -7,9 +7,10 @@ node_modules/
 # transient sub-agent worktrees
 .claude/worktrees/
 
-# review sentinels + their audit log — per-branch:sha, never committed
+# review + design sentinels + their audit logs — per-branch:sha, never committed
 .claude/.cr-ok*
 .claude/.cr-feature-ok
+.claude/.design-confirmed*
 .claude/*.consumed*
 
 # machine-specific Claude Code settings (Read paths, per-machine overrides)
