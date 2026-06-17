@@ -160,9 +160,7 @@ if the same mistake recurs, the rule wasn't specific enough. Rewrite it.
 
 ## Before writing code
 
-- At the start of every session, read `<tool-config>/memory.md`, `<tool-config>/TASKS.md`,
-  and `<tool-config>/rituals.md`. If any ritual's `last_run` is more than 7 days ago,
-  surface it before any other work.
+- At the start of every session, read `<tool-config>/memory.md` and `<tool-config>/TASKS.md`.
 - If a feature is in progress, read the active task spec immediately after. The `## State`
   section is the source of truth for where the feature stands. If State is empty or missing
   and a feature is clearly in progress, ask the human where they left off before touching any

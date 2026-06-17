@@ -45,9 +45,8 @@ repo/
 │
 └── .<tool>/                     # Agent config directory (name is tool-specific)
     ├── SOUL.md                  # Engineering character — values, north star, non-negotiables
-    ├── CLAUDE.md                # Session start: read SOUL.md + memory.md + TASKS.md + rituals.md
+    ├── CLAUDE.md                # Session start: read SOUL.md + memory.md + TASKS.md
     ├── memory.md                # Corrected mistakes — read every session
-    ├── rituals.md               # Weekly ritual tracking (last run dates)
     ├── INDEX.md                 # Annotated external resources
     ├── TASK-TEMPLATE.md         # Fill before every agent task
     ├── agent-contract.md        # Template for sub-agent briefs

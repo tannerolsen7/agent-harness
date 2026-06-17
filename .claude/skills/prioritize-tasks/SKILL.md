@@ -5,7 +5,7 @@ description: |
   reordering aligned with the current north star and product stage, flags stale
   tasks and unreviewed backlog entries, and waits for human confirmation before
   writing changes. Run once a week alongside /scan-context and
-  /improve-codebase-architecture. Tracked in rituals.md.
+  /improve-codebase-architecture.
 ---
 
 ## Prerequisites
@@ -88,15 +88,8 @@ After human confirms (or adjusts) the recommendation:
 1. Reorder active tasks in `TASKS.md` to match confirmed priority
 2. Promote confirmed backlog candidates to active status, remove `[backlog]` tag
 3. Remove confirmed prune candidates
-4. Add a `## Last prioritized: YYYY-MM-DD` line at the top of `TASKS.md`
-5. Update `rituals.md`:
-
-```
-## prioritize-tasks
-last_run: YYYY-MM-DD
-frequency: weekly
-notes: [optional — what was promoted, what was pruned, key alignment decisions]
-```
+4. Add a `## Last prioritized: YYYY-MM-DD` line at the top of `TASKS.md` — this line is the
+   run's cadence record (there is no separate ritual-tracking file)
 
 ---
 
