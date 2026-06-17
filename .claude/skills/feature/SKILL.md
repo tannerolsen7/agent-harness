@@ -77,11 +77,11 @@ shape, no new screen — they skip `/design contract`). If a "Tiny" task turns o
 touch the database or add a UI screen, it is not Tiny: escalate it to Small and run
 the design gate before coding.
 
-At the **top of the implement step** (Small step 8, Medium step 10, and every
-sub-`/feature` spawned by Large), run this check before the first line of code.
-The sentinel encodes the pre-coding `branch:sha`; the implement step begins at that
-same HEAD (no feature code committed yet), so a match certifies the design was
-confirmed for exactly this branch at this point.
+At the **top of the implement step** (Small step 8, Medium step 10), run this check
+before the first line of code. The sentinel records the `branch:sha` at design
+confirmation; the check passes if the current branch matches and the sentinel sha is
+an ancestor of HEAD — tolerating intermediate pre-coding commits (spec, plan, grill
+docs) without requiring a re-confirmation.
 
 ```bash
 ROOT=$(git rev-parse --show-toplevel)
@@ -89,18 +89,22 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$BRANCH" = "HEAD" ]; then
   echo "feature: detached HEAD — check out a branch before coding." >&2; exit 1
 fi
-SHA=$(git rev-parse HEAD)
-EXPECTED="${BRANCH}:${SHA}"
 ACTUAL=$(cat "$ROOT/.claude/.design-confirmed" 2>/dev/null || true)
 if [ -z "$ACTUAL" ]; then
   echo "feature: no design-confirmed sentinel found. Coding refuses to start." >&2
   echo "         Run /design contract's before-coding gate and get human sign-off first." >&2
   exit 1
 fi
-if [ "$ACTUAL" != "$EXPECTED" ]; then
-  echo "feature: design-confirmed sentinel is stale (have ${ACTUAL}, on ${EXPECTED})." >&2
-  echo "         If design artifacts changed since last confirmation: re-run the full design gate." >&2
-  echo "         If only non-design commits advanced HEAD (e.g. spec, plan docs): re-run scripts/design-confirm.sh AFTER human confirms the design is still valid at this sha." >&2
+SENTINEL_BRANCH="${ACTUAL%%:*}"
+SENTINEL_SHA="${ACTUAL##*:}"
+if [ "$SENTINEL_BRANCH" != "$BRANCH" ]; then
+  echo "feature: design-confirmed sentinel is for branch '${SENTINEL_BRANCH}', currently on '${BRANCH}'." >&2
+  echo "         Re-confirm the design on this branch: bash scripts/design-confirm.sh" >&2
+  exit 1
+fi
+if ! git merge-base --is-ancestor "$SENTINEL_SHA" HEAD 2>/dev/null; then
+  echo "feature: design-confirmed sentinel (${SENTINEL_SHA}) is not an ancestor of HEAD." >&2
+  echo "         Design was confirmed before current branch history — re-run: bash scripts/design-confirm.sh" >&2
   exit 1
 fi
 ```
@@ -185,7 +189,7 @@ has signed off on the sheet, schema, and mockup.
 3. **Grill** — invoke `/grill-with-docs`
 4. **Spec** — write all confirmed behaviors to `docs/TESTING.md`
 5. **Decompose** — invoke `/to-issues`. Each issue maps to Small or Medium. The spec.md user journey is the reference for tracing issues back to user intent.
-6. **Execute** — run `/feature` on each issue in dependency order. Each sub-`/feature` runs its own Implementation gate — the design-confirmed sentinel is checked per issue before that issue's coding begins.
+6. **Execute** — run `/feature` on each issue in dependency order. Sub-`/feature` calls do **not** run their own per-issue Implementation gate — `.design-confirmed` is gitignored and does not propagate into sub-worktrees. The top-level design (step 3 above) covers all issues; the gate fired once there.
 
 ---
 
