@@ -70,6 +70,10 @@ while IFS= read -r seg; do
           -*D*) block "git branch with -D flag (force-deletes a branch)" ;;
         esac
       done ;;
+    commit)
+      # Block committing on main/master/develop — work must start on a feature branch.
+      _cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+      case "$_cur" in main|master|develop) block "commit on protected branch '$_cur' — run: git checkout -b feat/<slug>" ;; esac ;;
     push)
       for a in "$@"; do
         case "$a" in
@@ -78,10 +82,21 @@ while IFS= read -r seg; do
           -*f*) block "force push (-f)" ;;
         esac
       done
+      _non_flag=0; _has_colon=0
       for a in "$@"; do
         case "$a" in -*) continue ;; esac
-        case "$(norm_ref "$a")" in main|master|develop) block "push to a protected branch (main/master/develop)" ;; esac
-      done ;;
+        _non_flag=$((_non_flag+1))
+        _ref=$(norm_ref "$a")
+        [ "$_ref" = "HEAD" ] && _ref=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+        case "$_ref" in main|master|develop) block "push to a protected branch (main/master/develop)" ;; esac
+        case "$a" in *:*) _has_colon=1 ;; esac
+      done
+      # Bare push (no refspec or remote-only): resolve current branch and block if protected.
+      # Closes the "git push origin" gap — remote named but target branch inferred.
+      if [ "$_has_colon" -eq 0 ] && [ "$_non_flag" -le 1 ]; then
+        _cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+        case "$_cur" in main|master|develop) block "push to protected branch '$_cur' (no refspec — current branch inferred)" ;; esac
+      fi ;;
     worktree)
       # This project's worktree convention is .claude/worktrees/<slug> (see AI-WORKFLOW.md),
       # not the system-default ../worktree-* — adapt the allowed path accordingly.
