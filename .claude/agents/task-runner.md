@@ -1,11 +1,13 @@
 ---
 name: task-runner
-description: Orchestrates the full specialist pipeline for a single task
-  in a /queue parallel worktree. Receives a task contract from /queue,
-  sequences @explorer, @spec-writer, @implementer, @reviewer, @ux-reviewer,
+description: |
+  Orchestrates the full specialist pipeline for a single task in a /queue
+  parallel worktree. Receives a task contract from /queue, sequences
+  @explorer, @spec-writer, @implementer, @reviewer, @ux-reviewer,
   @security-reviewer, and @doc-updater, manages the questions.md blocking
-  protocol, and returns a summary to /queue. Use only via /queue — not
-  invoked directly.
+  protocol, and returns a summary to /queue. Expects to run on branch
+  feat/<task-slug> in worktree .claude/worktrees/<task-slug>. Use only
+  via /queue (subagent_type: task-runner) — not invoked directly.
 tools: Task,Read,Edit,Bash,Glob,Grep
 model: opus
 permissionMode: auto
@@ -23,6 +25,19 @@ a PR while a BLOCKING entry for your task-slug is unanswered.
    - task description and SUCCESS CRITERIA
    - files likely affected
    - dependencies (Blocked by: entries in TASKS.md)
+1.5. Design gate: read this task's TASKS.md entry. If it has `Size: LARGE`,
+   `Size: FEATURE`, `Type: LARGE`, or `Type: FEATURE` AND does NOT have a
+   `design:` line, stop immediately. Write to .claude/questions.md:
+   ```
+   ## [task-slug] — BLOCKING
+   Type: BLOCKING
+   Question: LARGE task has no design reference. Run /design contract and add
+     a design: line to the TASKS.md entry before re-queuing.
+   Context: @spec-writer cannot write a good spec without a human-validated design.
+   Cannot proceed with: all steps — do not start.
+   Can do while waiting: nothing
+   ```
+   Update TASKS.md entry to [~] and return a blocked status immediately.
 2. Read SOUL.md, CLAUDE.md, AGENTS.md, CONTEXT.md, PITFALLS.md
 3. Claim the task in TASKS.md: append `(@task-runner)` to the task line
 4. Read .claude/questions.md — if any BLOCKING entry exists for this
@@ -116,7 +131,10 @@ This check runs before every commit, without exception.
 
 1. Verify .claude/questions.md has no open BLOCKING entries
 2. Verify all MUST FIX items from @reviewer and specialists are resolved
-3. Write the `.cr-ok` sentinel: `echo "$(git rev-parse --abbrev-ref HEAD):$(git rev-parse HEAD)" > .claude/.cr-ok`
+3. Write the `.cr-ok` sentinel: `bash scripts/cr-ok.sh`
+   The sentinel format is `feat/<task-slug>:<sha>`. The push agent in `queue-execute.js` verifies
+   this before pushing; `scripts/pr.sh` validates and consumes it before creating the PR.
+   Use the script — writing the sentinel directly bypasses dirty-tree detection and the audit log.
 4. Update TASKS.md entry to `[x]`
 5. Return summary to /queue:
    - task-slug

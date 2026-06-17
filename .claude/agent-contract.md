@@ -61,8 +61,11 @@ in its summary.
 
 ### BRANCH
 
-Worktree branch name. Format: `<working-branch>/<short-task-slug>`. The agent
-commits with conventional-commit format. Does not push.
+Worktree branch name. Use conventional-commit prefixes: `feat/<task-slug>` for
+new features, `fix/<task-slug>` for bug fixes, `chore/<task-slug>` for
+maintenance. `/queue` tasks always use `feat/<task-slug>` — the slug comes from
+the task title, lowercased and hyphenated. The agent commits with
+conventional-commit format. Does not push.
 
 ### PARALLEL CANDIDATES
 

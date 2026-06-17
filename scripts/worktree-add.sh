@@ -17,6 +17,16 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 # Reject a branch name git would read as a flag (e.g. "-f", "--detach").
 case "$BRANCH" in -*) echo "worktree-add: refusing unsafe branch name '$BRANCH'" >&2; exit 1 ;; esac
 
+# Idempotent: if the worktree directory already exists, skip creation.
+# On resume, the Workflow re-enters Setup and may call this script again —
+# the guard below makes re-running safe. Worktrees have a .git FILE (not
+# a directory), which is the reliable way to detect a live worktree vs.
+# a stale or unrelated directory.
+if [ -d "$WORKTREE_PATH" ] && [ -f "$WORKTREE_PATH/.git" ]; then
+  echo "Worktree already exists at $WORKTREE_PATH on branch $BRANCH — skipping creation."
+  exit 0
+fi
+
 # Create the branch if it doesn't exist yet (so a NEW feat/<slug> works — this is how /queue
 # starts each task), otherwise check out the existing branch into the worktree. Pin the new
 # branch to an explicit commit-ish so it doesn't silently start from whatever HEAD the *calling*

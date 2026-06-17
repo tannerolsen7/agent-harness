@@ -98,6 +98,9 @@ done
 # The agent contract the orchestrator + task-runner depend on.
 [ -f ".claude/agent-contract.md" ] || note ".claude/agent-contract.md"
 
+# The queue-execute Workflow script — /queue Step 3 invokes it by path; absence breaks /queue silently.
+[ -f ".claude/workflows/queue-execute.js" ] || note ".claude/workflows/queue-execute.js (required by /queue Step 3)"
+
 # Husky pre-push gate wiring (the un-forgeable-gate precursor).
 [ -f ".husky/pre-push" ] || note ".husky/pre-push"
 

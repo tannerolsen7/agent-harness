@@ -97,7 +97,7 @@ Where Workflow adds the most value, ordered by impact:
 
 | Operation | Current approach | Workflow gain | When to switch |
 |---|---|---|---|
-| `/queue` Step 3+ (task batch) | Agent tool fan-out, no recovery | `resumeFromRunId` for overnight reliability; explicit `subagent_type: task-runner`; structured per-task summaries | Always — overnight batch work belongs in Workflow |
+| `/queue` Step 3+ (task batch) | Workflow (`queue-execute.js`) — pipeline() of task-runner agents with resumeFromRunId | Completed tasks return cached results on session restart; three phases: Setup (idempotent worktrees), Execute (pipeline), Push (sequential PR open) | Done — Workflow is the current implementation |
 | `/spike` pipeline | spike-orchestrator (Opus agent) orchestrates sub-agents | Resumable multi-pass research; `resumeFromRunId` if session dies mid-pass | When the spike is expected to run 30+ min or involves 3+ research passes |
 | `/cr` on a large diff | reviewer agent spawns 4 lens agents | Per-file structured findings; loop-until-dry over changed files; early-exit if 0 findings | When the diff exceeds ~30 files |
 | `/deep-research` fan-out | Skill-driven web fan-out | Parallel fetches with structured citations; resume if interrupted; loop-until-N-sources | When research needs 10+ sources or multiple adversarial verification passes |
