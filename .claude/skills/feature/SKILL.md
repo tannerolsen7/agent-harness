@@ -85,19 +85,27 @@ confirmed for exactly this branch at this point.
 
 ```bash
 ROOT=$(git rev-parse --show-toplevel)
-EXPECTED="$(git rev-parse --abbrev-ref HEAD):$(git rev-parse HEAD)"
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" = "HEAD" ]; then
+  echo "feature: detached HEAD — check out a branch before coding." >&2; exit 1
+fi
+SHA=$(git rev-parse HEAD)
+EXPECTED="${BRANCH}:${SHA}"
 ACTUAL=$(cat "$ROOT/.claude/.design-confirmed" 2>/dev/null || true)
 if [ -z "$ACTUAL" ]; then
   echo "feature: no design-confirmed sentinel found. Coding refuses to start." >&2
-  echo "         Run /design contract's before-coding gate, then: bash scripts/design-confirm.sh" >&2
+  echo "         Run /design contract's before-coding gate and get human sign-off first." >&2
   exit 1
 fi
 if [ "$ACTUAL" != "$EXPECTED" ]; then
   echo "feature: design-confirmed sentinel is stale (have ${ACTUAL}, on ${EXPECTED})." >&2
-  echo "         Re-confirm the design at the current HEAD, then: bash scripts/design-confirm.sh" >&2
+  echo "         If design artifacts changed since last confirmation: re-run the full design gate." >&2
+  echo "         If only non-design commits advanced HEAD (e.g. spec, plan docs): re-run scripts/design-confirm.sh AFTER human confirms the design is still valid at this sha." >&2
   exit 1
 fi
 ```
+
+This check runs **once**, at the very top of the implement step, before the first `/tdd` call. It is not re-evaluated between issues. The `.design-confirmed` sentinel is **not consumed** (unlike `.cr-ok`, which pr.sh deletes after reading) — it persists until overwritten by the next `design-confirm.sh` run.
 
 If the gate fires, **stop and surface the paste-ready remediation** — do not write
 code, and do not write the sentinel yourself to get past the gate (writing

@@ -9,6 +9,9 @@
 set -e
 
 SENTINEL=".claude/.cr-ok"
+# .design-confirmed is intentionally NOT checked here — the design gate fires at coding time
+# (inside /feature's implement step), not at PR time. By the time a PR opens, implementation
+# is done and re-gating on design would be a no-op. Enforcement is at the earliest useful point.
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || {
   echo "PR aborted: could not determine current branch." >&2
   exit 1

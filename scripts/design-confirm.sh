@@ -3,8 +3,8 @@
 # certifies that the design was confirmed (Design Questions sheet → adversarial grill →
 # schema/mockup approval where applicable → human sign-off) at ONE specific committed sha,
 # BEFORE any feature code. /feature reads + validates it at the top of its implement step and
-# refuses to start coding if it is absent or stale. Mirrors scripts/cr-ok.sh exactly — same
-# branch:sha format, same dirty-tree refusal, same append-only audit log.
+# refuses to start coding if it is absent or stale. Same structure as scripts/cr-ok.sh:
+# branch:sha format, dirty-tree refusal, append-only audit log. Error messages differ (context).
 #
 # This script does NOT run the design steps or any check. The design work (sheet, grill, schema
 # and mockup approvals) is human-gated upstream; design-confirm.sh only makes the WRITE trustworthy:

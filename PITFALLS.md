@@ -17,3 +17,17 @@ Check this file before any `/cr` pass. If you see a pattern here in a diff, flag
 
 **Source:** `docs/solutions/2026-06-15-orchestrator-task-tool-spawn-wiring.md`
 **Regression gate:** `tests/agent-spawn-tools.test.sh` (bidirectional: spawners must have Task; Task holders must have a spawn instruction)
+
+---
+
+## Writing a sentinel directly to bypass a gate
+
+**Area:** Sentinel system (`.claude/.cr-ok`, `.claude/.design-confirmed`)
+
+**Rule:** Never write a sentinel file directly (via Write-tool, `printf >`, or any means other than the designated script). Writing it directly produces a file that passes the gate's string comparison while certifying work that was never done.
+
+**Why:** The sentinel is an honor-system certificate, not a cryptographic proof. Its only integrity property is that `scripts/cr-ok.sh` and `scripts/design-confirm.sh` refuse dirty trees and self-resolve `branch:sha` — bypasses strip both guarantees. A hand-written `.cr-ok` certifies a review that never ran; a hand-written `.design-confirmed` certifies a design session that never happened. Both silently propagate false assurance through every downstream gate.
+
+**Symptoms:** Gate passes without the corresponding gate script having been invoked; audit log is absent or shows no matching entry for the branch:sha.
+
+**When the gate fires unexpectedly:** Fix the condition (run the gate, commit the artifacts, resolve the stale sha) — do not write the sentinel to get past it.
