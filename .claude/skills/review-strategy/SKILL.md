@@ -4,8 +4,11 @@ description: |
   Orchestrates three adversarial reviewers against STRATEGY.md — PM lens,
   CTO lens, and Challenger lens — running in parallel as isolated sub-agents.
   Isolation is required: a PM lens that has already read the CTO critique
-  softens its own findings. Run after /setup-strategy, when strategy shifts,
-  or when /scan-context flags STRATEGY.md as stale.
+  softens its own findings. Use when the user says "review our strategy",
+  "is this approach sound", "stress-test this plan", "is our direction right",
+  "challenge our strategy", or invokes /review-strategy. Also run after
+  /setup-strategy, when strategy shifts, or when /scan-context flags
+  STRATEGY.md as stale.
 ---
 
 ## Prerequisites

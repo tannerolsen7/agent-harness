@@ -1,6 +1,6 @@
 ---
 name: zoom-out
-description: Tell the agent to zoom out and give broader context or a higher-level perspective. Use when you're unfamiliar with a section of code or need to understand how it fits into the bigger picture.
+description: Map the relevant modules, callers, and domain concepts around a piece of code to explain how it fits into the larger system. Use when the user says "how does this fit in", "explain the big picture", "what calls this", "map this out for me", "I don't understand the architecture here", "give me context around X", or invokes /zoom-out.
 disable-model-invocation: true
 ---
 
