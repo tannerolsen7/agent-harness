@@ -37,7 +37,7 @@ Read (skip any that don't exist):
 - `.claude/SOUL.md` — existing engineering principles
 - CONTEXT.md and AGENTS.md if the project has them — the context docs the read-back step checks for drift
 
-## Read-back: keep context docs current (CMP1)
+## Read-back: keep context docs current
 
 Before proposing new entries, read your own task's output back against the context
 docs and look for drift. The goal is plain: after a task changes how the code works,
@@ -52,8 +52,8 @@ Walk the diff and ask, for each context doc the project has:
 - **patterns-registry.md** — did this task establish or change a multi-file recipe?
 - **RECURRING-FINDINGS.md** — did @reviewer flag a finding for promotion (Occurrences
   ≥3, or judgment-flagged as high-impact)? If so, propose the matching PITFALLS.md entry
-  and note that the finding moves from Active to Promoted. This is the finding→enforcement
-  ratchet (CMP2): a problem seen three times stops being a per-PR note and becomes a rule.
+  and note that the finding moves from Active to Promoted. This is the finding-to-enforcement
+  ratchet: a problem seen three times stops being a per-PR note and becomes a rule.
 
 Every drift you find becomes a proposal in the draft below — never a direct edit. A doc
 that disagrees with the code it describes is worse than no doc, so flag it even when you

@@ -84,4 +84,7 @@ fi
 
 **Symptoms:** CI fails with a "broken link" error pointing at a path outside the repo — for example, a path inside the user's `~/.claude` auto-memory index. The file the link points to does not exist in this repo, but the link is only a formatted example inside a code span or fence.
 
-**Fix:** Check whether the flagged link is inside backticks or a fenced block in the source file. If it is, the checker is missing the skip. Add the skip to `scripts/check-integrity.sh` — blank inline code spans before extracting links, and skip lines that fall inside a fenced block.
+Check whether the flagged link is inside backticks or a fenced block in the source file. If it is, the checker is missing the skip. Add the skip to `scripts/check-integrity.sh` — blank inline code spans before extracting links, and skip lines that fall inside a fenced block.
+
+**Source:** `scripts/check-integrity.sh`
+**Regression gate:** `tests/check-integrity.test.sh` (cases: "links inside fenced code blocks are skipped", "link inside an inline code span is skipped")

@@ -4,6 +4,12 @@
 # It catches context-doc rot before it reaches a reader. All cases are hermetic: each
 # builds a throwaway repo with its own docs tree so the check runs against fixtures, not
 # this repo. The script resolves the repo root with `git rev-parse`, so a temp repo works.
+#
+# GIT_DIR guard: running this test from inside a worktree would inherit GIT_DIR and cause
+# git commands inside mk() subshells to operate on the real repo instead of the temp dir.
+# Unset all git env vars at the top of the script so the temp repos are fully isolated.
+# See PITFALLS.md — "Running tests from inside a worktree corrupts the real repo."
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
 set -u
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 SCRIPT="$ROOT/scripts/check-integrity.sh"
@@ -24,7 +30,7 @@ mk() {
     mkdir -p scripts docs
     cp "$SCRIPT" scripts/check-integrity.sh
     chmod +x scripts/check-integrity.sh
-    git add -A && git commit -q --no-verify -m init
+    git add -A && git commit -q -m init  # no hooks in temp fixture repos
   ) >/dev/null 2>&1
   echo "$d"
 }

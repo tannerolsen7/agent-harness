@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Reference-integrity check (CMP4). Scans the project's markdown docs for broken
-# cross-links so context docs cannot rot silently. A link counts as broken when it
+# Reference-integrity check. Scans the project's markdown docs for broken
+# cross-links so context docs cannot rot silently.
+# (CMP4 = the fourth item in the compound/learning-loop feature group; see V2-TRACEABILITY.md → Phase 2) A link counts as broken when it
 # points at a relative file path that does not exist on disk. The check runs in CI
 # (scripts/ci-verify.sh) and is also runnable locally:  bash scripts/check-integrity.sh
 #
@@ -33,26 +34,27 @@ checked=0
 
 # awk does the per-file work: walk lines, track fenced code state, pull link targets,
 # apply the skip rules, and resolve each surviving target relative to the file's dir.
-# It prints one "BROKEN<TAB>source<TAB>target" line per dead link and a "CHECKED<TAB>n"
-# tally line. The shell loop below turns those into the human-readable report + exit code.
+# It prints one "CHECK<TAB>src<TAB>tgt<TAB>resolved-path" line per candidate link.
+# The shell loop below does the existence test and builds the human-readable report.
 run_one() {
   awk -v src="$1" '
     function dirname(p,   i) { i=length(p); while (i>0 && substr(p,i,1)!="/") i--; return (i>0)?substr(p,1,i-1):"." }
     # Resolve a possibly-relative path against base dir, collapsing . and .. segments.
+    # seg_count tracks how many path segments have been accumulated in out[].
     function resolve(base, rel,   parts, out, n, i, seg, full) {
       if (substr(rel,1,1)=="/") full=rel; else full=base "/" rel
       n=split(full, parts, "/")
-      out[0]=""; oc=0
+      out[0]=""; seg_count=0
       for (i=1;i<=n;i++){ seg=parts[i]
         if (seg=="" || seg==".") continue
-        if (seg==".."){ if (oc>0) oc--; continue }
-        oc++; out[oc]=seg
+        if (seg==".."){ if (seg_count>0) seg_count--; continue }
+        seg_count++; out[seg_count]=seg
       }
-      res=""; for (i=1;i<=oc;i++) res=res "/" out[i]
+      res=""; for (i=1;i<=seg_count;i++) res=res "/" out[i]
       if (substr(full,1,1)!="/") sub(/^\//,"",res)  # keep it relative to CWD (repo root)
       return (res=="")?".":res
     }
-    BEGIN{ infence=0; base=dirname(src); nchk=0 }
+    BEGIN{ infence=0; base=dirname(src) }
     {
       line=$0
       # Toggle fenced-code state on a line whose first non-space run is ``` or ~~~.
@@ -81,7 +83,6 @@ run_one() {
         sub(/#.*$/, "", tgt)
         if (tgt=="") continue
         path=resolve(base, tgt)
-        nchk++
         # Defer the existence test to the shell (awk cannot stat reliably); emit candidate.
         print "CHECK\t" src "\t" tgt "\t" path
       }
