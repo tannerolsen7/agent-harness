@@ -33,8 +33,16 @@ re-litigate these.
 
 ### REFERENCES
 
-Cite by `file:line` or `file → section`. Required reading before the agent writes
-code:
+Cite by `file:line` or `file → section`. When you paste a source file's content
+into this section, paste a slice, not the whole file — the declaration lines
+(functions, classes, types, exports) plus the section headers that show where
+each one lives. Build the slice with `scripts/slice-context.sh <file>`. A full
+file is mostly body detail the agent does not need to know what the file offers,
+and that extra detail lowers output quality and raises cost. Keep the whole file
+only when the agent is rewriting it end to end, or for a config or data file the
+slicer falls back to whole on its own.
+
+Required reading before the agent writes code:
 - Relevant CONTEXT.md sections (domain model, business rules)
 - Relevant AGENTS.md sections (responsibilities, layer rules)
 - Relevant CLAUDE.md sections

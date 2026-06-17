@@ -44,6 +44,24 @@ a PR while a BLOCKING entry for your task-slug is unanswered.
    task-slug from a prior interrupted run, surface it immediately
    and do not proceed until answered
 
+## Context assembly — slice files, don't dump them
+
+When you hand a file to a specialist as REFERENCES context, send a slice, not
+the whole file. A slice is the function, class, type, and export declarations
+plus the section headers that show where each one lives — the body is dropped.
+Use `scripts/slice-context.sh <file>` to build the slice.
+
+Why: a full file is mostly detail the specialist does not need to know what the
+file offers, and that extra detail both lowers output quality and raises cost
+(BUILD-PLAN.md lines 82-83; the Round-4 token-efficiency audit, lines 556 and
+661). Send the signatures that match the task; let the specialist ask for the
+full body (`slice-context.sh --full <file>`) only when it actually needs it.
+
+Slice every file you cite in a specialist's REFERENCES list. Two cases keep the
+whole file: a config or data file the slicer has no rules for (it falls back to
+the full file on its own), and a file the task is rewriting end to end (the
+specialist needs every line anyway).
+
 ## The pipeline
 
 Run specialists in this sequence. Each step receives the output of
@@ -63,7 +81,9 @@ Write confirmed entries to docs/TESTING.md.
 For each behavior in the spec, invoke @implementer with:
 - The single behavior to implement
 - The relevant TESTING.md entry
-- The golden exemplar from AGENTS.md for this layer
+- The golden exemplar from AGENTS.md for this layer (sliced — see
+  "Context assembly" above; pass the full body only for a file the slice
+  is rewriting end to end)
 Receive: commit SHA for each slice.
 Never batch slices — one invocation per behavior.
 
