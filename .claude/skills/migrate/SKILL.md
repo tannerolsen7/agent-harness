@@ -8,6 +8,7 @@ description: Moving stored state from one form to another — schema changes,
   cannot be reversed by a code revert alone. Do not use for pure code changes
   that happen to touch migration files — those go through /feature. Requires
   a confirmed migration plan before any execution.
+disable-model-invocation: true
 ---
 
 # /migrate — Move state safely. Pre-flight first. Execute once.
