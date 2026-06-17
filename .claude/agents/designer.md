@@ -92,10 +92,10 @@ the outside world.
 
 ### Area 3 — Front-end shape (only if the feature has a screen)
 
-Cover the component architecture with the same rigor as the backend (R4-D14a).
+Cover the component architecture with the same rigor as the backend (R4-D14a: front-end architecture must be covered with the same rigor as the backend).
 Use the **universal skeleton**, then fill the **framework-specific slots** by
 judging what fits this project's stack — never by copying another framework's
-mechanics (R4-D14b).
+mechanics (R4-D14b: use the universal skeleton and fill framework-specific slots — never copy another framework's mechanics as-is).
 
 **Universal skeleton (the same for any framework):**
 - Layered, one-way imports — each layer is testable by mocking only the layer
@@ -106,7 +106,7 @@ mechanics (R4-D14b).
   and a state source.
 - A reusability ladder — do not over-abstract. Follow the rule of three: extract
   a shared piece only after the third real use, not the first guess.
-- The full **data-state matrix**, every screen, no exceptions (R4-D18): no data
+- The full **data-state matrix**, every screen, no exceptions (R4-D18: every screen must handle all five states — no data, some data, overflow, error, and loading — with no layout shift between them): no data
   (empty), some data, lots of data (overflow), bad data (error), and loading —
   with **no layout or page shift** between states.
 - The look comes from `docs/design/` tokens and components. For a high-stakes,
@@ -119,7 +119,7 @@ mechanics (R4-D14b).
 - Shared state (Context / a light store / the project's recorded state library).
 - Dependency injection (Context vs. provide-inject).
 
-**Two traps you must not cargo-cult (the R4-D14 nuance, concretely):**
+**Two traps you must not cargo-cult (the context-over-cargo-cult rule from R4-D14, applied concretely):**
 1. A "thin" reactive unit from one framework does not transfer as-is to another.
    If the project's reactive unit re-runs on every render and is not plainly
    testable, pure logic belongs in a plain module the unit only adapts — do not
