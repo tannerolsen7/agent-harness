@@ -1,3 +1,12 @@
+<!-- context-meta
+owner: tanner
+last-reviewed: 2026-06-17
+review-frequency: on-merge
+drift-signals:
+  - an entry was fixed by a newer solution and no longer applies
+  - a pitfall is no longer reachable in the current code
+-->
+
 # PITFALLS
 
 Known traps in this codebase. Each entry is a real incident, not a speculation.

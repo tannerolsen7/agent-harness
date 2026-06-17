@@ -1,3 +1,12 @@
+<!-- context-meta
+owner: tanner
+last-reviewed: 2026-06-17
+review-frequency: monthly
+drift-signals:
+  - a value or north-star claim no longer matches how the project operates
+  - a non-negotiable here is contradicted by current practice
+-->
+
 # SOUL — Engineering Values and North Star
 
 Read before every task. Keep it current; every agent depends on it.
