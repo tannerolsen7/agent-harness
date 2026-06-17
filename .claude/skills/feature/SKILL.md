@@ -9,7 +9,8 @@ description: |
   add", "let's work on [task]", "let's tackle [task]", "get X working", or
   invokes /feature. Also use when /debug has produced a confirmed root cause and
   the user says "fix it", "fix the bug", or "make it work" — that is the Tiny path:
-  root cause known, fix is code-only, go straight to implementation.
+  root cause known, fix is code-only. Enter at Tiny: confirm behavior, record it
+  in TESTING.md, implement, review. Skip the design contract and discovery phases.
 ---
 
 # Feature Pipeline

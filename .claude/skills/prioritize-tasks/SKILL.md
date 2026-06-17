@@ -6,8 +6,8 @@ description: |
   unreviewed backlog entries, and waits for human confirmation before writing
   changes. Use when the user asks "what should I work on", "help me prioritize",
   "which tasks matter most right now", "reorder the backlog", "what's next", or
-  invokes /prioritize-tasks. Also run once a week alongside /scan-context and
-  /improve-codebase-architecture (tracked in rituals.md).
+  invokes /prioritize-tasks. Also run as part of the weekly planning ritual
+  alongside any architecture and context-freshness checks (tracked in rituals.md).
 ---
 
 ## Prerequisites
