@@ -24,7 +24,7 @@ description: Runs a structured multi-agent code review across 9 analytical passe
 
 ## Step 0 — Docs-only check
 
-If every changed file in `git diff main..HEAD` is `.md`, under `.claude/`, or non-code config:
+If every changed file in `git diff origin/main...HEAD` is `.md`, under `.claude/`, or non-code config:
 
 Run a single Haiku doc-review pass instead of the full review:
 - Check every doc change is accurate relative to the code it describes
@@ -41,8 +41,8 @@ If the diff is not docs-only: proceed to Step 1.
 
 ## Step 1 — Gather context
 
-- Run `git log --oneline main..HEAD`
-- Run `git diff main..HEAD` — capture the full output
+- Run `git log --oneline origin/main..HEAD`
+- Run `git diff origin/main...HEAD` — capture the full output
 - Check `.claude/plans/` for any plan file — read it if found
 - Note the working directory / worktree path
 
