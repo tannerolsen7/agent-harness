@@ -182,6 +182,112 @@ unilaterally. Surface them as open decisions in AGENTS.md.
 
 ---
 
+## Before coding: the design-confirmed gate (R4-D4)
+
+The contract names the interface. This gate locks the two decisions that are
+expensive to get wrong and impossible to review from prose alone — **the data
+shape** and **the look** — before any feature code is written. It ends by
+writing the `design-confirmed` sentinel; `/feature` refuses to start coding
+without it (same hard-stop pattern as `.cr-ok`).
+
+This gate runs for Small+ features. **Tiny** features skip it — one obvious
+behavior, no new data shape, no new screen. If a "Tiny" task turns out to touch
+the database or add a UI screen, it is not Tiny: escalate to Small and run this
+gate.
+
+### Anti-rationalization
+
+| Rationalization | Rebuttal |
+|---|---|
+| "The data shape is obvious, I'll just code it" | The schema is the least-reversible decision in the system. A wrong column type ships, gets data written to it, and now costs a migration + backfill to fix. Robot passes are cheap; a wrong schema is not. Write it down and get it approved first. |
+| "I can answer the open questions myself" | Section 3 questions exist *because* the robot must not answer them — they are product/business calls the human owns. Answering them yourself is how you build the wrong thing confidently. |
+| "A mockup is wasted work, the diff will show the UI" | A diff is a terrible way to review a screen and prose is a terrible way to agree on one. The look is the *bigger* guess on a UI feature. A throwaway mockup is the cheapest place to disagree. |
+| "I'll skip the grill, I already thought it through" | You grilling your own sheet finds the cases you already saw. A second independent agent finds the ones you didn't. That is the entire point. |
+
+### Step 1 — Produce the Design Questions sheet
+
+Three sections, in order. Write it as a markdown doc the human can read top to bottom.
+
+**1. Data shape**
+- Tables / columns / types / relations this feature reads or writes (existing and new).
+- The **Zod boundary schema** for every input and output that crosses a trust boundary
+  (request body, external API payload, form submission). Validation lives at the edge.
+- If nothing in the data layer changes, say so explicitly — "no schema change" is a valid answer.
+
+**2. Edge cases**
+- Empty / missing / malformed input at each boundary named in section 1.
+- Concurrency, ordering, and partial-failure cases (what if it runs twice? out of order? half-completes?).
+- Tenant / owner scoping: what stops this returning another tenant's data?
+
+**3. Open questions the robot must NOT answer**
+- Every decision that is a product, business, or user-experience call — not a technical one.
+- The robot is **forbidden to answer these itself.** List them; leave them for the human.
+- If this section is empty, look harder: a feature with zero open questions usually means
+  the robot silently answered some. Surface them.
+
+### Step 2 — Grill the sheet adversarially (second independent agent)
+
+Before the sheet reaches the human, a *different* agent challenges it. Invoke
+`/grill-with-docs` (it spawns `@reviewer` in design mode against the sheet), or
+spawn an inline adversarial agent with this brief:
+
+> You did not write this Design Questions sheet. Attack it. Find: a data-shape
+> decision that will need a migration to undo; an edge case that is missing from
+> section 2; an "open question" the author quietly answered in section 1 instead
+> of surfacing in section 3; a Zod schema that is looser than the column it
+> guards. Report findings only — do not fix.
+
+Fold the grill's findings back into the sheet before it goes to the human. A
+sheet that survives the grill unchanged is suspicious — re-grill with a sharper brief.
+
+### Step 3 — DB sub-step (only if the feature touches the database)
+
+The schema is approved **on its own, first**, because it is the least-reversible
+decision. Inline in the sheet:
+
+1. Write the **actual proposed migration SQL** (the real `CREATE TABLE` / `ALTER`,
+   not a sketch) and the **Zod schema** that guards the boundary.
+2. Present that exact data shape to the human and get **explicit approval of the
+   schema by itself** — before any other approval, before any coding.
+3. Do not proceed until the human approves the schema as written. A "looks fine,
+   keep going" on the whole sheet is not schema approval; the schema gets its own yes.
+
+### Step 4 — UI sub-step (only if the feature has a screen)
+
+The gate locks the data shape; this locks the **look**. For any feature with a screen:
+
+1. Produce a **rough, throwaway mockup** built from the existing design system —
+   `docs/design/` tokens + components (project-owned). Reuse the established style;
+   do **not** invent a new one. For the highest-stakes, client-facing screens,
+   escalate to Figma (MCP-connected) instead of a static mock.
+2. Get the human to **approve the look before the full wired-up build** — the mockup
+   is the cheapest place to iterate on layout and hierarchy.
+3. After the build, attach a **screenshot to the PR** for human eyeball confirmation
+   that the built screen matches the approved mockup. (The full CI pixel-diff +
+   tenant-assertion render gate stays deferred to the first autonomous UI run.)
+
+### Step 5 — Write the sentinel
+
+Once the human has confirmed the sheet (and the schema, and the mockup, where they
+apply): commit the design artifacts (sheet, contract, migration, mockup), then write
+the sentinel:
+
+```bash
+bash scripts/design-confirm.sh
+```
+
+`design-confirm.sh` self-resolves `branch:sha`, **refuses a dirty tree** (commit the
+design artifacts first — a dirty tree means the sentinel would certify a sha you are
+not about to code on), appends an audit line, and runs no checks. The sentinel is a
+soft, local, one-shot certificate that the design was confirmed at this committed sha
+**before coding**. `/feature` reads and validates it at the top of its implement step;
+**no sentinel → coding refuses to start.**
+
+**The sentinel encodes `branch:sha` of the pre-coding HEAD.** Run `design-confirm.sh`
+as the last thing before handing to implementation, with no feature code committed yet.
+
+---
+
 ## After the contract: decomposition
 
 For Medium+ tasks, the contract feeds into decomposition:

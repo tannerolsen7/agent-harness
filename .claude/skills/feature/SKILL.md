@@ -63,9 +63,63 @@ Tell the user your estimate and ask if the size is wrong before proceeding.
 
 ---
 
+## Implementation gate — design-confirmed sentinel (R4-D4)
+
+**Before any feature code is written, the implement step checks the
+`design-confirmed` sentinel and refuses to start if it is absent or stale.** This
+is the hard stop that makes the before-coding gate real: `/design contract`'s
+before-coding gate (Design Questions sheet → adversarial grill → schema approval
+→ mockup approval → human sign-off) writes `.claude/.design-confirmed`; this step
+reads it. Same pattern as the `/cr` push sentinel — no sentinel, coding stops.
+
+**Applies to Small+.** Tiny features are exempt (one obvious behavior, no new data
+shape, no new screen — they skip `/design contract`). If a "Tiny" task turns out to
+touch the database or add a UI screen, it is not Tiny: escalate it to Small and run
+the design gate before coding.
+
+At the **top of the implement step** (Small step 8, Medium step 10, and every
+sub-`/feature` spawned by Large), run this check before the first line of code.
+The sentinel encodes the pre-coding `branch:sha`; the implement step begins at that
+same HEAD (no feature code committed yet), so a match certifies the design was
+confirmed for exactly this branch at this point.
+
+```bash
+ROOT=$(git rev-parse --show-toplevel)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" = "HEAD" ]; then
+  echo "feature: detached HEAD — check out a branch before coding." >&2; exit 1
+fi
+SHA=$(git rev-parse HEAD)
+EXPECTED="${BRANCH}:${SHA}"
+ACTUAL=$(cat "$ROOT/.claude/.design-confirmed" 2>/dev/null || true)
+if [ -z "$ACTUAL" ]; then
+  echo "feature: no design-confirmed sentinel found. Coding refuses to start." >&2
+  echo "         Run /design contract's before-coding gate and get human sign-off first." >&2
+  exit 1
+fi
+if [ "$ACTUAL" != "$EXPECTED" ]; then
+  echo "feature: design-confirmed sentinel is stale (have ${ACTUAL}, on ${EXPECTED})." >&2
+  echo "         If design artifacts changed since last confirmation: re-run the full design gate." >&2
+  echo "         If only non-design commits advanced HEAD (e.g. spec, plan docs): re-run scripts/design-confirm.sh AFTER human confirms the design is still valid at this sha." >&2
+  exit 1
+fi
+```
+
+This check runs **once**, at the very top of the implement step, before the first `/tdd` call. It is not re-evaluated between issues. The `.design-confirmed` sentinel is **not consumed** (unlike `.cr-ok`, which pr.sh deletes after reading) — it persists until overwritten by the next `design-confirm.sh` run.
+
+If the gate fires, **stop and surface the paste-ready remediation** — do not write
+code, and do not write the sentinel yourself to get past the gate (writing
+`.claude/.design-confirmed` directly to unblock coding is the same violation as
+hand-writing `.cr-ok`; a design not confirmed through the gate is unconfirmed). The
+fix is to run the design gate: `bash scripts/design-confirm.sh` only after the human
+has signed off on the sheet, schema, and mockup.
+
+---
+
 ## Tiny (1 behavior)
 
 1. Confirm the expected behavior with the user
+   - **If this touches the database or adds a UI screen, it is not Tiny** — escalate to Small and run the design gate. Tiny is exempt from the design-confirmed sentinel only because it has no new data shape and no new screen.
 2. Record it in `docs/TESTING.md` under confirmed behaviors before writing any code
 3. Invoke `/tdd` for the single slice (contract required)
 4. Invoke `/simplify` on the changed code
@@ -86,7 +140,7 @@ Tell the user your estimate and ask if the size is wrong before proceeding.
 5. **Solutions check** — search `docs/solutions/` for relevant patterns before designing the interface.
 6. **Spec** — write all confirmed expected behaviors to `docs/TESTING.md` before touching code.
 7. **Plan** — read relevant source files and existing tests. Design the public interface. Get user approval before writing code.
-8. **Implement** — invoke `/tdd` (contract required). Tracer bullet slice first.
+8. **Implement** — **pass the Implementation gate first** (read `.claude/.design-confirmed`; refuse if absent or stale). Then invoke `/tdd` (contract required). Tracer bullet slice first.
 9. **Simplify** — invoke `/simplify` on all changed files.
 10. **Review** — invoke `/cr`. If touched auth/permissions/data boundary, also invoke `/cr-security`.
 11. **Type check** — `npx tsc --noEmit` must exit zero
@@ -113,7 +167,7 @@ Tell the user your estimate and ask if the size is wrong before proceeding.
    **STOP. Do not proceed to Step 9 until the user has confirmed the issue list.** This is a hard gate. Implementation does not begin until /to-issues has run and the output is approved. If the user asks "did you use /to-issues?" mid-implementation, that question is the instruction — stop, run /to-issues, get confirmation, then resume.
    After confirmation: identify which issues are independent. Spawn sub-agents for independent issues simultaneously — do not work sequentially through the list if issues have no shared dependency. State the parallel groupings explicitly before spawning.
 9. **Plan** — read CONTEXT.md, AGENTS.md, existing tests. Design interface. Get user approval.
-10. **Implement** — invoke `/tdd` for each issue in order. Tracer bullet slice first. (contract required)
+10. **Implement** — **pass the Implementation gate first** (read `.claude/.design-confirmed`; refuse if absent or stale). Then invoke `/tdd` for each issue in order. Tracer bullet slice first. (contract required)
 11. **Simplify** — invoke `/simplify` on all changed files
 12. **Review** — `/cr`, `/cr-security` if triggered
 13. **Type check** — `npx tsc --noEmit` must exit zero
@@ -131,7 +185,7 @@ Tell the user your estimate and ask if the size is wrong before proceeding.
 3. **Grill** — invoke `/grill-with-docs`
 4. **Spec** — write all confirmed behaviors to `docs/TESTING.md`
 5. **Decompose** — invoke `/to-issues`. Each issue maps to Small or Medium. The spec.md user journey is the reference for tracing issues back to user intent.
-6. **Execute** — run `/feature` on each issue in dependency order
+6. **Execute** — run `/feature` on each issue in dependency order. Each sub-`/feature` runs its own Implementation gate — the design-confirmed sentinel is checked per issue before that issue's coding begins.
 
 ---
 
@@ -153,6 +207,7 @@ Needs human: <list or "None">
 
 ## Done criteria
 
+- (Small+) Design was confirmed before coding — `.claude/.design-confirmed` was written via `scripts/design-confirm.sh` and the Implementation gate passed
 - All confirmed behaviors in `docs/TESTING.md`
 - All slices committed (test + implementation in same commit)
 - All /to-issues issues closed — via `closes #N` in commit body (auto-closed on merge) or manually if the issue was partially addressed

@@ -33,6 +33,10 @@ The harness dogfoods its own gates. They are zero-dependency (no app stack requi
 
 - **pre-commit** → `npm run lint`: a `bash -n` syntax check on every shell file (plus `shellcheck`
   if installed). The harness is mostly shell + markdown, so the scripts *are* the code.
+- **before coding** → the `/design contract` before-coding gate: Design Questions sheet → adversarial
+  grill → schema/mockup approval → human sign-off → `scripts/design-confirm.sh` writes
+  `.claude/.design-confirmed` (`branch:sha`). `/feature`'s implement step refuses to start without it
+  (Small+; Tiny exempt).
 - **pre-push** → the `/cr` sentinel check (`.claude/.cr-ok` must match `branch:sha`), branch guards
   (no pushing a merged branch, no detached HEAD), then `npm test`.
 - **`npm test`** → runs `tests/*.test.sh`. `harness-smoke.test.sh` asserts the core machinery is
