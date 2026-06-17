@@ -4,6 +4,23 @@ Tracks cross-PR patterns that surface in `/cr` passes. Auto-flagged at Occurrenc
 
 Status key: **Active** — not yet promoted · **Promoted** — now in PITFALLS.md or a named /cr pass-prompt
 
+## How findings flow (the ratchet)
+
+This file is the memory of the learning loop. Findings enter and leave it on a fixed path:
+
+- **In:** `/cr` Step 3b reads this file after every review. It gives each finding a stable
+  signature, then either matches an Active entry (and bumps its count + last-seen) or appends a
+  new one at Occurrences 1.
+- **Out (promotion):** when a finding reaches Occurrences ≥3 — or `/cr` judges it high-impact at a
+  lower count — it is promoted. The promoter writes the matching `PITFALLS.md` entry (or a named
+  `/cr` pass-prompt) and moves the finding from **Active** to **Promoted** here. A trap seen three
+  times stops being a per-PR note and becomes a rule the gate checks every time.
+- **Read-back:** `@doc-updater` reads this file during `/compound` and proposes any pending
+  promotion in its draft, so the human sees the ratchet fire at PR-review time.
+
+Keep this file under version control — the occurrence counts ARE the ratchet's state. Reset the
+file and you reset the loop's memory.
+
 ---
 
 ## Active

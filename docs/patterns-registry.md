@@ -70,6 +70,28 @@ engineering advice.
 - Push must be sequential: `scripts/pr.sh` deletes `.cr-ok` on success; two pushes for the same task would race and one would fail validation.
 - The Workflow has no pause-and-ask mechanism. Human approval of the task list must happen in the skill (Steps 1–2) before the Workflow is launched.
 
+## learning-loop-read-back-and-ratchet
+
+**What:** Wire the harness to read its own task output after a run and keep its knowledge docs current, plus catch broken cross-links in those docs before they rot.
+
+**When to use:** Any project where context docs (CONTEXT.md, AGENTS.md, patterns-registry.md, PITFALLS.md, memory.md) must stay true to the code, and where the same review finding keeps showing up across PRs.
+
+**When NOT to use:** A throwaway project with no long-lived context docs. A one-shot script with no review pipeline. Do not reach for the ratchet on a finding seen once — it earns a rule only after it recurs (Occurrences ≥3) or is judged high-impact.
+
+**The recipe:**
+1. **`/cr` skill (`.claude/skills/cr/SKILL.md`)** — Step 3b reads `docs/RECURRING-FINDINGS.md`, gives each finding a stable signature, and counts occurrences across PRs. Step "Promotion candidates" promotes any finding at Occurrences ≥3 (or judgment-flagged) into a `PITFALLS.md` entry and moves it Active → Promoted. This is the finding→enforcement ratchet: a trap seen three times stops being a per-PR note and becomes a rule the gate checks every time.
+2. **`@doc-updater` agent (`.claude/agents/doc-updater.md`)** — the read-back step. After a task, the agent reads its own diff back against the context docs and proposes corrections for any doc that now describes the old behavior. It writes proposals to a draft (`.claude/compound-draft-<slug>.md`) for human review at PR time — never a direct edit, because a wrong "fix" to canon is worse than stale canon.
+3. **`docs/RECURRING-FINDINGS.md`** — the cross-PR ledger. Active findings carry a signature, occurrence count, last-seen date, and locations; promoted ones move to a Promoted section. This is the state the ratchet reads and writes.
+4. **`scripts/check-integrity.sh` + CI (`scripts/ci-verify.sh`)** — the reference-integrity check. It scans markdown docs for broken relative cross-links (a `[text](./x.md)` whose file is gone) and fails the PR before a reader hits the dead link. It skips external links, pure anchors, template placeholders (`<…>`), fenced code blocks, and inline-code spans. Wired into `ci-verify.sh` so it runs server-side on the PR's exact commit.
+
+**Golden exemplar:** `scripts/check-integrity.sh` + `tests/check-integrity.test.sh` (the check + its hermetic tests); `.claude/agents/doc-updater.md` (the read-back agent).
+**Established by:** feat/learning-loop-integrity (CMP1/CMP2/CMP4; V2-TRACEABILITY.md line 73).
+**Gotchas:**
+- The integrity check skips links inside inline code spans (backtick-wrapped) on purpose. Docs that *describe* another file's link format (e.g. how an external memory index looks) would otherwise trip a false positive on a file that does not live in this repo.
+- The check verifies only the file half of a `path#anchor` link, not the heading anchor. Verifying anchors needs a full markdown parse and produces false positives on cased or generated headings; the file-exists check is the high-value, low-noise part.
+- The ratchet's count lives in `RECURRING-FINDINGS.md`, not in the agent. If that file is reset, the count resets — promotions are driven by the ledger, so keep it under version control.
+- `@doc-updater` proposes; it never writes canon directly. The draft-then-human-review boundary is the whole point: an agent editing PITFALLS.md or CONTEXT.md unattended can entrench a wrong claim.
+
 ---
 
 ## Entry format
