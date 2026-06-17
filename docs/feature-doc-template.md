@@ -20,6 +20,12 @@ sentence or two from another doc, link instead.
 writing code). The doc starts at design time and is kept current through implementation and
 review; it is not written after the fact.
 
+At design time, `@designer` fills the **Design** section below in one pass — the data shape,
+the API contract, and the front-end shape — grounded in the project's locked patterns. Then
+`@design-griller` attacks that design with a clean context to find the expensive-to-undo
+decision and the missed case before the human signs off. Only after sign-off does
+`scripts/design-confirm.sh` write the sentinel that lets coding start (R4-D14, R4-D4).
+
 **Related canon:**
 - Patterns established here are captured into the [patterns registry](./patterns-registry.md)
   by `/compound` after the feature merges (R4-D25).
@@ -65,6 +71,51 @@ What "done" looks like, stated as observable behavior — not implementation.
 > If this feature has a richer spec elsewhere (a PRD, a `/design` contract), link it here and
 > keep only the summary above. The feature doc is the hub — it points at the fuller spec, it
 > does not replace it.
+
+---
+
+## Design
+
+`@designer` fills this in one pass, before any code. `@design-griller` then attacks it.
+Three areas, each a separate decision the human signs off on. Skip an area only when it
+genuinely does not apply — and say so ("no schema change", "no screen"), do not delete the
+heading.
+
+### Data shape
+
+The least-reversible decision — get it right first.
+
+- **Tables / columns / types / relations:** <existing and new; name existing ones so nothing
+  gets recreated. Or "no schema change.">
+- **Migration:** <the real `CREATE TABLE` / `ALTER` for anything new — not a sketch.>
+- **Zod boundary schema:** <the schema for each input/output that crosses a trust boundary;
+  at least as strict as the column it guards.>
+- **Tenant / owner scoping:** <the column and the rule that stops this returning another
+  tenant's or owner's data.>
+
+### API contract
+
+The shape of what crosses each boundary.
+
+- **Inputs:** <name · type · source · what happens when missing/malformed/unexpected.>
+- **Outputs:** <name · type · consumer · sync or async · loading and error states.>
+- **Entry point:** <the server action / route / data function this lives behind, per the
+  project's architecture; link the golden exemplar for that layer.>
+- **Access policy:** <the auth/access boundary this respects, as a rule.>
+
+### Front-end shape
+
+<Only if the feature has a screen — otherwise "no screen." Same rigor as the backend
+(R4-D14a). Cover: the layered one-way imports; pure logic split from framework glue; the
+component triad (humble I/O components + orchestration + state source); the framework fill-in
+the project's stack uses (reactive unit, slots, shared state, DI); and the full data-state
+matrix — no data, some, lots/overflow, bad data, loading — with no layout shift (R4-D18). The
+look reuses `docs/design/` tokens and components, never a new style.>
+
+### Open questions the robot must NOT answer
+
+<Every product, business, or UX call left for the human. If this list is empty, look harder —
+a design with zero open questions usually means the designer quietly answered some.>
 
 ---
 
