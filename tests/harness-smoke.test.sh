@@ -63,6 +63,14 @@ for f in .claude/skills/*/SKILL.md .claude/agents/*.md; do
   [ -n "$risky" ] && note "$f: unparseable plain description (unindented continuation or ': '/' #' in the value) — use a 'description: |' block scalar"
 done
 
+# Side-effect skills (irreversible external mutations — issue creation, PRD publish, migration,
+# parallel PR open) must opt out of autonomous model invocation (R4-D8 / F9). Agents must never
+# invoke these unprompted; only explicit user invocation is safe.
+for sk in to-issues to-prd migrate queue; do
+  grep -q '^disable-model-invocation: true' ".claude/skills/$sk/SKILL.md" \
+    || note ".claude/skills/$sk/SKILL.md missing disable-model-invocation: true (R4-D8 / F9)"
+done
+
 # Forbidden skills: cut from V2 and must stay out. dep-update was an empty stub; notion-sync
 # is obsolete under the Notion→GitHub canon move (canon lives in the repo — no sync-to-Notion).
 for forbidden in notion-sync dep-update; do

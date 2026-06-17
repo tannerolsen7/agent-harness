@@ -43,9 +43,9 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | egress control (block-egress.sh) | security CRITICAL-3 | ✅ |
 | fail-closed existing hooks | security HIGH-1 | ✅ (hooks-fail-closed.test.sh) |
 | managed-settings.json (OS-level) + installer | R4-D7#5, security HIGH-2 | ✅ (template + install-locks.sh) |
-| disable-model-invocation on side-effect skills | R4-D8 (F9) | ⬜ verify |
+| disable-model-invocation on side-effect skills | R4-D8 (F9) | ✅ set on to-issues, to-prd, migrate, queue; zoom-out already had it; smoke guard added |
 | worktree G1 (npm-install + assert husky shim) | worktree review G1 | ✅ (assert-husky-shim.sh) |
-| worktree G2 (standardize `.claude/worktrees/<slug>`) | worktree review G2 | ⬜ verify |
+| worktree G2 (standardize `.claude/worktrees/<slug>`) | worktree review G2 | ✅ path locked in worktree-add.sh + worktree-create.sh + gc.sh; all live worktrees conform |
 
 ## Phase 1 — Trust (IN PROGRESS)
 | Item | Decision | Status |
