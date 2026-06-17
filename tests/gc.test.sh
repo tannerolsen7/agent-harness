@@ -49,6 +49,15 @@ TMP=$(mktemp -d)
   git checkout -q "$DEF"
   git merge -q --no-ff feat/local -m "merge feat/local" >/dev/null 2>&1
   # intentionally NOT pushing — feat/local has no upstream tracking ref
+
+  # PROTECTED-NAME no-upstream branch: "develop" — a protected branch name with no upstream
+  # that IS an ancestor of HEAD (it was merged). Pass 2 must NOT delete it. This is the
+  # regression guard for the "main/master/develop with no upstream → deleted" bug.
+  git checkout -q -b develop
+  git commit -q --allow-empty --no-verify -m "develop work"
+  git checkout -q "$DEF"
+  git merge -q --no-ff develop -m "merge develop" >/dev/null 2>&1
+  # intentionally NOT pushing — no upstream, would be gc'd without the name exclusion guard
 ) >/dev/null 2>&1
 
 # Run gc.sh in the temp repo.
@@ -69,6 +78,9 @@ TMP=$(mktemp -d)
 
 # No-upstream merged branch is deleted (Pass 2 blind-spot coverage).
 ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/local >/dev/null 2>&1 ); chk "$([ $? -ne 0 ] && echo 0 || echo 1)" "merged no-upstream branch feat/local should be deleted"
+
+# Protected-name branch must survive even with no upstream and an ancestor position.
+( cd "$TMP" && git rev-parse --verify --quiet refs/heads/develop >/dev/null 2>&1 ); chk "$?" "develop (no upstream, merged) must survive — protected name exclusion"
 
 rm -rf "$TMP"
 echo ""

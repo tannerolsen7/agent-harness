@@ -36,9 +36,15 @@ GONE=$(git branch -vv | awk '/\[[^]]*: gone\]/ && $1 != "*" { print ($1 == "+") 
 # These never get [gone] because git has no remote ref to mark absent.
 # %(upstream) is empty when no upstream was ever set (git for-each-ref is safe to parse —
 # no field-shift issues from the * and + decorators in git branch -vv).
+#
+# Protected branches (main/master/develop) are excluded explicitly. In a local-only repo
+# they have no upstream, but they ARE ancestors of any feature branch — the merge-verify
+# check would pass and delete them if they weren't excluded here. Mirrors the same list
+# in block-dangerous-git.sh.
 CURRENT=$(git branch --show-current 2>/dev/null || true)
 NO_UPSTREAM=$(git for-each-ref --format='%(refname:short) %(upstream)' refs/heads/ | \
-  awk '$2 == "" { print $1 }' | grep -v "^${CURRENT}$" || true)
+  awk '$2 == "" { print $1 }' | \
+  grep -vE "^(main|master|develop)$" | grep -v "^${CURRENT}$" || true)
 
 # Combine both passes. The merge-verify gate below protects both sets — a branch is only
 # deleted if it is a confirmed merge (ancestor check or gh-confirmed merged PR).
