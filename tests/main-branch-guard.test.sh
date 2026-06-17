@@ -61,6 +61,7 @@ run 2 "git push (no args) on main → BLOCK"         "git push"            "$STU
 run 2 "git push origin on main → BLOCK"            "git push origin"     "$STUB_MAIN"
 run 2 "git push -u origin on main → BLOCK"         "git push -u origin"  "$STUB_MAIN"
 run 2 "git push on develop → BLOCK"                "git push"            "$STUB_DEVELOP"
+run 2 "git push origin HEAD on main → BLOCK"       "git push origin HEAD" "$STUB_MAIN"
 run 0 "git push (no args) on feature branch → ALLOW"    "git push"       "$STUB_FEAT"
 run 0 "git push origin on feature branch → ALLOW"       "git push origin" "$STUB_FEAT"
 
