@@ -43,9 +43,9 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | egress control (block-egress.sh) | security CRITICAL-3 | ✅ |
 | fail-closed existing hooks | security HIGH-1 | ✅ (hooks-fail-closed.test.sh) |
 | managed-settings.json (OS-level) + installer | R4-D7#5, security HIGH-2 | ✅ (template + install-locks.sh) |
-| disable-model-invocation on side-effect skills | R4-D8 (F9) | ⬜ verify |
+| disable-model-invocation on side-effect skills | R4-D8 (F9) | ✅ set on to-issues, to-prd, migrate, queue; zoom-out already had it; smoke guard added — platform trust only, no behavioral suppression test |
 | worktree G1 (npm-install + assert husky shim) | worktree review G1 | ✅ (assert-husky-shim.sh) |
-| worktree G2 (standardize `.claude/worktrees/<slug>`) | worktree review G2 | ⬜ verify |
+| worktree G2 (standardize `.claude/worktrees/<slug>`) | worktree review G2 | ✅ worktree-create.sh enforces the path; worktree-add.sh is path-agnostic (called with canonical path by create.sh); gc.sh operates on `.claude/worktrees/` |
 
 ## Phase 1 — Trust (IN PROGRESS)
 | Item | Decision | Status |
@@ -65,7 +65,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 ## Phase 2 — The loop (TODO)
 | Item | Decision | Status |
 |---|---|---|
-| One adaptive build command + /goal | R4-D7#3 | ⬜ |
+| One adaptive build command + /goal | R4-D7#3 | 🔄 **Decision: no dedicated front-door/router skill.** `/feature` IS the one adaptive front door — its Step 0 sizes Tiny/Small/Medium/Large and drives `/tdd` as the under-the-hood engine (R4-D7#3's "engine inside; no user choice"). A bare goal reaches it via native skill-dispatch on a sharp `description`, not a wrapper skill. A `/goal`→`/tdd`/`/feature` router was built (PR #22, merged) then removed — redundant: it duplicated `/feature` Step 0's sizing criteria, and `/tdd` is the engine, never a front-door peer (no front-door case routes to `/tdd`). Residual: keep `/feature`'s `description` sharp enough that bare goals route there reliably. **`/goal` continuation primitive (L2, run-until-graded) = decide later** — Anthropic ships a built-in `/goal` (v2.1.139) that natively provides it (separate checker model), which also resolves the T1-2 force-continue uncertainty. |
 | Strict before-coding gate: data shape → UX → UI mockup | R4-D4 | ✅ `scripts/design-confirm.sh` writes the `design-confirmed` sentinel (`branch:sha`, dirty-tree refusal, audit log — mirrors `cr-ok.sh`); `tests/design-confirm.test.sh` (13 assertions). `/design contract` gains the before-coding gate: 3-section Design Questions sheet (data shape + Zod / edge cases / open questions robot can't answer) → adversarial grill → DB sub-step (migration SQL + Zod, schema approved alone first) → UI sub-step (rough mockup from `docs/design/`, look approved before build, PR screenshot) → sentinel. `/feature` Implementation gate reads `.claude/.design-confirmed` and refuses to code if absent/stale (Small+; Tiny exempt unless it touches DB/UI). |
 | Design phase: 1 designer (schema+API+front-end) + grill; framework-adapted | R4-D14/14a/14b | ⬜ |
 | Feature-doc-as-hub + patterns/golden-exemplars registry | R4-D9, R4-D25 | ⬜ |

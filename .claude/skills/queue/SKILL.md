@@ -1,6 +1,7 @@
 ---
 name: queue
 description: Run multiple independent backlog tasks in parallel worktrees, then push and open PRs for each.
+disable-model-invocation: true
 ---
 
 # /queue — Multi-agent backlog runner
