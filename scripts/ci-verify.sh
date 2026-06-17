@@ -25,4 +25,9 @@ npm test
 echo "ci-verify: routing-assertion"
 bash "$ROOT/scripts/check-routing.sh"
 
+# Reference-integrity: catch broken cross-links in context docs before they rot (CMP4).
+# Runs server-side so a dead link in a knowledge doc fails the PR, not a future reader.
+echo "ci-verify: reference-integrity"
+bash "$ROOT/scripts/check-integrity.sh"
+
 echo "ci-verify: OK"
