@@ -21,6 +21,8 @@ calls .gitlab-ci.yml
 # The shared check must actually run the deterministic floor (lint + tests).
 grep -q 'npm run lint' scripts/ci-verify.sh && pass=$((pass+1)) || { echo "  ci-verify.sh does not run lint"; fail=$((fail+1)); }
 grep -q 'npm test'     scripts/ci-verify.sh && pass=$((pass+1)) || { echo "  ci-verify.sh does not run tests"; fail=$((fail+1)); }
+# Reference-integrity (CMP4) must run in the shared check, or context-doc rot ships unblocked.
+grep -q 'check-integrity.sh' scripts/ci-verify.sh && pass=$((pass+1)) || { echo "  ci-verify.sh does not run check-integrity"; fail=$((fail+1)); }
 
 echo ""
 echo "ci-gate: $pass passed, $fail failed"

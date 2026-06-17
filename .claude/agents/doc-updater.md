@@ -31,8 +31,33 @@ Read (skip any that don't exist):
 - docs/solutions/README.md — what's already documented
 - docs/solutions/TEMPLATE.md — the correct format
 - PITFALLS.md — what's already captured
+- docs/RECURRING-FINDINGS.md — cross-PR finding counts and promotion candidates
+- docs/patterns-registry.md — multi-file recipes already captured
 - `.claude/memory.md` — what's already there
 - `.claude/SOUL.md` — existing engineering principles
+- CONTEXT.md and AGENTS.md if the project has them — the context docs the read-back step checks for drift
+
+## Read-back: keep context docs current
+
+Before proposing new entries, read your own task's output back against the context
+docs and look for drift. The goal is plain: after a task changes how the code works,
+the docs that describe the code must not still describe the old way.
+
+Walk the diff and ask, for each context doc the project has:
+- **CONTEXT.md** — did this task change the domain model, a business rule, or a data
+  shape that CONTEXT.md still describes the old way? Propose the corrected wording.
+- **AGENTS.md** — did this task change a layer's responsibility, add a new layer, or
+  make an existing golden exemplar no longer the best file to copy? Propose the update.
+- **memory.md** — did this task hit (and fix) a constraint that future runs must know?
+- **patterns-registry.md** — did this task establish or change a multi-file recipe?
+- **RECURRING-FINDINGS.md** — did @reviewer flag a finding for promotion (Occurrences
+  ≥3, or judgment-flagged as high-impact)? If so, propose the matching PITFALLS.md entry
+  and note that the finding moves from Active to Promoted. This is the finding-to-enforcement
+  ratchet: a problem seen three times stops being a per-PR note and becomes a rule.
+
+Every drift you find becomes a proposal in the draft below — never a direct edit. A doc
+that disagrees with the code it describes is worse than no doc, so flag it even when you
+are only fairly sure; the human decides at PR time.
 
 ## Four proposal categories
 
@@ -65,6 +90,16 @@ Write the draft to `.claude/compound-draft-[task-slug].md`:
 # Compound draft — [task-slug]
 Generated: [date]
 Review before merging the PR.
+
+## Context-doc drift (read-back) — [proposed or none]
+[For each context doc that now disagrees with the code (CONTEXT.md, AGENTS.md,
+patterns-registry.md): the file, the stale wording, and the corrected wording.
+Or "No drift found — context docs still match the code."]
+
+## RECURRING-FINDINGS.md promotion — [proposed or none]
+[Any finding @reviewer flagged for promotion: the signature, its occurrence count,
+the PITFALLS.md entry it should become, and the note that it moves Active → Promoted.
+Or "No promotion candidates this run."]
 
 ## docs/solutions/ — [proposed or none]
 [content in TEMPLATE.md format, or "Nothing to capture."]

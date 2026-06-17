@@ -70,7 +70,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | Design phase: 1 designer (schema+API+front-end) + grill; framework-adapted | R4-D14/14a/14b | ⬜ |
 | Feature-doc-as-hub + patterns/golden-exemplars registry | R4-D9, R4-D25 | ⬜ |
 | Incident subsystem carry-forward; security response human-driven (isolate+log) | R4-D11, L6 | ⬜ |
-| Learning loop (read-path + ratchet) + reference-integrity check | CMP1/CMP2/CMP4 | ⬜ |
+| Learning loop (read-path + ratchet) + reference-integrity check | CMP1/CMP2/CMP4 | ✅ feat/learning-loop-integrity — read-back step in `@doc-updater` (CMP1), finding→enforcement ratchet in `/cr` Step 3b (CMP2), `scripts/check-integrity.sh` + `tests/check-integrity.test.sh` + CI wire-up (CMP4). CMP3 was not defined in the original plan; the gap is intentional. |
 | Selective context (slice, not dump); retrieval-recall measure | R4-D20#4, R4-D32#6 | ⬜ |
 | Narration + shared Stop-hook | L7, HOOK-1 | ⬜ |
 
