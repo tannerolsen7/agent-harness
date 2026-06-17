@@ -41,10 +41,24 @@ GONE=$(git branch -vv | awk '/\[[^]]*: gone\]/ && $1 != "*" { print ($1 == "+") 
 # they have no upstream, but they ARE ancestors of any feature branch — the merge-verify
 # check would pass and delete them if they weren't excluded here. Mirrors the same list
 # in block-dangerous-git.sh.
+#
+# Branches currently checked out in active worktrees are also excluded. A freshly-created
+# worktree branch (no commits yet) has its tip at the branch point, which makes
+# `git merge-base --is-ancestor` return true — it looks "merged" but was just created.
+# Those branches will be cleaned up by the GONE pass once their PR merges and GitHub
+# deletes the remote ref. Removing them here would destroy live work.
 CURRENT=$(git branch --show-current 2>/dev/null || true)
+ACTIVE_WT_BRANCHES=$(git worktree list --porcelain | awk '/^branch /{sub(/^branch refs\/heads\//, ""); print}' || true)
 NO_UPSTREAM=$(git for-each-ref --format='%(refname:short) %(upstream)' refs/heads/ | \
   awk '$2 == "" { print $1 }' | \
   grep -vE "^(main|master|develop)$" | grep -v "^${CURRENT}$" || true)
+# Remove active worktree branches from NO_UPSTREAM candidates — they aren't merged,
+# they're just checked out locally without an upstream yet.
+if [ -n "$ACTIVE_WT_BRANCHES" ]; then
+  while IFS= read -r wtb; do
+    [ -n "$wtb" ] && NO_UPSTREAM=$(printf '%s\n' "$NO_UPSTREAM" | grep -v "^${wtb}$" || true)
+  done <<< "$ACTIVE_WT_BRANCHES"
+fi
 
 # Combine both passes. The merge-verify gate below protects both sets — a branch is only
 # deleted if it is a confirmed merge (ancestor check or gh-confirmed merged PR).
