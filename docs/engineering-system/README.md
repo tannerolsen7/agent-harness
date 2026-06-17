@@ -21,6 +21,16 @@ Full reference: [11 · Skill Ecosystems](./11-skill-ecosystems.md)
 
 ---
 
+## Orchestration patterns
+
+Three tools exist for multi-step AI work: Skill (human-present, interactive), Agent (single
+specialist, one scoped task), Workflow (batch/overnight, resumable, structured outputs). Choosing
+wrong costs token budget or reliability.
+
+Full reference: [15 · Orchestration Patterns](./15-orchestration-patterns.md)
+
+---
+
 ## The four layers
 
 Every AI-native engineering system has four compounding layers. Skip any one and you have AI assistance. Build all four and you have a system that gets better every PR.
