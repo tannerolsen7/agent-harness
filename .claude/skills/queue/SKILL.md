@@ -48,6 +48,11 @@ a partial setup — a worktree missing a required env file will fail integration
 
 ## Step 3 — Spawn agents in parallel
 
+> **Overnight or background run?** This step fans out agents via the Agent tool with no recovery
+> path — if the session drops, the run is lost. For overnight batches, Step 3 onward should be
+> run as a Workflow script instead: `resumeFromRunId` restarts from the last completed agent call,
+> not from scratch. See [`docs/engineering-system/15-orchestration-patterns.md`](../../docs/engineering-system/15-orchestration-patterns.md).
+
 For each confirmed task, in a single message (parallel tool calls):
 
 1. Determine branch name: `feat/<task-slug>` (slugify the task title)

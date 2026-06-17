@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Harness V2 — Standup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      padding: 40px 20px 80px;
+    }
+
+    .page { max-width: 780px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+    }
+    .page-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.4px; }
+    .page-header .subtitle { font-size: 14px; color: #666; margin-top: 4px; }
+    .page-header .date { font-size: 14px; color: #888; white-space: nowrap; padding-top: 4px; }
+
+    /* ── Progress banner ── */
+    .progress-banner {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 36px;
+    }
+    .progress-label { font-size: 15px; font-weight: 600; white-space: nowrap; }
+    .progress-track { flex: 1; height: 10px; background: #e5e5e5; border-radius: 99px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #22c55e; border-radius: 99px; }
+    .progress-note { font-size: 13px; color: #888; white-space: nowrap; }
+
+    /* ── Section headers ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 12px;
+    }
+
+    /* ── Phase group label ── */
+    .phase-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #aaa;
+      margin: 20px 0 8px 0;
+      padding-left: 36px;
+    }
+    .phase-label:first-of-type { margin-top: 0; }
+
+    /* ── Cards ── */
+    .card {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 8px;
+    }
+    .card-header { display: flex; align-items: flex-start; gap: 12px; }
+
+    .card-icon {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; margin-top: 1px;
+    }
+    .card-icon.done    { background: #dcfce7; }
+    .card-icon.done svg { color: #16a34a; }
+    .card-icon.active  { background: #fef9c3; }
+    .card-icon.active svg { color: #ca8a04; }
+
+    .card-body { flex: 1; }
+    .card-title { font-size: 15px; font-weight: 600; line-height: 1.3; }
+    .card-desc  { font-size: 13.5px; color: #555; margin-top: 4px; line-height: 1.55; }
+
+    .tag {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 99px; margin: 6px 4px 0 0;
+    }
+    .tag-green  { background: #dcfce7; color: #15803d; }
+    .tag-blue   { background: #dbeafe; color: #1d4ed8; }
+    .tag-purple { background: #ede9fe; color: #6d28d9; }
+    .tag-orange { background: #ffedd5; color: #c2410c; }
+
+    .callout {
+      border-radius: 6px; padding: 10px 14px;
+      margin-top: 10px; font-size: 13px; line-height: 1.5;
+    }
+    .callout-yellow { background: #fefce8; border-left: 3px solid #facc15; color: #713f12; }
+    .callout-blue   { background: #eff6ff; border-left: 3px solid #60a5fa; color: #1e3a5f; }
+
+    /* ── Remaining steps (dark block) ── */
+    .steps-block {
+      background: #111827; border-radius: 12px;
+      padding: 22px; margin-top: 6px; color: #f9fafb;
+    }
+    .steps-block-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+    }
+    .steps-block-header .count { font-size: 16px; font-weight: 700; }
+    .steps-block-header .note  { font-size: 12px; color: #9ca3af; }
+
+    .steps-phase-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #4b5563;
+      padding: 18px 0 6px 42px;
+    }
+    .steps-phase-label:first-of-type { padding-top: 14px; }
+
+    .step-row { display: flex; gap: 14px; padding: 12px 0; border-top: 1px solid #1f2937; }
+    .step-row:first-of-type { border-top: none; }
+
+    .step-num {
+      font-size: 20px; font-weight: 800; color: #4b5563;
+      min-width: 28px; line-height: 1; padding-top: 2px;
+    }
+    .step-content { flex: 1; }
+    .step-title { font-size: 14px; font-weight: 600; color: #f9fafb; margin-bottom: 3px; }
+    .step-desc  { font-size: 13px; color: #9ca3af; line-height: 1.5; }
+    .step-tags  { margin-top: 6px; }
+    .step-tag {
+      display: inline-block; font-size: 11px; font-weight: 500;
+      padding: 2px 8px; border-radius: 99px; margin-right: 4px;
+      background: #1f2937; color: #d1d5db;
+    }
+    .step-tag.warn { background: #451a03; color: #fed7aa; }
+    .step-tag.gate { background: #172554; color: #93c5fd; }
+    .step-tag.def  { background: #1c1917; color: #78716c; }
+
+    .spacer { height: 28px; }
+
+    /* ── Backlog cards (no icon) ── */
+    .card .card-header .card-body:first-child { padding-left: 0; }
+
+    /* ── Deferred note ── */
+    .deferred-note {
+      margin-top: 20px; padding: 14px 16px;
+      background: #1c1917; border-radius: 8px;
+      font-size: 12px; color: #78716c; line-height: 1.6;
+    }
+    .deferred-note strong { color: #a8a29e; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>Agent Harness V2 — Standup</h1>
+      <div class="subtitle">Building a standalone, project-agnostic AI engineering harness</div>
+    </div>
+    <div class="date">June 17, 2026</div>
+  </div>
+
+  <!-- Progress: Phase 0 done, Phase 1 mostly done, Phases 2–4 todo -->
+  <div class="progress-banner">
+    <div class="progress-label">~60% of Phase 1 done</div>
+    <div class="progress-track"><div class="progress-fill" style="width:35%"></div></div>
+    <div class="progress-note">Step 0 + Phase 0 complete &middot; Phase 1 wrapping up &middot; Phases 2–4 queued</div>
+  </div>
+
+  <!-- ── DONE ── -->
+  <div class="section-label">Done</div>
+
+  <!-- Step 0 -->
+  <div class="phase-label">Step 0 — Migrate the base system</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">All 23 AI agents updated to work with any project</div>
+        <div class="card-desc">Removed all Recyclops-specific references. Each agent now uses generic language (e.g., "database" instead of "Supabase", "auth layer" instead of hard-coded tenant logic). Verified by a smoke test that checks all 23 are present.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">All 21 workflow skills updated to work with any project</div>
+        <div class="card-desc">Same genericization pass as the agents. Six borrowed skills are version-pinned with source credit. Two obsolete skills (dep-update, notion-sync) were cut entirely — a guard now prevents them from being accidentally re-added.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Engineering playbook migrated from Notion to the repo</div>
+        <div class="card-desc">11 core engineering-system documents (principles, four layers, file structure, memory system, templates, etc.) moved out of Notion into <code>docs/engineering-system/</code> — genericized and cross-linked. Notion is no longer the source of truth.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 0 -->
+  <div class="phase-label">Phase 0 — Safety floor</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Three fail-closed security guards</div>
+        <div class="card-desc">Shell hooks that block dangerous bash commands, block reads of credentials/secrets, and block unauthorized outbound network calls. All fail closed — if the guard script itself errors, the action is denied.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Tamper-proof system settings (OS-level lock)</div>
+        <div class="card-desc">A <code>managed-settings.json</code> file owned by root controls the security policy. The AI agent cannot edit it — only a human with admin access can. Comes with an installer script.</div>
+        <span class="tag tag-purple">Hooks</span>
+        <div class="callout callout-yellow" style="margin-top:10px">
+          <strong>Field bug caught + fixed:</strong> the installer was placing the file with mode 600 (root-only read), which made Claude Code fail to start on every launch. Fixed to 644.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Skills that take real-world actions cannot be auto-triggered</div>
+        <div class="card-desc">Four skills that do things with side effects (create issues, open PRs, run migrations, manage queues) have model invocation disabled — they can only be triggered by a human typing the command. A smoke test asserts the flag is present on each.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Isolated workspaces follow a standard path and setup</div>
+        <div class="card-desc">G1: every new worktree runs npm install and verifies the git hook shim is present before any work starts. G2: all worktrees live under <code>.claude/worktrees/&lt;slug&gt;</code> — the path is enforced, not just convention.</div>
+        <span class="tag tag-green">Worktree</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 1 -->
+  <div class="phase-label">Phase 1 — Trust</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Bug-catch test suite with a real-defect scoreboard</div>
+        <div class="card-desc">8 seeded real defects (security holes, logic bugs, type errors) that the AI reviewer must catch. A score script measures the catch rate and will gate the upcoming review-consolidation work.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Unforgeable CI pass required before any review</div>
+        <div class="card-desc"><code>cr-ok.sh</code> records a branch + commit SHA after CI passes. The review skill refuses to run if the token is absent or mismatched — you cannot fake a CI pass. Works with both GitHub and GitLab.</div>
+        <div class="callout callout-yellow" style="margin-top:10px">
+          <strong>Bug fixed:</strong> the old flow consumed the <code>.cr-ok</code> token before running preconditions — so a failed review destroyed the token. Now preconditions run first; a trap restores the token on failure.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">4-lens adversarial reviewer wired into /cr</div>
+        <div class="card-desc">Four independent AI reviewers attack every PR from different angles: abuse (wrong usage), assumptions (what's taken for granted), cascades (what breaks downstream), and composition (conflicts with existing code). All four run in parallel.</div>
+        <div class="callout callout-yellow" style="margin-top:10px">
+          <strong>Bug fixed by /cr on itself:</strong> the reviewer agent was missing the Task tool, so it could not actually spawn the four lens agents. Fixed and added a regression test that verifies the spawn wiring.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Each AI agent now uses the right model for its job</div>
+        <div class="card-desc">Audit of all 23 agents mapped each role to the appropriate model tier. The two reviewer agents (code review + security review) were promoted to Opus. The doc-update agent was moved to the faster/cheaper Haiku. Guard files are OS-locked so the AI cannot change its own model assignment.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Code review now hard-stops broken approaches and has a 2-attempt ceiling</div>
+        <div class="card-desc">A new REJECT verdict closes the PR with an exact command when the approach is fundamentally wrong (not just buggy). Fix attempts are capped at 2 — on the third failure, the review hands back to the human with the exact failing test command and stops.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Automatic risk scoring on every change (HIGH / MEDIUM / LOW)</div>
+        <div class="card-desc">A deterministic script classifies every diff by path and content — no AI judgment needed. When uncertain, it over-classifies to HIGH. Includes 59 test cases; 100% recall on "trap" cases (changes that look trivial but are actually high-risk). Feeds into the bug-catch scoreboard.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Spawn doctrine: documented rules for when to use sub-agents</div>
+        <div class="card-desc">SOUL.md defines exactly when spawning a sub-agent is justified (independence, parallelism, or scale) and when it isn't. Prevents agent sprawl and keeps work in a single context when that's sufficient.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Git hook blocks direct commits or pushes to main/master/develop</div>
+        <div class="card-desc">A pre-commit + pre-push hook rejects any direct write to protected branches. Includes a stub-git test harness so the guard itself is tested without touching the real repo. Verified on push.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Orchestration patterns documented</div>
+        <div class="card-desc">A new engineering-system doc (<code>docs/engineering-system/15-orchestration-patterns.md</code>) covers when to use a Skill vs Agent vs Workflow, use cases in this harness, anti-patterns, and code patterns. Added to the engineering-system index.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Several infrastructure fixes landed along the way</div>
+        <div class="card-desc">Husky v10 compatibility (dropped shebangs, POSIX-only shell); CI Linux compatibility (file stat command differed between macOS and Linux); skill auto-invocation silently broken in 11 files due to malformed YAML — all fixed. The hermetic test environment no longer inherits the real git context, preventing accidental commits to the wrong repo during tests.</div>
+        <div class="callout callout-blue" style="margin-top:10px">
+          The YAML fix restored silent trigger failures across 7 skills and 4 agents — they appeared to work but were not auto-invoked correctly.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <!-- ── IN PROGRESS ── -->
+  <div class="section-label">In progress now</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="2"/><path d="M7 4v3l2 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Phase 0 final verify + /cr improvements (PR pending merge)</div>
+        <div class="card-desc">Branch <code>feat/phase0-f9-verify</code>: smoke guard asserting the side-effect skills flag is present on all qualifying skills; G2 canonical worktree path enforcement verified end-to-end; /cr traceability and backlog gap documented. Ready to merge.</div>
+        <span class="tag tag-green">Phase 0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="2"/><path d="M7 4v3l2 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Skill trigger sharpening (ongoing)</div>
+        <div class="card-desc">Broadening the "when to invoke" descriptions for skills like /debug so the AI routes correctly on the first try instead of needing corrections. /debug triggers are done; remaining skills get sharpened as field misses surface.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <!-- ── STEPS TO FINISH ── -->
+  <div class="section-label">Steps to finish</div>
+
+  <div class="steps-block">
+    <div class="steps-block-header">
+      <div class="count">Phase 1 wrap-up, then Phases 2 → 4</div>
+      <div class="note">Phase 1 must finish before Phase 2 starts</div>
+    </div>
+
+    <div class="steps-phase-label">Phase 1 — Finish trust</div>
+
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">Consolidate 9 review passes → 1 efficient pass</div>
+        <div class="step-desc">Right now /cr loads 9 separate agent contexts. Merge them into one pass + a lint step. Keep splits only where recall measurably drops. Cannot start until the bug-catch test suite establishes a baseline score to protect.</div>
+        <div class="step-tags"><span class="step-tag gate">Gated on bug-catch baseline</span></div>
+      </div>
+    </div>
+
+    <div class="steps-phase-label">Phase 2 — The build loop</div>
+
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">Single /goal entry point</div>
+        <div class="step-desc">One adaptive command that figures out what to build next based on the state of the repo — replaces the current "run the right skill manually" flow.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">Required design review before any code is written</div>
+        <div class="step-desc">Gate: AI must produce a data shape → UX description → UI sketch before a single line of implementation. Prevents building the wrong thing.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">Design agent (schema + API + frontend in one pass)</div>
+        <div class="step-desc">One agent designs the full feature slice — database shape, API contract, and frontend — then another agent stress-tests it before implementation starts.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <div class="step-title">Feature doc as the hub for every change</div>
+        <div class="step-desc">Each feature produces one doc that links its spec, implementation choices, and review verdict together — the "why" stays attached to the "what."</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <div class="step-title">Incident response sub-system</div>
+        <div class="step-desc">Structured triage flow for production incidents: classify → reproduce → fix path, with human always driving the recovery decision.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">7</div>
+      <div class="step-content">
+        <div class="step-title">Learning loop + knowledge integrity check</div>
+        <div class="step-desc">Harness reads its own output after each task to improve context docs. A reference-integrity check catches broken cross-links before they rot.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">8</div>
+      <div class="step-content">
+        <div class="step-title">Context slicing (send relevant code, not everything)</div>
+        <div class="step-desc">Instead of dumping whole files, the harness sends only the slice of code relevant to the task. Keeps the AI focused and reduces noise.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">9</div>
+      <div class="step-content">
+        <div class="step-title">Progress narration + end-of-session summary hook</div>
+        <div class="step-desc">A hook that fires when Claude stops working — emits a plain-language summary of what was done, what's in flight, and the exact command to continue next session.</div>
+      </div>
+    </div>
+
+    <div class="steps-phase-label">Phase 3 — Quality systems</div>
+
+    <div class="step-row">
+      <div class="step-num">10</div>
+      <div class="step-content">
+        <div class="step-title">UI token lint + design-system enforcement</div>
+        <div class="step-desc">Auto-install a design system if missing. Lint every UI change for token usage — no hardcoded colors or spacing. Gate review on design-system compliance.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">11</div>
+      <div class="step-content">
+        <div class="step-title">UX reviewer with accessibility gate</div>
+        <div class="step-desc">Tiered UX review that runs axe accessibility checks. Distinguishes regressions (must fix) from new friction (flag only). Never fakes human-facing metrics.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">12</div>
+      <div class="step-content">
+        <div class="step-title">Security red-team pass for auth-adjacent changes</div>
+        <div class="step-desc">Scoped adversarial pass that only runs when a diff touches authentication, permissions, or data access — not on every PR.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">13</div>
+      <div class="step-content">
+        <div class="step-title">Performance budget with measured warnings</div>
+        <div class="step-desc">Core Web Vitals targets defined per project. Measured and logged on each build. CI warns when a budget is breached — doesn't silently pass.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">14</div>
+      <div class="step-content">
+        <div class="step-title">Mutation testing (verify tests by breaking the code)</div>
+        <div class="step-desc">Automatically deletes and corrupts implementation code to verify that tests actually fail when they should. Catches tests that pass vacuously.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">15</div>
+      <div class="step-content">
+        <div class="step-title">Comments-earned lint + all 6 data states required</div>
+        <div class="step-desc">Lint blocks comments that describe "what" (the code already says that) — only "why" comments are allowed. Separately: every UI component must handle all 6 states (empty, loading, error, no data, some data, lots of data).</div>
+      </div>
+    </div>
+
+    <div class="steps-phase-label">Phase 4 — Fleet &amp; distribution</div>
+
+    <div class="step-row">
+      <div class="step-num">16</div>
+      <div class="step-content">
+        <div class="step-title">GitHub repo as the single source of truth for the harness</div>
+        <div class="step-desc">Complete the migration off Notion. All canon docs live in the repo; a reference-integrity check verifies no dead links.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">17</div>
+      <div class="step-content">
+        <div class="step-title">One-command install for new projects</div>
+        <div class="step-desc"><code>/init</code> + <code>sync-harness.sh</code> — run once and the full harness is installed as a self-contained add-on into any repo, with no manual steps.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">18</div>
+      <div class="step-content">
+        <div class="step-title">AI activity dashboard</div>
+        <div class="step-desc">Per-task record of every AI action: which commit, which model, which skills were used, how long it took. Makes the AI's work auditable and comparable over time.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">19</div>
+      <div class="step-content">
+        <div class="step-title">Audit CLAUDE.md rules → move to deterministic hooks</div>
+        <div class="step-desc">Every rule that can be enforced mechanically (via a hook or lint script) should be — not just documented and hoped for. This pass converts as many CLAUDE.md rules as possible into actual enforcement.</div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">20</div>
+      <div class="step-content">
+        <div class="step-title">Sync harness to all 5 target repos</div>
+        <div class="step-desc">Once the one-command installer works, roll the harness out to the full fleet of project repos.</div>
+      </div>
+    </div>
+
+    <div class="deferred-note">
+      <strong>Deferred until after launch:</strong> GitHub-label / Slack summons to trigger the AI · scheduled recurring runs · risk-based auto-approval once catch-rate clears a floor · real-time access-control UI · fleet circuit breaker. These require launch + a paid GitHub plan.
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <!-- ── BACKLOG ── -->
+  <div class="section-label">Backlog</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">/queue rewrite: resumable overnight batch runner <span style="font-size:11px;font-weight:600;background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:99px;margin-left:6px;">Medium</span></div>
+        <div class="card-desc">Replace the current /queue autonomous runner with a Workflow script so that if a session dies mid-run, it can resume without re-running completed tasks. Each task-runner spawn becomes explicit and recoverable. Depends on the branch-naming convention fix.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">Require a design doc before /queue accepts large tasks <span style="font-size:11px;font-weight:600;background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:99px;margin-left:6px;">Medium</span></div>
+        <div class="card-desc">New behavior / UX / architecture tasks must have a linked design doc in TASKS.md before the queue starts working on them. Bug fixes and small changes proceed without one. Without this, the spec-writer agent makes wrong assumptions and blocks overnight — wasted run.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">Gate out-of-band deploy steps (deploy-drift gate) <span style="font-size:11px;font-weight:600;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:99px;margin-left:6px;">Explore</span></div>
+        <div class="card-desc">The harness gates code at PR → CI → merge, but manual deploy steps (database migrations, environment variable changes, feature flags) happen after that boundary with no gate. A sibling project's ungated manual migration broke production. Proposed: a deploy-targets manifest + two checks — one deterministic (no creds, can run in CI) and one stateful live-drift check (credentialed, separate job). First slice is the manifest + the free deterministic check.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">Research routing: three tiers instead of two <span style="font-size:11px;font-weight:600;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:99px;margin-left:6px;">Low</span></div>
+        <div class="card-desc">Right now there's no lightweight path between a quick inline search and the full 5-agent /spike pipeline. Add a /research routing guide: (1) inline — quick factual, answer fits in context; (2) /deep-research — background knowledge, landscape survey; (3) /spike — gates a build decision, needs a go/no-go + a test that confirms the approach works. Decision rule: does the answer determine what you build next? If yes → spike.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

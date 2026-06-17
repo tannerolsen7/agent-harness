@@ -45,7 +45,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | managed-settings.json (OS-level) + installer | R4-D7#5, security HIGH-2 | ✅ (template + install-locks.sh) |
 | disable-model-invocation on side-effect skills | R4-D8 (F9) | ✅ set on to-issues, to-prd, migrate, queue; zoom-out already had it; smoke guard added — platform trust only, no behavioral suppression test |
 | worktree G1 (npm-install + assert husky shim) | worktree review G1 | ✅ (assert-husky-shim.sh) |
-| worktree G2 (standardize `.claude/worktrees/<slug>`) | worktree review G2 | ✅ worktree-create.sh enforces the path; worktree-add.sh is path-agnostic (called with canonical path by create.sh); gc.sh operates on `.claude/worktrees/` |
+| worktree G2 (standardize `.claude/worktrees/<slug>`) | worktree review G2 | ✅ `.claude/hooks/worktree-create.sh` enforces `.claude/worktrees/$NAME` (line 20); calls `git worktree add` directly — does not delegate to `scripts/worktree-add.sh`; gc.sh operates on `.claude/worktrees/` |
 
 ## Phase 1 — Trust (IN PROGRESS)
 | Item | Decision | Status |
