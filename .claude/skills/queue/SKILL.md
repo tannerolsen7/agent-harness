@@ -32,11 +32,32 @@ Wait for confirmation before proceeding.
 
 ## Step 2 — Preflight check
 
-Before spawning any agents, verify:
+### Design gate (LARGE / FEATURE tasks)
+
+For each confirmed task, read its TASKS.md entry and check its size/type field:
+
+- **LARGE** or **FEATURE** tasks (entries with `Size: LARGE`, `Size: FEATURE`, `Type: LARGE`,
+  or `Type: FEATURE`) must have a `design:` reference in the entry. Example:
+  ```
+  - [ ] Redesign user dashboard
+    Size: LARGE
+    design: docs/design/dashboard.md
+  ```
+  A LARGE task without a `design:` line is rejected — stop and tell the user to run
+  `/design contract` and add the `design:` reference before queuing it. Rationale: `@spec-writer`
+  cannot write a good spec for a large task without a human-validated design; the run wastes
+  overnight compute and blocks in the questions.md protocol.
+
+- **SMALL**, **BUG**, and **CHORE** tasks skip this check — their scope is narrow enough that
+  `@spec-writer` can work from the task description alone.
+
+- If a task has no size/type field, treat it as SMALL and proceed (no `design:` required).
+
+### Tool and environment check
 
 - `scripts/worktree-add.sh` exists and is executable
 - `scripts/pr.sh` exists and is executable
-- `scripts/gc.sh` exists and is executable (Step 7 post-merge cleanup uses it)
+- `scripts/gc.sh` exists and is executable (Step 5 post-merge cleanup uses it)
 - `gh` is installed (`command -v gh`)
 - Any env/credential files this project's tests require exist in the repo root
   (e.g. `.env.local`) — skip this check for projects that need none
@@ -46,119 +67,83 @@ a partial setup — a worktree missing a required env file will fail integration
 
 ---
 
-## Step 3 — Spawn agents in parallel
+## Step 3 — Run the Workflow
 
-> **Overnight or background run?** This step fans out agents via the Agent tool with no recovery
-> path — if the session drops, the run is lost. For overnight batches, Step 3 onward should be
-> run as a Workflow script instead: `resumeFromRunId` restarts from the last completed agent call,
-> not from scratch. See [`docs/engineering-system/15-orchestration-patterns.md`](../../docs/engineering-system/15-orchestration-patterns.md).
+This step launches the `queue-execute` Workflow, which handles worktree setup, task execution,
+and PR opening without requiring you to be present. The Workflow is resumable: if the session
+drops or the API times out, relaunch with `resumeFromRunId` and completed tasks return cached
+results — no re-running from scratch.
 
-For each confirmed task, in a single message (parallel tool calls):
+**Build the task list.** For each confirmed task, construct a JSON object:
 
-1. Determine branch name: `feat/<task-slug>` (slugify the task title)
-2. Create the task's worktree: `scripts/worktree-add.sh .claude/worktrees/<task-slug> feat/<task-slug>`
-   (this runs the G1 setup — env symlinks, npm install, husky-shim assert).
-3. Spawn the agent to run **in that worktree**. Do **not** pass `isolation: "worktree"` — the
-   per-task worktree from step 2 IS this task's isolation (separate dir, branch, and index, so
-   parallel agents don't conflict). Passing `isolation: "worktree"` would make the Agent tool
-   create a *second*, separate worktree and leave the step-2 one orphaned (registered, unused,
-   never cleaned). The agent's first action is to `cd` into its worktree.
-
-Agent prompt template (fill in per task):
-
-> You are implementing a single scoped task. Follow the agent contract in
-> `.claude/agent-contract.md` exactly.
->
-> **WORKTREE (do this first — and re-verify before every commit):** your worktree is
-> `.claude/worktrees/<task-slug>`, on branch `feat/<task-slug>`. `cd` into it now. Because a shell
-> CWD can reset between steps, **before each commit confirm you are still in it** —
-> `git rev-parse --show-toplevel` must end in `/.claude/worktrees/<task-slug>`; if not, `cd` back
-> (or run git with `-C .claude/worktrees/<task-slug>`). ALL edits, commits, and the `.cr-ok` sentinel
-> happen there. A commit run from the repo root lands on the wrong branch — never work in the repo root.
->
-> **SETUP:** if this project's tests need a root env file, symlink it in — the worktree does not
-> inherit it, and integration tests fail without it. Example:
-> `ln -sf "$(git rev-parse --show-toplevel)/.env.local" .env.local`
-> Skip for projects that need no env file.
->
-> **GOAL:** [one sentence — the done state]
-> **SCOPE:** [exact files this task may touch]
-> **DECISIONS ALREADY MADE:** [cite AGENTS.md → Resolved Decisions if relevant]
-> **REFERENCES:** [CLAUDE.md sections, schemas, data functions]
-> **TDD REQUIREMENT:** TDD required / TDD N/A (no new pure functions)
-> **BRANCH:** feat/[task-slug]
-> **STOP AND SURFACE:** [conditions per agent-contract.md]
->
-> Return the standard agent-contract summary when done.
-
-Note: Agents do NOT push — the orchestrator handles push and PR after reviewing all summaries.
-
----
-
-## Step 4 — Collect results
-
-Wait for all agents to return. For each:
-
-- **Status: done, no NEEDS HUMAN** → ready to push
-- **Status: done, NEEDS HUMAN items** → surface to user before pushing
-- **Status: blocked / failed** → surface full summary; do not push
-
-Present a table:
-
-```
-| Task | Branch | Status | NEEDS HUMAN | Tests |
-|------|--------|--------|-------------|-------|
-| ...  | ...    | done   | 0           | 14/14 |
-| ...  | ...    | blocked| —           | —     |
+```json
+{
+  "slug": "add-rate-limiter",
+  "title": "Add rate limiter to the public API",
+  "description": "Rate-limiting middleware is wired to all public routes, tests green, behavior in TESTING.md.",
+  "filesAffected": "src/middleware/rate-limit.ts, src/routes/api.ts, tests/rate-limit.test.ts",
+  "decisions": "N/A",
+  "references": "AGENTS.md → Middleware layer; CLAUDE.md → API conventions",
+  "tdd": "TDD required"
+}
 ```
 
-Ask the user: "Push and open PRs for the 'done' tasks? [y/N]"
+Field notes:
+- `slug`: lowercase, spaces → hyphens, strip special chars. Becomes `feat/<slug>` branch name
+  per `.claude/agent-contract.md` → BRANCH convention.
+- `description`: one sentence stating the done state — not "implement X" but "X is wired to Y, tests green."
+- `decisions`: resolved decisions from AGENTS.md → Resolved Decisions, or "N/A"
+- `tdd`: "TDD required" unless the task has no new behaviors ("TDD N/A (no new behaviors)")
+
+**Launch the Workflow** with the task array as `args`:
+
+```
+Workflow({ scriptPath: ".claude/workflows/queue-execute.js", args: [<task objects>] })
+```
+
+The Workflow runs three phases automatically:
+1. **Setup** — creates a `feat/<slug>` worktree per task (idempotent: safe on resume)
+2. **Execute** — runs `@task-runner` per task via `pipeline()` (resumable)
+3. **Push** — pushes branches and opens PRs for tasks with a valid `.cr-ok` sentinel
+
+Push is automatic for any task where task-runner wrote `.cr-ok` — the sentinel means `/cr`
+ran clean. Tasks that are blocked or failed are excluded automatically.
+
+**Resuming a failed run:** if the Workflow stops mid-run, relaunch with the run ID it reported:
+```
+Workflow({ scriptPath: ".claude/workflows/queue-execute.js", resumeFromRunId: "wf_<id>" })
+```
+Completed task-runner calls return instantly from cache; only the remaining tasks re-execute.
 
 ---
 
-## Step 5 — Push and open PRs
+## Step 4 — Report results
 
-For each task approved for push, sequentially (not in parallel — avoid concurrent pushes
-on shared git state):
-
-1. `cd` into the agent's worktree path
-2. Verify the `.cr-ok` sentinel exists and matches HEAD: `cat .claude/.cr-ok` must equal `feat/<task-slug>:<HEAD sha>`
-3. `git push -u origin feat/<task-slug>`
-4. `scripts/pr.sh --title "<conventional commit title>" --body "<agent summary as PR body>"`
-   `scripts/pr.sh` validates and consumes the `.cr-ok` sentinel before calling `gh pr create`.
-
-If the sentinel is missing or stale, the task-runner did not complete its review pipeline — do not push. Surface the issue and stop for that task.
-
----
-
-## Step 6 — Final summary
+After the Workflow completes, it returns a structured summary. Present it as a table:
 
 ```
 ## Queue run complete
 
-### Pushed + PR opened
-- feat/<slug> → PR #<number>: <title>
-
-### Needs human (not pushed)
-- feat/<slug>: <NEEDS HUMAN item summary>
-
-### Blocked / failed
-- feat/<slug>: <reason>
-
-### Skipped (overlapping scope — serialize these)
-- <task name>: conflicts with <other task>
+| Task | Branch | Status | Tests | PR |
+|------|--------|--------|-------|----|
+| add-rate-limiter | feat/add-rate-limiter | done | 8/8 | #42 |
+| fix-null-check   | feat/fix-null-check   | blocked | — | — |
 ```
+
+Surface any `needsHuman` items from task results and any blocked/failed tasks with their
+reason, so the user can act on them.
 
 Update `TASKS.md`: mark completed tasks `[x]` and update the **Current State** block. Leave blocked/failed
 tasks unchecked with a note appended to their **Notes** field.
 
 ---
 
-## Step 7 — Worktree cleanup (after merge)
+## Step 5 — Worktree cleanup (after merge)
 
 Task worktrees persist until their PRs **merge** — you may still need them for review fixes, so do
 **not** remove a worktree while its PR is open. Once the PRs merge, run `scripts/gc.sh`: it removes
 each merged branch's `.claude/worktrees/<slug>` worktree and then deletes the branch (the worktree
 must go first — git refuses to delete a branch that is still checked out in a worktree). Run it after
-a merge batch, or let the weekly `stale-branch-audit` ritual run it. WIP worktrees (live remote) are
+a merge batch, or rely on the session-start hook (`.claude/hooks/session-start.sh`), which runs it
+automatically each session. WIP worktrees (live remote) are
 never touched.

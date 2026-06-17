@@ -56,7 +56,7 @@ Status key: ✅ done · 🔄 in progress · ⬜ todo · ➡️ deferred (Phase 5
 | C5 governance/canon pass in /cr | R4-D14b, C5 | ✅ |
 | Host-agnostic pr.sh (gh/glab) | R4-D7, project-agnostic | ✅ |
 | 4-lens adversarial reviewer + lenses | C2 | ✅ wired: reviewer.md tools: Task,Read,Glob + permissionMode: default; regression test agents/spawn-wiring |
-| Collapse 9 analytical passes → 1 + lint, GATED on bug-catch test | R4-D20, R4-D32 | ⬜ (the 9→1 question — yes, gated; keep splits where recall drops) |
+| Collapse 9 analytical passes → 1 + lint, GATED on bug-catch test | R4-D20, R4-D32 | ➡️ Deferred — instrument not ready. Corpus needs ≥80 real escaped defects + rotating holdout + per-pass attribution before the gate is meaningful. Tracked in BACKLOG.md. |
 | Model tiers by ROLE + re-audit on model-id change | R4-D31, R4-D32#4 | ✅ audit done (`docs/model-tier-audit.md`); all guard-file model changes applied by human: reviewer → opus, security-reviewer → opus, doc-updater → haiku; implementer never-touch rule added (regression gate + `.claude/agents/**`). |
 | Skill-routing reliability: sharp descriptions (oblique/regression/screenshot) + classify-AND-route + no empty stubs | R4-D31 | 🔄 /debug triggers broadened + work-state table routes to /debug + classify-AND-route rule (debug-process PR); no-empty-stub lint ✅ (PR-C). Debug process verified sound: /debug → @investigator → /feature/hotfix; /incident → @incident-responder → /debug. Broaden other skills' triggers as field misses surface. |
 | Bounded-loop + REJECT | F7 | ✅ `/cr` Step 3c: REJECT terminal state (wrong approach → paste-ready `gh pr close` + redirect, no sentinel, halt). Step 4: explicit 2-attempt ceiling; after attempt 2 → NEEDS HUMAN block with exact test command. |

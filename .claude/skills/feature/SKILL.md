@@ -142,7 +142,11 @@ has signed off on the sheet, schema, and mockup.
 3. **Design contract** — invoke `/design contract`. If uncertain about the design, run `/design explore` first. Contract output goes into TASK-TEMPLATE.md before proceeding.
 4. **Grill** — invoke `/grill-with-docs` (contract required). Confirm scope, surface hidden assumptions, challenge design against `CONTEXT.md`. Doc updates get written here.
 5. **Solutions check** — search `docs/solutions/` for relevant patterns before designing the interface.
-6. **Spec** — write all confirmed expected behaviors to `docs/TESTING.md` before touching code.
+6. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
+   findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
+   `@spec-writer` writes confirmed behavior entries to `docs/TESTING.md` before touching code.
+   Do not write TESTING.md entries inline — `@spec-writer` owns the format and the "never invent
+   behaviors" rule. Wait for its summary (entries written + open questions) before proceeding.
 7. **Plan** — read relevant source files and existing tests. Design the public interface. Get user approval before writing code.
 8. **Implement** — **pass the Implementation gate first** (read `.claude/.design-confirmed`; refuse if absent or stale). Then invoke `/tdd` (contract required). Tracer bullet slice first.
 9. **Simplify** — invoke `/simplify` on all changed files.
@@ -166,7 +170,10 @@ has signed off on the sheet, schema, and mockup.
 4. **Design** — invoke `/design explore` (if uncertain about the approach), then `/design contract`. Contract output goes into TASK-TEMPLATE.md.
 5. **Grill** — invoke `/grill-with-docs` (contract required)
 6. **Solutions check** — search `docs/solutions/` before designing anything
-7. **Spec** — write all confirmed behaviors to `docs/TESTING.md`
+7. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
+   findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
+   `@spec-writer` writes confirmed behavior entries to `docs/TESTING.md`. Do not write entries
+   inline. Wait for its summary before proceeding to decomposition.
 8. **Decompose** — invoke `/to-issues`. Apply decomposition checklist: tracer bullet first, label parallel vs. sequential, verify each slice independently shippable.
    **STOP. Do not proceed to Step 9 until the user has confirmed the issue list.** This is a hard gate. Implementation does not begin until /to-issues has run and the output is approved. If the user asks "did you use /to-issues?" mid-implementation, that question is the instruction — stop, run /to-issues, get confirmation, then resume.
    After confirmation: identify which issues are independent. Spawn sub-agents for independent issues simultaneously — do not work sequentially through the list if issues have no shared dependency. State the parallel groupings explicitly before spawning.
@@ -187,7 +194,10 @@ has signed off on the sheet, schema, and mockup.
 1. **Research check** — search `docs/research/` for relevant external dependencies. Create research files for any gaps before proceeding.
 2. **Spec** — create `docs/specs/[task-slug].md`. Must be human-approved before decomposition begins.
 3. **Grill** — invoke `/grill-with-docs`
-4. **Spec** — write all confirmed behaviors to `docs/TESTING.md`
+4. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
+   findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
+   `@spec-writer` writes confirmed behavior entries to `docs/TESTING.md`. Do not write entries
+   inline. Wait for its summary before decomposition.
 5. **Decompose** — invoke `/to-issues`. Each issue maps to Small or Medium. The spec.md user journey is the reference for tracing issues back to user intent.
 6. **Execute** — run `/feature` on each issue in dependency order. Sub-`/feature` calls do **not** run their own per-issue Implementation gate — `.design-confirmed` is gitignored and does not propagate into sub-worktrees. The top-level design (step 3 above) covers all issues; the gate fired once there.
 

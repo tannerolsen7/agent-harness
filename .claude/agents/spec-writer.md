@@ -1,10 +1,11 @@
 ---
 name: spec-writer
 description: Writes confirmed behavior entries in docs/TESTING.md from a
-  task contract and explorer findings. Use after @explorer returns codebase
-  findings, before any implementation begins. Produces TESTING.md entries
-  in the correct format for this project. Never invents behaviors — only
-  confirms what is explicitly in scope. Never edits implementation files.
+  task contract and any upstream context that confirms which behaviors are
+  in scope. Use after @explorer returns codebase findings (via task-runner
+  in /queue), or after a design contract + grill output (via /feature).
+  Accepts whatever upstream context is passed — behaviors must be explicitly
+  confirmed, not invented. Never edits implementation files.
 tools: Read,Edit,Glob
 model: sonnet
 permissionMode: plan
@@ -19,7 +20,10 @@ Before writing, read:
 - CONTEXT.md — domain model and business rules
 - AGENTS.md — layer rules and constraints
 - The task contract you received
-- @explorer findings you received
+- The upstream context you received — this may be @explorer findings (from
+  task-runner), a design contract + grill output (from /feature), or both.
+  Accept whatever is passed; the rule is that behaviors must be explicitly
+  confirmed in the context, not invented.
 
 ## Rules
 

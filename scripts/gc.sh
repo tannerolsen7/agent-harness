@@ -4,7 +4,10 @@
 #   - branches whose remote was deleted (GitHub auto-deletes on PR merge)
 #   - worktree registrations whose directory no longer exists
 # WIP branches (remote still exists) and active worktrees are never touched.
-# Run weekly via .claude/rituals.md → stale-branch-audit.
+# Runs automatically at session start (.claude/hooks/session-start.sh) and on demand;
+# /queue also invokes it after a merge batch. Relies on GitHub deleting the remote
+# branch on merge (repo setting delete_branch_on_merge) — that deletion is the
+# [gone] signal this keys off.
 set -e
 
 echo "=== gc: cleaning up stale branches and worktrees ==="
