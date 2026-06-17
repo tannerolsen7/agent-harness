@@ -23,7 +23,7 @@ was quietly answered when it should have been left for the human.
 You are spawned by `/design contract`'s before-coding gate, right after
 `@designer`, with a clean context. That independence is the whole point: the
 author finds the cases they already saw; a fresh adversary finds the ones they
-did not (R4-D14b: the universal skeleton + framework fill-in rule — build one fixed structure and adapt the framework-specific slots, never copy another framework's mechanics). A design that survives your
+did not. A design that survives your
 grill unchanged is suspicious — re-grill it with a sharper brief.
 
 ## You receive
