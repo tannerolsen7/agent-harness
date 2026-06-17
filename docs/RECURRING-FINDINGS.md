@@ -4,6 +4,25 @@ Tracks cross-PR patterns that surface in `/cr` passes. Auto-flagged at Occurrenc
 
 Status key: **Active** — not yet promoted · **Promoted** — now in PITFALLS.md or a named /cr pass-prompt
 
+## How findings flow (the ratchet)
+
+This file is the memory of the learning loop. Findings enter and leave it on a fixed path:
+
+- **In:** `/cr` Step 3b reads this file after every review. It gives each finding a stable
+  signature, then either matches an Active entry (and bumps its count + last-seen) or appends a
+  new one at Occurrences 1.
+- **Out (promotion):** when a finding reaches Occurrences ≥3 — or `/cr` judges it high-impact at a
+  lower count — it is promoted. The promoter writes the matching `PITFALLS.md` entry (or a named
+  `/cr` pass-prompt) and moves the finding from **Active** to **Promoted** here. A trap seen three
+  times stops being a per-PR note and becomes a rule the gate checks every time.
+- **Read-back:** `@doc-updater` reads this file during `/compound` and proposes any pending
+  promotion in its draft, so the human sees the ratchet fire at PR-review time.
+
+Keep this file under version control — the occurrence counts ARE the ratchet's state. Reset the
+file and you reset the loop's memory.
+
+**Parallel-write note:** When two PRs run `/cr` at the same time, both write to this file. If the merge auto-resolves by picking one side, occurrence counts from the other are lost. Use `git merge=union` for this file (add `docs/RECURRING-FINDINGS.md merge=union` to `.gitattributes`) to keep increments from both sides. Until then, treat counts as a lower bound, not an exact record.
+
 ---
 
 ## Active
@@ -21,6 +40,27 @@ Status key: **Active** — not yet promoted · **Promoted** — now in PITFALLS.
 **Last seen:** 2026-06-15
 **Locations:** .claude/hooks/block-dangerous-git.sh (norm_ref doesn't resolve HEAD; explicit-arg branch check only)
 **Detail:** `git push origin HEAD` on main exits 0 (allowed). `norm_ref("HEAD")` returns `"HEAD"` (not in protected list); two non-flag args means `_non_flag=2` skips the bare-push `_non_flag<=1` fallback. Guard file — NEEDS HUMAN to fix.
+
+### test-mk-no-gitdir-guard
+**Signature:** A test helper that calls `git init` in a temp dir does not unset inherited `GIT_DIR` env vars, risking real-repo corruption when run from a worktree.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** tests/check-integrity.test.sh (mk() function, lines 18–30)
+**Detail:** Matches the documented PITFALL "Running tests from inside a worktree corrupts the real repo." The fix is to unset GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_PREFIX/GIT_COMMON_DIR/GIT_OBJECT_DIRECTORY/GIT_NAMESPACE at the top of the test file. Fixed in this PR.
+
+### stale-comment-wrong-output-protocol
+**Signature:** A comment describes the output format of a function, but the actual format differs, misleading anyone who tries to extend or debug it.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** scripts/check-integrity.sh (lines 34–37, comment above run_one())
+**Detail:** Comment said awk emits `BROKEN<TAB>source<TAB>target` and `CHECKED<TAB>n`; awk actually emits `CHECK<TAB>src<TAB>tgt<TAB>path`. Fixed in this PR.
+
+### internal-code-no-explanation
+**Signature:** An internal label (CMP*, R4-D*, Fx) is used in prose or code without being explained, leaving cold readers confused.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** scripts/check-integrity.sh (header), .claude/agents/doc-updater.md (section headings), docs/patterns-registry.md (Established by line)
+**Detail:** "CMP4", "CMP1", "CMP2" appear without explanation. CLAUDE.md rule: do not drop internal codes without explaining them first. Partially fixed in this PR (CMP labels removed from doc-updater.md headings; CMP4 explained in check-integrity.sh header).
 
 ---
 

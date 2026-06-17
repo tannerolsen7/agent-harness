@@ -25,4 +25,15 @@ npm test
 echo "ci-verify: routing-assertion"
 bash "$ROOT/scripts/check-routing.sh"
 
+# Reference-integrity: catch broken cross-links in context docs before they rot.
+# Only blocks the PR when this PR changes at least one .md file. A PR that touches no
+# docs cannot introduce a new broken link, so the full-repo scan runs in advisory mode
+# instead — it reports any pre-existing rot but does not fail CI on unrelated work.
+echo "ci-verify: reference-integrity"
+if git diff --name-only origin/main...HEAD 2>/dev/null | grep -q '\.md$'; then
+  bash "$ROOT/scripts/check-integrity.sh"
+else
+  bash "$ROOT/scripts/check-integrity.sh" || echo "ci-verify: reference-integrity advisory (no .md files changed in this PR)"
+fi
+
 echo "ci-verify: OK"

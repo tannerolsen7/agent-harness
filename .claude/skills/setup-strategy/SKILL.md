@@ -1,11 +1,14 @@
 ---
 name: setup-strategy
 description: |
-  Interviews the user to produce STRATEGY.md for a project. Run once per project
-  at setup, or when strategy shifts significantly. Reads existing codebase context
-  to infer answers before asking questions. Outputs a filled STRATEGY.md at repo
-  root and wires it into the session-start orient step. Run /review-strategy
-  after to stress-test the output.
+  Interviews the user to produce STRATEGY.md for a project. Reads existing
+  codebase context to infer answers before asking questions. Outputs a filled
+  STRATEGY.md at repo root and wires it into the session-start orient step.
+  Use when the user says "set up our strategy", "define our direction",
+  "let's think through our approach", "create a strategy doc", "what's our
+  north star", or invokes /setup-strategy. Run once per project at setup, or
+  when strategy shifts significantly. Follow with /review-strategy to
+  stress-test the output.
 ---
 
 ## Step 1 — Detect tier

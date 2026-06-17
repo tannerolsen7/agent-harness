@@ -161,7 +161,7 @@ Why: One sentence on why this matters for this project.
 How to apply: Concrete instruction — what to do or check.
 ```
 
-The `last_seen` field enables the quarterly stale review in `/compound` Step 7. Update it when the rule fires. See [07 · Memory System](./07-memory-system.md) for the full lifecycle and the session-end hook that proposes new entries automatically.
+The `last_seen` field enables the quarterly stale review in `/compound` Step 10. Update it when the rule fires. See [07 · Memory System](./07-memory-system.md) for the full lifecycle and the session-end hook that proposes new entries automatically.
 
 **Rules for adding entries:**
 

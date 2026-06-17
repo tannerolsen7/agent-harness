@@ -1,6 +1,6 @@
 ---
 name: queue
-description: Run multiple independent backlog tasks in parallel worktrees, then push and open PRs for each.
+description: Run multiple independent backlog tasks in parallel worktrees, then push and open PRs for each. Use when the user wants to work on several tasks at once, drain the backlog, or says "run tasks X through Y", "work on all of these", "do these in parallel", "knock out the backlog", "can we queue these up", "batch these tasks", "run the queue-execute workflow", or invokes /queue.
 disable-model-invocation: true
 ---
 

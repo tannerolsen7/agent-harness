@@ -2,8 +2,12 @@
 name: compound
 description: |
   Capture a solved problem as a reusable solution doc in docs/solutions/.
-  Use after a feature merges when the implementation introduced a non-obvious pattern
-  or approach worth preserving. Invoke with /compound.
+  Use when a non-obvious pattern or approach just became clear and is worth
+  preserving so future agents don't have to re-discover it. Use when the user
+  says "let's capture this", "document this pattern", "this was tricky, let's
+  preserve it", "add this to solutions", or invokes /compound. The natural
+  trigger is right after a feature merges or a hard problem is solved — not
+  during implementation.
 ---
 
 # /compound — Capture solved problems

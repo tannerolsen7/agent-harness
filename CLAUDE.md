@@ -1,3 +1,12 @@
+<!-- context-meta
+owner: tanner
+last-reviewed: 2026-06-17
+review-frequency: weekly
+drift-signals:
+  - a rule here contradicts how the project actually works now
+  - references a file, skill, or path that no longer exists
+-->
+
 # Communication voice
 
 Use plain, clear language everywhere — inline docs, output explanations, comments, skill descriptions. The goal is not to impress. It is to help engineers make sound decisions without having to stop and look something up.

@@ -181,6 +181,38 @@ while (dry < 2) {
 
 ---
 
+---
+
+## Review triage contract
+
+Any orchestrator that runs a review step (whether via `/cr` or `@reviewer`) must follow this
+contract before returning results to the human or a parent agent:
+
+**After MUST FIX items are resolved**, the orchestrator triages every remaining finding itself.
+Raw findings are never passed back to the human or the parent agent without a disposition.
+
+Per finding, the orchestrator decides:
+
+| Decision | When | Action |
+|---|---|---|
+| **Fix now** | Cheap, safe, adjacent to the diff, clearly worthwhile | Apply the fix; log it in the disposition block |
+| **Backlog** | Real but separate scope, or needs its own design | Record in BACKLOG.md (or GitHub issues if available) — "recorded" not "mentioned" |
+| **Drop** | Cost outweighs value, or speculative | State the reason explicitly |
+| **NEEDS HUMAN** | Guard file fix, >~15 new lines, architectural decision, ambiguous intent | Surface with a paste-ready command; do not block the pipeline on anything else |
+
+The orchestrator emits a disposition block showing what it did in each bucket. Only NEEDS HUMAN
+items reach the human.
+
+**Guard-file escape hatch:** findings in `.claude/hooks/**`, `.claude/agents/**`, or
+`settings.json` are write-blocked for agents. Always route these to NEEDS HUMAN with a
+paste-ready fix.
+
+This contract applies to both `/cr` (Step 5) and `@task-runner` (Step 4b). When you build a
+new orchestrator that includes a review step, build in the same triage step — do not let the
+human become the triage layer.
+
+---
+
 ## Related docs
 
 - [11 · Skill Ecosystems](./11-skill-ecosystems.md) — which skills exist and how they compose

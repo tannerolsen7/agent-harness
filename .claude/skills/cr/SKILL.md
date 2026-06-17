@@ -1,12 +1,15 @@
 ---
 name: cr
-description: Runs a structured multi-agent code review across 9 analytical passes
-  plus an adversarial review against the full branch diff. Use before merging any
-  branch to main, when the user says "/cr", "run a code review", "review this
-  branch", "pre-merge review", or "is this ready to merge". Catches correctness
-  bugs, layer violations, doc drift, architectural inconsistency, and footprint
-  issues across the entire branch. Fixes must-fix items automatically and surfaces
-  the rest.
+description: |
+  Runs a structured multi-agent code review across 9 analytical passes
+  plus an adversarial review against the full branch diff. Fixes must-fix items
+  automatically and surfaces the rest. Use before merging any branch to main.
+  Use when the user says "/cr", "run a code review", "review this branch",
+  "pre-merge review", "is this ready to merge", "let's push", "open a PR",
+  "ship this", "push this up", "let's merge this", or "prep for a PR". Also
+  use when a push is blocked because .cr-ok is missing — that error is the
+  direct prompt to run /cr. Run /cr before pr.sh — the push sentinel must exist
+  before the PR script will proceed.
 ---
 
 # /cr — Full pre-merge review
@@ -205,6 +208,8 @@ Identify promotion candidates:
 
 Collect promotion candidates but do NOT surface them here. Proceed to Step 3c.
 Present candidates at Step 5 alongside Nice-to-Have and Something to Think About items.
+
+Write the updated `docs/RECURRING-FINDINGS.md` back to disk before proceeding. An in-memory update that is never written is no update.
 
 ---
 

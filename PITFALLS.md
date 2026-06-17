@@ -1,3 +1,12 @@
+<!-- context-meta
+owner: tanner
+last-reviewed: 2026-06-17
+review-frequency: on-merge
+drift-signals:
+  - an entry was fixed by a newer solution and no longer applies
+  - a pitfall is no longer reachable in the current code
+-->
+
 # PITFALLS
 
 Known traps in this codebase. Each entry is a real incident, not a speculation.
@@ -71,3 +80,35 @@ fi
 **Symptoms:** Gate passes without the corresponding gate script having been invoked; audit log is absent or shows no matching entry for the branch:sha.
 
 **When the gate fires unexpectedly:** Fix the condition (run the gate, commit the artifacts, resolve the stale sha) — do not write the sentinel to get past it.
+
+---
+
+## integrity-check-skips-inline-code-and-fences
+
+**Area:** Reference-integrity script (`scripts/check-integrity.sh`), any link checker added to this repo
+
+**Rule:** When extending or replacing the integrity check, preserve the skips for inline code spans (backtick-wrapped text), fenced code blocks, external links, pure anchors, and template placeholders (`<...>`). All five skips must stay in place.
+
+**Why:** A link that appears inside a backtick span or a fenced block is a documentation example — it shows how another file formats something. It is not a live cross-link in this repo. Without the skip, the checker flags it as broken and fails CI on a doc that is correct. The external-link, pure-anchor, and placeholder skips exist for the same reason: they prevent noise from patterns that are never meant to resolve to a local file.
+
+**Symptoms:** CI fails with a "broken link" error pointing at a path outside the repo — for example, a path inside the user's `~/.claude` auto-memory index. The file the link points to does not exist in this repo, but the link is only a formatted example inside a code span or fence.
+
+Check whether the flagged link is inside backticks or a fenced block in the source file. If it is, the checker is missing the skip. Add the skip to `scripts/check-integrity.sh` — blank inline code spans before extracting links, and skip lines that fall inside a fenced block.
+
+**Source:** `scripts/check-integrity.sh`
+**Regression gate:** `tests/check-integrity.test.sh` (cases: "links inside fenced code blocks are skipped", "link inside an inline code span is skipped")
+
+---
+
+## Two parsers over the same structure must agree on scope
+
+**Area:** Shell scripts that scan a structured block (`scripts/scan-context.sh`)
+
+**Rule:** When two pieces of code scan the same thing for related decisions, they must use the same notion of what counts. Share the scoping rule, or mirror it exactly so the two cannot drift. Test the adversarial layout where the two scopes would diverge — the simple layout passes even when they disagree.
+
+**Why:** `scan-context.sh` had two functions reading the same `context-meta` block. `has_real_meta` decided whether a file is governed and skipped blocks inside ``` code fences (a fenced block is a documentation example, not real metadata — the same lesson as the link-checker entry above). But `meta_field`, which read the dates, used a plain `sed` that grabbed the first block, fenced or not. A file that shows a fenced example block above its real block was judged governed by one function and read from the wrong (example) block by the other. The result is a false OVERDUE, or — worse — a false OK that hides a genuinely stale file.
+
+**Symptoms:** A scan result that does not match the file's real metadata: a file whose real `last-reviewed` is recent is reported overdue, or a stale file is reported fresh. Every simple-layout test (one block, no fence) passes; only the example-above-real layout exposes the disagreement.
+
+**Source:** Caught by `/cr` on PR #42, not by the first test pass. Fix: make `meta_field` fence-aware (awk) so it reads the same block `has_real_meta` counts.
+**Regression gate:** `tests/scan-context.test.sh` case H ("fenced example above real block → reads the REAL block").

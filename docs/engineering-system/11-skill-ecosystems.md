@@ -394,9 +394,12 @@ The goal is not to have the most skills. It's to have the right ones, maintained
 
 ## Context ownership convention — `context-meta`
 
-Every governed context file must have a `context-meta` block. This is what makes `/scan-context` work — without it, the skill has no threshold to check against.
+A governed context file carries a `context-meta` block. This is what makes `/scan-context` work — it reads the block's `last-reviewed` date against the file's `review-frequency` and flags files that are overdue.
 
-**Required on:** CLAUDE.md, AGENTS.md, CONTEXT.md, PITFALLS.md, memory.md, every custom SKILL.md.
+**Two scopes, on purpose:**
+
+- **Freshness** (the OVERDUE check) applies to **any** file that carries a block. A skill becomes governed by *opting in* — adding a block. This keeps the maintenance surface small: you are not forced to put a block on every skill.
+- **Required-core** files must always carry a block, and `/scan-context` reports them as MISSING if they don't: CLAUDE.md, AGENTS.md, CONTEXT.md, PITFALLS.md, SOUL.md, memory.md.
 
 ```markdown
 <!-- context-meta
@@ -411,11 +414,19 @@ drift-signals:
 
 Review frequency tiers:
 
-- `on-merge` — PITFALLS.md, memory.md — check every PR
-- `weekly` — CLAUDE.md, AGENTS.md, CONTEXT.md
-- `monthly` — skill files that change infrequently
+- `on-merge` — PITFALLS.md, memory.md — reviewed on every PR (by `/cr`), so `/scan-context` does not time-check them
+- `weekly` — CLAUDE.md, AGENTS.md, CONTEXT.md — overdue past 7 days
+- `monthly` — SOUL.md, and any skill that opted in — overdue past 30 days
 
-Update `last-reviewed` whenever you review and confirm a file is current. The `/scan-context` skill reads this date against the threshold and flags it if overdue. See [07 · Memory System](./07-memory-system.md) for how memory.md fits the wider lifecycle.
+Put the block at the very top of the file (for a file with YAML frontmatter, just below the closing `---`). Update `last-reviewed` only when you have actually reviewed the file and confirmed it is current — a false date is worse than an overdue one.
+
+### Firing the freshness check on a schedule
+
+`/scan-context` is a freshness ritual: it should run on a cadence, not only when someone remembers. In a project that adopts this harness, wire it during onboarding as a `/schedule` cloud routine — for example, weekly: "run `bash scripts/scan-context.sh`; if it exits non-zero, open an issue listing the overdue and missing files." The script's exit code (`0` = fresh, `1` = findings) is the signal the routine keys on.
+
+The project's `.claude/rituals.md` is the local record of which rituals exist and when each last ran — the human-readable cadence log that sits next to the `/schedule` routines. (`/scan-context` reads committed repo docs, so a cloud routine works for it on this repo too — wiring this repo's own weekly routine is a fast-follow. Only the memory-review ritual can't be cloud-fired here: this repo's memory lives in local `~/.claude`, outside the repo where a cloud routine cannot read it.)
+
+See [07 · Memory System](./07-memory-system.md) for how memory.md fits the wider lifecycle.
 
 ---
 
