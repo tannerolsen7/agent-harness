@@ -71,3 +71,17 @@ fi
 **Symptoms:** Gate passes without the corresponding gate script having been invoked; audit log is absent or shows no matching entry for the branch:sha.
 
 **When the gate fires unexpectedly:** Fix the condition (run the gate, commit the artifacts, resolve the stale sha) — do not write the sentinel to get past it.
+
+---
+
+## integrity-check-skips-inline-code-and-fences
+
+**Area:** Reference-integrity script (`scripts/check-integrity.sh`), any link checker added to this repo
+
+**Rule:** When extending or replacing the integrity check, preserve the skips for inline code spans (backtick-wrapped text), fenced code blocks, external links, pure anchors, and template placeholders (`<...>`). All five skips must stay in place.
+
+**Why:** A link that appears inside a backtick span or a fenced block is a documentation example — it shows how another file formats something. It is not a live cross-link in this repo. Without the skip, the checker flags it as broken and fails CI on a doc that is correct. The external-link, pure-anchor, and placeholder skips exist for the same reason: they prevent noise from patterns that are never meant to resolve to a local file.
+
+**Symptoms:** CI fails with a "broken link" error pointing at a path outside the repo — for example, a path inside the user's `~/.claude` auto-memory index. The file the link points to does not exist in this repo, but the link is only a formatted example inside a code span or fence.
+
+**Fix:** Check whether the flagged link is inside backticks or a fenced block in the source file. If it is, the checker is missing the skip. Add the skip to `scripts/check-integrity.sh` — blank inline code spans before extracting links, and skip lines that fall inside a fenced block.
