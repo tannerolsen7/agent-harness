@@ -68,7 +68,35 @@ run "$F" >/dev/null 2>&1; chk $? "F: all-fresh mix → exit 0"
 G=$(mktemp -d); mkplain "$G/skills/qux/SKILL.md"
 run "$G" >/dev/null 2>&1; chk $? "G: skill without a block is opt-in → exit 0 (not MISSING)"
 
-rm -rf "$A" "$B" "$C" "$D" "$E" "$F" "$G"
+# --- H: a fenced EXAMPLE block above the real block must not poison the read (cr fix) ---
+H=$(mktemp -d)
+cat > "$H/CLAUDE.md" <<'EOF'
+# doc
+
+Format example:
+
+```markdown
+<!-- context-meta
+last-reviewed: 2020-01-01
+review-frequency: weekly
+-->
+```
+
+<!-- context-meta
+owner: tester
+last-reviewed: 2026-06-15
+review-frequency: weekly
+-->
+EOF
+run "$H" >/dev/null 2>&1; chk $? "H: fenced example above real block → reads the REAL block (fresh) → exit 0"
+
+# --- I: a future last-reviewed date is flagged, not silently fresh (cr fix) ---
+I=$(mktemp -d); mkmeta "$I/CLAUDE.md" 2027-01-01 weekly
+outI=$(run "$I"); rcI=$?
+chk "$([ "$rcI" -eq 1 ] && echo 0 || echo 1)" "I: future last-reviewed → exit 1 (got $rcI)"
+printf '%s' "$outI" | grep -qi 'future'; chk $? "I: report flags the future date"
+
+rm -rf "$A" "$B" "$C" "$D" "$E" "$F" "$G" "$H" "$I"
 echo ""
 echo "scan-context: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

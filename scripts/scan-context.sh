@@ -49,9 +49,19 @@ to_epoch() { # <YYYY-MM-DD>
 if [ -n "$TODAY" ]; then TODAY_EPOCH=$(to_epoch "$TODAY"); else TODAY_EPOCH=$(date +%s); fi
 [ -n "$TODAY_EPOCH" ] || { echo "scan-context: could not resolve today's date" >&2; exit 2; }
 
-# Read one field's value out of a file's context-meta block (the comment block up to -->).
+# Read one field's value out of a file's REAL context-meta block — the first one outside any
+# ``` code fence. Fence-aware on purpose, so it reads the same block has_real_meta counts: a file
+# that shows a fenced example above its real block must not be read from the example.
 meta_field() { # <file> <field>
-  sed -n '/<!-- context-meta/,/-->/p' "$1" | sed -n "s/^[[:space:]]*$2:[[:space:]]*//p" | head -1
+  awk -v field="$2" '
+    /^[[:space:]]*```/ { fence = !fence; next }
+    fence { next }
+    !inblock && /<!-- context-meta/ { inblock = 1; next }
+    inblock && /-->/ { exit }
+    inblock {
+      s = $0; sub(/^[[:space:]]+/, "", s)
+      if (s ~ "^" field ":") { sub("^" field ":[[:space:]]*", "", s); sub(/[[:space:]]+$/, "", s); print s; exit }
+    }' "$1"
 }
 
 # True if the file carries a REAL context-meta block — one outside any ``` code fence. This
@@ -92,6 +102,10 @@ while IFS= read -r f; do
 "; missing=$((missing+1)); continue
   fi
   days=$(( (TODAY_EPOCH - r_epoch) / 86400 ))
+  if [ "$days" -lt 0 ]; then
+    report="${report}MISSING  ${freq}    ${rel}  (last-reviewed is in the future: ${reviewed})
+"; missing=$((missing+1)); continue
+  fi
   if [ "$days" -gt "$limit" ]; then
     report="${report}OVERDUE  ${freq}    ${rel}  (last-reviewed ${reviewed}, ${days}d ago, limit ${limit}d)
 "; overdue=$((overdue+1))
