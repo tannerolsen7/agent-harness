@@ -36,6 +36,30 @@ Check this file before any `/cr` pass. If you see a pattern here in a diff, flag
 
 ---
 
+## Detecting a live git worktree: use the .git FILE, not `git worktree list`
+
+**Area:** Shell scripts that create or check git worktrees (`scripts/worktree-add.sh`, any idempotency guard)
+
+**Rule:** To check whether a directory is a live git worktree, test for the `.git` FILE: `[ -f "$PATH/.git" ]`. Do not parse `git worktree list --porcelain` for the path.
+
+**Why:** `git worktree list --porcelain` outputs absolute paths. Shell scripts commonly receive relative paths. `grep -qF "worktree $RELATIVE_PATH"` never matches `worktree /full/absolute/path/...`. The directory check (`-d`) passes fine, so the guard appears to run — but it always falls through. The script then calls `git worktree add` on an existing worktree and exits with an error.
+
+A git worktree always has a `.git` FILE (a one-line pointer: `gitdir: /path/to/.git/worktrees/<name>`). A regular repo has a `.git` DIRECTORY. A plain directory has neither. The file check is path-format-independent and doesn't require any git commands.
+
+**Symptoms:** Resuming a Workflow that re-runs worktree setup fails with "already checked out" errors, even though an idempotency guard is present.
+
+**Fix:**
+```sh
+if [ -d "$WORKTREE_PATH" ] && [ -f "$WORKTREE_PATH/.git" ]; then
+  echo "Worktree already exists — skipping creation."
+  exit 0
+fi
+```
+
+**Source:** `scripts/worktree-add.sh`; `docs/solutions/2026-06-17-worktree-git-file-detection.md`.
+
+---
+
 ## Writing a sentinel directly to bypass a gate
 
 **Area:** Sentinel system (`.claude/.cr-ok`, `.claude/.design-confirmed`)
