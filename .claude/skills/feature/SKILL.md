@@ -3,9 +3,13 @@ name: feature
 description: |
   Guides the user through a complete feature development workflow,
   orchestrating discovery, planning, implementation, and review steps sized to
-  feature complexity. Use when starting a new feature, building something new,
-  or when the user says "new feature", "build X", "implement X", "plan a feature",
-  or invokes /feature.
+  feature complexity. Use when adding any new capability — net-new or incremental.
+  Use when the user says "new feature", "build X", "implement X", "plan a feature",
+  "add X", "wire up X to Y", "hook up X", "I want the app to do Y", "can you also
+  add", "let's work on [task]", "let's tackle [task]", "get X working", or
+  invokes /feature. Also use when /debug has produced a confirmed root cause and
+  the user says "fix it", "fix the bug", or "make it work" — that is the Tiny path:
+  root cause known, fix is code-only, go straight to implementation.
 ---
 
 # Feature Pipeline

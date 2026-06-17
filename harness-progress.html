@@ -157,7 +157,7 @@
   </div>
 
   <div class="progress-banner">
-    <div class="progress-label">33 PRs merged</div>
+    <div class="progress-label">35 PRs merged</div>
     <div class="progress-track"><div class="progress-fill" style="width:55%"></div></div>
     <div class="progress-note">Step 0 + Phase 0 + Phase 1 done &middot; Phase 2 started &middot; Phases 3–4 queued</div>
   </div>
@@ -470,6 +470,26 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">/feature now delegates spec-writing to @spec-writer</div>
+        <div class="card-desc">Small, Medium, and Large feature flows now invoke @spec-writer with the design contract and grill output as context instead of writing specs inline. Tiny stays inline. @spec-writer's description broadened to accept any upstream context, not just @explorer findings.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Worktree-detection pitfall captured in docs</div>
+        <div class="card-desc">A solution doc and patterns registry entry capturing the worktree-detection class of bugs — how to recognize when code runs inside a worktree vs the main repo and how to write guards that work in both. Landed via /compound after the fix merged.</div>
+      </div>
+    </div>
+  </div>
+
   <div class="spacer"></div>
 
   <!-- ── IN PROGRESS ── -->
@@ -492,7 +512,7 @@
 
   <div class="steps-block">
     <div class="steps-block-header">
-      <div class="count">14 steps remaining</div>
+      <div class="count">13 steps remaining</div>
       <div class="note">Phase 2 → 3 → 4</div>
     </div>
 
@@ -615,6 +635,8 @@
     </div>
 
     <div class="deferred-note">
+      <strong>Deferred — instrument not ready:</strong> Consolidating /cr's 9 review passes into 1 efficient pass is sound in principle, but the safety gate is statistically too weak at current corpus size (~13 cases). Detecting a real recall drop at 80% power needs ~322 cases; the current corpus only catches ~12-point drops. Other gaps: seeded cases are AI-generated (inflates recall), no per-pass attribution, and the move is confounded with Opus-elevation. Prerequisites before building: ≥80 real escaped defects, ≥30 rotating private holdout, per-pass attribution, and a multi-run before/after test — not a single lower-bound pair.
+      <br/><br/>
       <strong>Deferred until after launch:</strong> GitHub-label / Slack summons to trigger the AI · scheduled recurring runs · risk-based auto-approval once catch-rate clears a floor · real-time access-control UI · fleet circuit breaker. These require launch + a paid GitHub plan.
     </div>
   </div>
@@ -638,6 +660,24 @@
       <div class="card-body">
         <div class="card-title">Research routing: three tiers instead of two <span class="severity sev-low">Low</span></div>
         <div class="card-desc">No lightweight path exists between a quick inline search and the full 5-agent /spike pipeline. Proposed: (1) inline — quick factual, fits in context; (2) /deep-research — background knowledge; (3) /spike — gates a build decision and needs a go/no-go + a test that confirms the approach works.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">Test: worktree-add.sh idempotency path <span class="severity sev-low">Low</span></div>
+        <div class="card-desc">No test covers the new idempotency guard in worktree-add.sh — the path where a worktree already exists and the script should exit cleanly. Needs a real git init + worktree setup, so it's a separate test file rather than a one-liner addition to the existing smoke test.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">Document TASKS.md field schema in engineering-system docs <span class="severity sev-low">Low</span></div>
+        <div class="card-desc">The <code>Size:</code>, <code>Type:</code>, and <code>design:</code> fields introduced by the design gate have no canonical home in <code>docs/engineering-system/</code>. Someone writing a new TASKS.md entry won't find them unless they read /queue's SKILL.md. Add a TASKS.md entry schema section to <code>docs/engineering-system/03-file-structure.md</code>.</div>
       </div>
     </div>
   </div>

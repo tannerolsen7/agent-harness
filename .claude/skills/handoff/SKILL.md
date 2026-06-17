@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Produces a frictionless handoff — what was done, what's left, the exact commands to continue, and what needs the human. Use when wrapping up a session, handing work to another person or a fresh conversation, when a task is blocked on a human decision / merge / guard-file placement, or when the user says "/handoff", "hand off", "wrap up", "where are we", "what's left", or pauses work mid-task. Every task that needs the human to act should end with this.
+description: Produces a frictionless handoff — what was done, what's left, the exact commands to continue, and what needs the human. Use when wrapping up a session, handing work to another person or a fresh conversation, when a task is blocked on a human decision / merge / guard-file placement, or when the user says "/handoff", "hand off", "wrap up", "where are we", "what's left", "let's start a new conversation", "summarize where we are", "I'm done for today", "let's stop here", "before I close", or pauses work mid-task. Every task that needs the human to act should end with this.
 ---
 
 # /handoff — leave the next person (or session) a clean runway
