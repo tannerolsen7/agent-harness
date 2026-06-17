@@ -1,10 +1,14 @@
 #!/bin/bash
 # PreToolUse(Bash) hook. Blocks destructive/irreversible git ops.
 # Parses each command SEGMENT (split on shell separators) and strips env
-# assignments, wrapper words (sudo/xargs/...), and git global options
-# (-C/-c/--git-dir) before reading the subcommand — so `git -C dir push`,
-# `VAR=1 git push`, and newline-chained pushes are all caught, while a
-# substring like grep "git push" is not.  Exit 2 = block; exit 0 = allow.
+# assignments, wrapper words (sudo/xargs/...), and git global options before
+# reading the subcommand — so `git -C dir push`, `VAR=1 git push`, and
+# newline-chained pushes are all caught, while a substring like grep "git push"
+# is not.  An explicit `git -C <dir>` is captured (not just skipped): the
+# protected-branch check then reads the branch of THAT directory. So a commit
+# aimed at a worktree is judged by the worktree's branch — the branch the commit
+# actually lands on — not by whatever branch the directory the hook runs in
+# happens to be on.  Exit 2 = block; exit 0 = allow.
 
 INPUT=$(cat)
 
@@ -16,6 +20,18 @@ CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 [ -z "$CMD" ] && exit 0
 
 block() { echo "Blocked by block-dangerous-git.sh: $1" >&2; echo "If genuinely intended, run it yourself in a terminal." >&2; exit 2; }
+
+# Resolve the branch the command would act on, honoring an explicit `git -C <dir>`.
+# A commit aimed at a worktree must be judged by the worktree's branch (where the
+# commit lands), not by the directory the hook runs in. Without -C, use the
+# current directory.
+head_branch() {
+  if [ -n "$_gitC" ]; then
+    git -C "$_gitC" rev-parse --abbrev-ref HEAD 2>/dev/null
+  else
+    git rev-parse --abbrev-ref HEAD 2>/dev/null
+  fi
+}
 
 # dst branch of a push refspec: strip surrounding quotes, take the refspec dst,
 # strip a refs/heads/ prefix.
@@ -49,9 +65,11 @@ while IFS= read -r seg; do
   done
   [ "$1" = "git" ] || continue
   shift
+  _gitC=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      -C|-c) shift 2 ;;
+      -C) _gitC="$2"; shift 2 ;;
+      -c) shift 2 ;;
       --git-dir=*|--work-tree=*|--namespace=*|-p|--no-pager|--paginate|--bare) shift ;;
       -*) shift ;;
       *) break ;;
@@ -72,7 +90,7 @@ while IFS= read -r seg; do
       done ;;
     commit)
       # Block committing on main/master/develop — work must start on a feature branch.
-      _cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+      _cur=$(head_branch)
       case "$_cur" in main|master|develop) block "commit on protected branch '$_cur' — run: git checkout -b feat/<slug>" ;; esac ;;
     push)
       for a in "$@"; do
@@ -87,14 +105,14 @@ while IFS= read -r seg; do
         case "$a" in -*) continue ;; esac
         _non_flag=$((_non_flag+1))
         _ref=$(norm_ref "$a")
-        [ "$_ref" = "HEAD" ] && _ref=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+        [ "$_ref" = "HEAD" ] && _ref=$(head_branch)
         case "$_ref" in main|master|develop) block "push to a protected branch (main/master/develop)" ;; esac
         case "$a" in *:*) _has_colon=1 ;; esac
       done
       # Bare push (no refspec or remote-only): resolve current branch and block if protected.
       # Closes the "git push origin" gap — remote named but target branch inferred.
       if [ "$_has_colon" -eq 0 ] && [ "$_non_flag" -le 1 ]; then
-        _cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+        _cur=$(head_branch)
         case "$_cur" in main|master|develop) block "push to protected branch '$_cur' (no refspec — current branch inferred)" ;; esac
       fi ;;
     worktree)
