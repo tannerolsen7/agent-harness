@@ -26,15 +26,31 @@ norm_ref() {
   echo "${r#refs/heads/}"
 }
 
+# Resolve the branch the git command would act on.
+# Priority: explicit -C flag on the git command > preceding cd in the chain > hook cwd.
+# Falls back to ambient branch when the target path isn't a git repo (avoids a silent bypass
+# where `git -C /non-git-path rev-parse` returns empty and the branch check is skipped).
+_resolve_branch() {
+  local dir="${_gitC:-$_tracked_cd}"
+  local cur=""
+  if [ -n "$dir" ]; then
+    cur=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  fi
+  # Fallback: non-git target or no dir specified — use the ambient branch.
+  if [ -z "$cur" ]; then
+    cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  fi
+  echo "$cur"
+}
+
 # matches one leading NAME=VALUE env assignment (VALUE may be double-quoted and
 # contain spaces), plus trailing whitespace and the rest of the command.
 ENVRE='^[A-Za-z_][A-Za-z0-9_]*=("[^"]*"|[^[:space:]]*)([[:space:]]+(.*))?$'
 
-# Track the last cd target seen in the command chain. An agent that does
-# `cd .claude/worktrees/slug && git commit` would otherwise be checked against
-# the hook process's cwd (the main repo root, always on "main"), which blocks
-# every worktree commit. Storing the cd target lets commit/push run
-# `git -C <dir> rev-parse` in the correct directory instead.
+# Track the last cd target seen in the command chain so that
+# `cd .claude/worktrees/slug && git commit` is checked against the worktree's
+# branch, not the hook process's cwd.  An explicit `git -C <dir>` takes
+# priority over _tracked_cd (see _resolve_branch above).
 _tracked_cd=""
 
 while IFS= read -r seg; do
@@ -58,9 +74,11 @@ while IFS= read -r seg; do
   if [ "$1" = "cd" ] && [ -n "$2" ]; then _tracked_cd="$2"; continue; fi
   [ "$1" = "git" ] || continue
   shift
+  _gitC=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      -C|-c) shift 2 ;;
+      -C) _gitC="$2"; shift 2 ;;
+      -c) shift 2 ;;
       --git-dir=*|--work-tree=*|--namespace=*|-p|--no-pager|--paginate|--bare) shift ;;
       -*) shift ;;
       *) break ;;
@@ -81,13 +99,7 @@ while IFS= read -r seg; do
       done ;;
     commit)
       # Block committing on main/master/develop — work must start on a feature branch.
-      # Use the tracked cd path (if any) so worktree commits aren't falsely blocked
-      # by checking the main repo's HEAD instead of the worktree's branch.
-      if [ -n "$_tracked_cd" ]; then
-        _cur=$(git -C "$_tracked_cd" rev-parse --abbrev-ref HEAD 2>/dev/null)
-      else
-        _cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-      fi
+      _cur=$(_resolve_branch)
       case "$_cur" in main|master|develop) block "commit on protected branch '$_cur' — run: git checkout -b feat/<slug>" ;; esac ;;
     push)
       for a in "$@"; do
@@ -102,24 +114,14 @@ while IFS= read -r seg; do
         case "$a" in -*) continue ;; esac
         _non_flag=$((_non_flag+1))
         _ref=$(norm_ref "$a")
-        if [ "$_ref" = "HEAD" ]; then
-          if [ -n "$_tracked_cd" ]; then
-            _ref=$(git -C "$_tracked_cd" rev-parse --abbrev-ref HEAD 2>/dev/null)
-          else
-            _ref=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-          fi
-        fi
+        [ "$_ref" = "HEAD" ] && _ref=$(_resolve_branch)
         case "$_ref" in main|master|develop) block "push to a protected branch (main/master/develop)" ;; esac
         case "$a" in *:*) _has_colon=1 ;; esac
       done
       # Bare push (no refspec or remote-only): resolve current branch and block if protected.
       # Closes the "git push origin" gap — remote named but target branch inferred.
       if [ "$_has_colon" -eq 0 ] && [ "$_non_flag" -le 1 ]; then
-        if [ -n "$_tracked_cd" ]; then
-          _cur=$(git -C "$_tracked_cd" rev-parse --abbrev-ref HEAD 2>/dev/null)
-        else
-          _cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-        fi
+        _cur=$(_resolve_branch)
         case "$_cur" in main|master|develop) block "push to protected branch '$_cur' (no refspec — current branch inferred)" ;; esac
       fi ;;
     worktree)
