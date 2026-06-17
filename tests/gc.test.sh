@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# gc.sh removes a MERGED PR's worktree before deleting its branch, and never touches a worktree
-# whose branch still has a live remote. Hermetic + offline: a throwaway repo with a local bare
-# remote. (run-tests.sh clears inherited git env so the temp-repo ops stay isolated.)
+# gc.sh removes a MERGED PR's worktree before deleting its branch, never touches a worktree
+# whose branch still has a live remote, and deletes local-only branches (no upstream ever set)
+# that are merged into main. Hermetic + offline: a throwaway repo with a local bare remote.
+# (run-tests.sh clears inherited git env so the temp-repo ops stay isolated.)
 set -u
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 GC="$ROOT/scripts/gc.sh"
@@ -38,6 +39,16 @@ TMP=$(mktemp -d)
   ( cd .claude/worktrees/orphan && git commit -q --allow-empty --no-verify -m orphan && echo wip > WIP.txt )
   git push -q -u origin feat/orphan >/dev/null 2>&1
   git push -q origin --delete feat/orphan >/dev/null 2>&1   # remote gone, never merged into main
+
+  # NO-UPSTREAM merged branch: feat/local — merged into main locally, never pushed.
+  # No upstream tracking ref is ever set, so [gone] never fires even after merging.
+  # This is the blind spot the Pass 2 detection was added to cover.
+  git checkout -q "$DEF"
+  git checkout -q -b feat/local
+  git commit -q --allow-empty --no-verify -m "local work"
+  git checkout -q "$DEF"
+  git merge -q --no-ff feat/local -m "merge feat/local" >/dev/null 2>&1
+  # intentionally NOT pushing — feat/local has no upstream tracking ref
 ) >/dev/null 2>&1
 
 # Run gc.sh in the temp repo.
@@ -55,6 +66,9 @@ TMP=$(mktemp -d)
 [ -d "$TMP/.claude/worktrees/orphan" ]; chk "$?" "unmerged worktree must survive (remote gone != merged)"
 ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/orphan >/dev/null 2>&1 ); chk "$?" "unmerged branch must survive"
 [ -f "$TMP/.claude/worktrees/orphan/WIP.txt" ]; chk "$?" "untracked WIP in the unmerged worktree must survive (no --force eat)"
+
+# No-upstream merged branch is deleted (Pass 2 blind-spot coverage).
+( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/local >/dev/null 2>&1 ); chk "$([ $? -ne 0 ] && echo 0 || echo 1)" "merged no-upstream branch feat/local should be deleted"
 
 rm -rf "$TMP"
 echo ""
