@@ -424,7 +424,7 @@ Put the block at the very top of the file (for a file with YAML frontmatter, jus
 
 `/scan-context` is a freshness ritual: it should run on a cadence, not only when someone remembers. In a project that adopts this harness, wire it during onboarding as a `/schedule` cloud routine — for example, weekly: "run `bash scripts/scan-context.sh`; if it exits non-zero, open an issue listing the overdue and missing files." The script's exit code (`0` = fresh, `1` = findings) is the signal the routine keys on.
 
-The project's `.claude/rituals.md` is the local record of which rituals exist and when each last ran — the human-readable cadence log that sits next to the `/schedule` routines. (This harness repo itself runs `/scan-context` on demand instead, because its memory lives outside the repo, where a cloud routine cannot read it.)
+The project's `.claude/rituals.md` is the local record of which rituals exist and when each last ran — the human-readable cadence log that sits next to the `/schedule` routines. (`/scan-context` reads committed repo docs, so a cloud routine works for it on this repo too — wiring this repo's own weekly routine is a fast-follow. Only the memory-review ritual can't be cloud-fired here: this repo's memory lives in local `~/.claude`, outside the repo where a cloud routine cannot read it.)
 
 See [07 · Memory System](./07-memory-system.md) for how memory.md fits the wider lifecycle.
 
