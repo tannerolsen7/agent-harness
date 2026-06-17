@@ -18,9 +18,12 @@ classification. An hour spent fixing code when the problem was data. A
 hotfix that patches our code when the bug was in a dependency. A feature
 built when the user just needed clarification.
 
-This skill runs before you know what you have. Its output is a named
-incident type, a proposed route, and — if needed — one question. The
-agent does the classification. The human confirms the route.
+This skill runs before you know what you have. Its output is a single
+**triage packet** — a named incident type, the evidence behind it, a
+proposed route, a proposed immediate action, and an ordered checklist
+of what the human must do next. The agent does the classification. The
+human confirms the route. The packet is complete and copy-pasteable: a
+human acts on it without re-deriving anything.
 
 ## Incident types
 
@@ -70,13 +73,13 @@ Phase 1 — Evidence gathering (parallel where possible)
 	↓
 Phase 2 — Classify
 	↓
-Phase 3 — Triage document
+Phase 3 — Assemble triage packet
 	↓
-	├─ Confidence: High → propose route + immediate action
-	├─ Confidence: Low → propose most likely route + surface one question
-	└─ Security signal → propose isolation action ONLY, stop
+	├─ Confidence: High → route + immediate action + human checklist
+	├─ Confidence: Low/Split → most likely route + one question + human checklist
+	└─ Security signal → isolation action ONLY, full stop, no route
 		↓
-Human confirms route
+Human confirms route (or runs the human checklist and pastes back)
 	↓
 Route's own skill takes over
 ```
@@ -97,7 +100,7 @@ Before any investigation, reproduce the symptom using the reported steps.
 **Reproduced consistently** — record the exact reproduction steps and proceed.
 
 **Not reproducible after two attempts** — stop. Do not classify. Write to the
-triage document:
+triage packet:
 ```
 Reproduction: FAILED
 Attempts: 2
@@ -181,67 +184,114 @@ or two checks point to different types.
 
 **Confidence: Split** — evidence genuinely supports two types equally.
 Pick the safer route (the one less likely to waste time if wrong) and
-surface both in the triage document.
+surface both in the triage packet.
 
 ---
 
-## Phase 3 — Triage document
+## Phase 3 — Assemble the triage packet
 
-Write `.claude/incident-[slug].md` before surfacing to human.
+Write the full packet to `.claude/incident-[slug].md` before surfacing
+anything to the human. The packet is the single artifact the human acts
+on — it must be complete and self-contained. Every section below is
+required; if a section is empty, write why it is empty, never delete it.
+
+Goal for the packet: a human reads it top to bottom, knows what happened,
+knows how confident the agent is and on what basis, knows the proposed
+route and immediate action, and knows the exact ordered steps to take —
+without re-deriving anything or re-reading the codebase.
 
 ```
 # Incident — [slug]
-## Reported symptom
-[One sentence — exactly what was reported]
+## At a glance
+Reported symptom: [one sentence — exactly what was reported]
+Environment: [production | staging | dev]
+Reporter: [user | internal | automated alert]
+Detected: [timestamp or "unknown"]
+Reproduction: [Reproduced | Intermittent | Failed]
+Classification: [incident type] — Confidence: [High | Low | Split]
+Proposed route: [named skill or path, or "ISOLATION ONLY — security"]
+Immediate action: [one line, or "none"]
+Human action required: [Yes — see checklist | No]
+
 ## Reproduction
 Status: [Reproduced | Intermittent | Failed]
-[If reproduced: exact steps that reproduce it]
-[If intermittent: pattern observed, N of M attempts]
-[If failed: what was tried, what was observed instead]
+[If reproduced: exact steps that reproduce it — copy-pasteable]
+[If intermittent: pattern observed, N of M attempts, likely category]
+[If failed: steps tried, what was observed instead, context needed]
+
 ## Evidence
+Each check records what was checked, what was found, and a one-line
+Finding. The Finding line is mandatory on every check.
 ### Check 1 — Behavior vs. spec
-[What TESTING.md and CONTEXT.md say about this behavior]
-[Finding: supports [type] | contradicts [type] | neutral]
+Checked: [TESTING.md / CONTEXT.md sections read]
+Found: [what they say about this behavior]
+Finding: [supports <type> | contradicts <type> | neutral]
 ### Check 2 — Recent changes
-[Relevant commits in last 7 days]
-[Finding: supports [type] | neutral]
+Checked: [git log window and paths]
+Found: [relevant commits in last 7 days, or "none relevant"]
+Finding: [supports <type> | neutral]
 ### Check 3 — Dependency health
-[Any version changes, status page findings, changelog entries]
-[Finding: supports [type] | neutral]
+Checked: [packages / status pages / changelogs reviewed]
+Found: [version changes, status-page findings, changelog entries]
+Finding: [supports <type> | neutral]
 ### Check 4 — Data state
-[Query produced for human to run, or result if executed directly]
-[Finding: supports [type] | neutral | pending human execution]
+Checked: [what the query targets]
+Found: [result if executed; otherwise "pending human execution"]
+Query (for human to run, read-only):
+  SELECT ... ;
+Finding: [supports <type> | neutral | pending human execution]
 ### Check 5 — Security signals
-[What was checked, what was found]
-[Finding: no signals | SECURITY SIGNAL DETECTED]
+Checked: [auth/permission/tenant/abuse surfaces scanned]
+Found: [what was found]
+Finding: [no signals | SECURITY SIGNAL DETECTED]
 ### Check 6 — PITFALLS.md match
-[Any matching entry]
-[Finding: match found — [entry title] | no match]
+Checked: [PITFALLS.md]
+Found: [matching entry, or "no match"]
+Finding: [match found — <entry title> | no match]
+
 ## Classification
 Type: [incident type]
 Confidence: [High | Low | Split]
-Reasoning: [One paragraph — which evidence supports this, what was ruled out]
+Reasoning: [one paragraph — which checks point here and how decisively]
+Ruled out: [types considered and the evidence that eliminated each, or
+  "none — single dominant signal"]
+
 ## Proposed route
-[Specific next step — named skill or path]
+[Specific next step — named skill or path. For a security signal: write
+"ISOLATION ONLY — no route proposed. Security incident path runs
+separately after isolation."]
+
 ## Proposed immediate action
-[If anything needs to happen before the route runs: feature flag off,
-pin a dependency version, isolate an endpoint, nothing]
+[Anything that should happen before the route runs: feature flag off,
+pin a dependency version, isolate an endpoint — or "none". For a
+security signal this is the isolation action and it is the ONLY action.]
+
 ## Open question
-[One question if confidence is Low or Split. Empty if confidence is High.]
-## Human steps required
-[List every action the human must take before classification can continue.
-For each step: what to do, where to do it, what to paste back.]
-Example format:
-1. Run this query in your database SQL console and paste the result:
+[One question if Confidence is Low or Split. Empty if High. Never more
+than one — everything else is resolved through evidence.]
+
+## Human action checklist
+Ordered. For each step: what to do, where to do it, and exactly what to
+paste back. Mark each step [BLOCKING] (classification or route cannot
+proceed until pasted back) or [INFO] (confirms the picture but does not
+block). Order BLOCKING steps first.
+1. [BLOCKING] Run this query in your database SQL console and paste the
+   full result back here:
    SELECT id, status, user_id FROM bookings WHERE id = '[affected-id]';
-
-2. Check the Vercel deployment log for the last deploy and paste any
-   errors from the Build Output section.
-
-3. Go to [service] status page (status.[service].com) and confirm
-   whether there is an active incident.
-If no human steps are required: write "None — agent completed all checks."
+2. [BLOCKING] Check the Vercel deployment log for the last deploy and
+   paste any errors from the Build Output section.
+3. [INFO] Open [service] status page (status.[service].com) and paste
+   whether an incident is active.
+After pasting back: [what the agent does next — re-classify, hand the
+packet to the proposed route, or confirm isolation held].
+If no human steps are required: write
+"None — agent completed all checks; confirm the route to proceed."
 ```
+
+A High-confidence packet with no blocking steps is the strongest output:
+the human reads it, confirms the route, and the route skill takes over.
+A Low or Split packet ends on a single question plus the checklist that
+will resolve it.
 
 ---
 
@@ -254,12 +304,14 @@ Agent proposes full resolution path. Human confirms. Agent or route skill execut
 Agent proposes route and first step. Human confirms route. Route's own skill takes over.
 
 **Low or Split confidence:**
-Agent surfaces triage document with one question. Human answers.
+Agent surfaces the triage packet with one question. Human answers.
 Agent re-classifies and proposes.
 
 **Security signal — any confidence:**
 Agent proposes isolation action only. Full stop. No route proposed.
-Human decides next step. Security incident path runs separately.
+The packet's Proposed route reads "ISOLATION ONLY"; the immediate action
+is the isolation step and the only action. Human decides next step.
+Security incident path runs separately.
 
 **Non-reproducible:**
 Agent surfaces what it tried and what it needs. Full stop.
@@ -269,19 +321,19 @@ No classification. No route. Wait for human context.
 
 ## Route handoff
 
-When the human confirms a route, the triage document travels with it.
+When the human confirms a route, the triage packet travels with it.
 The receiving skill reads it at entry — it is the context that replaces
 the normal orient step for incident-originated tasks.
 
-| Route | What receives the triage doc |
+| Route | What receives the triage packet |
 |---|---|
 | /debug → /hotfix | /debug reads it as the starting context; root cause location field pre-seeded |
 | /migrate | Migration plan uses data-state findings as input |
 | /evaluate-solution | Third-party evidence section feeds directly into evaluation |
 | /feature | Capability-gap finding seeds the TASK-TEMPLATE |
-| Communication draft | Triage doc is the brief; agent drafts, human sends |
+| Communication draft | Packet is the brief; agent drafts, human sends |
 | Config/ops correction | Agent proposes specific change; human applies |
-| Security path | Triage doc handed to security reviewer |
+| Security path | Packet handed to security reviewer |
 
 **Spawns:** `@incident-responder`
 **Output lives in:** `.claude/incident-[slug].md`
@@ -292,8 +344,8 @@ the normal orient step for incident-originated tasks.
 ## Current limitations — human steps required
 
 Several evidence checks require human action because the infrastructure
-to automate them doesn't exist yet. The triage document's **Human steps
-required** section lists exactly what to do and what to paste back.
+to automate them doesn't exist yet. The triage packet's **Human action
+checklist** lists exactly what to do, where, and what to paste back.
 
 | Check | Current state | What removes this step |
 |---|---|---|
@@ -305,8 +357,8 @@ required** section lists exactly what to do and what to paste back.
 
 **When adding infrastructure:** update `.claude/settings.json` with the
 enabled flags and remove the corresponding rows from this table. The
-human steps in the triage document template will reduce automatically
-as checks become agent-executable.
+human checklist in the triage packet will shrink automatically as checks
+become agent-executable.
 
 Flags to add to `.claude/settings.json` as capabilities are wired:
 ```
