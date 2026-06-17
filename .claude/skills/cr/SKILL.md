@@ -202,6 +202,8 @@ For each finding in the report:
 - Match against Active findings or append new entry with Occurrences: 1
 - Update Last seen, increment Occurrences, append file:line (cap at 5)
 
+Write the updated `docs/RECURRING-FINDINGS.md` back to disk before proceeding. An in-memory update that is never written is no update.
+
 Identify promotion candidates:
 - Auto-flag: any active finding with Occurrences ≥3
 - Judgment-flag: any finding assessed as high-impact at lower count
