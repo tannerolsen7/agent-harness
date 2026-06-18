@@ -1,0 +1,20 @@
+{
+  "_comment": "Core Web Vitals performance budget. One entry per project. Targets use Google's 'Good' thresholds by default. Adjust per-project when the project has a measured, documented reason to differ. All times are in milliseconds; CLS is unitless.",
+  "_vitals_reference": {
+    "LCP":  "Largest Contentful Paint — how long until the largest image or text block is visible. Good: ≤ 2500ms.",
+    "INP":  "Interaction to Next Paint — how long the page takes to respond to a user action (click, tap, key). Good: ≤ 200ms.",
+    "CLS":  "Cumulative Layout Shift — how much visible content unexpectedly moves during load. Good: ≤ 0.1 (unitless score).",
+    "FCP":  "First Contentful Paint — how long until the first text or image is painted. Good: ≤ 1800ms.",
+    "TTFB": "Time to First Byte — how long until the browser receives the first byte of the page. Good: ≤ 800ms."
+  },
+  "projects": {
+    "default": {
+      "_description": "Fallback targets used when no project-specific entry exists. Based on Google 'Good' CWV thresholds.",
+      "LCP_ms":  2500,
+      "INP_ms":  200,
+      "CLS":     0.1,
+      "FCP_ms":  1800,
+      "TTFB_ms": 800
+    }
+  }
+}
