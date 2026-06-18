@@ -69,6 +69,20 @@ file and you reset the loop's memory.
 **Locations:** scripts/gc.sh (Pass 2 NO_UPSTREAM, lines 35–41; active-worktree exclusion, lines 51–62)
 **Detail:** Two instances of the same class. (1) The Pass 2 no-upstream detection did not exclude main/master/develop — fixed by adding `grep -vE "^(main|master|develop)$"`. (2) It also did not exclude branches checked out in active worktrees — a freshly-created worktree branch (no commits yet) has its tip at the branch point, so `git merge-base --is-ancestor` returns true and it looks merged. Fixed by collecting `ACTIVE_WT_BRANCHES` from `git worktree list --porcelain` and filtering them from the NO_UPSTREAM candidate list with `grep -vFxf`. Both fixes use `-F` (fixed-string) and `-x` (full-line) to avoid regex metacharacter issues in branch names. Pattern: every new candidate-collection pass in gc.sh must explicitly enumerate and apply all exclusions from the existing pass.
 
+### section-count-mismatch-in-agent-spec
+**Signature:** An agent spec says "N required sections" in its body but the actual numbered list has a different count, causing the agent to silently skip injecting the extra sections.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** .claude/agents/design-synthesizer.md (lines 29 and 108 say "6"; list has 7 entries)
+**Detail:** Body and output-format header both say 6 required sections; the numbered list ends at 7. The commit message correctly states 7. An agent reading the text would stop injecting stubs after section 6. Fix: update both occurrences of "6" to "7" — requires human edit (guard-file path).
+
+### dangling-skill-reference-in-agent-frontmatter
+**Signature:** An agent's description frontmatter mentions a slash command or skill that does not exist in the repo.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** .claude/agents/design-synthesizer.md (line 9 — "via /design-init")
+**Detail:** No /design-init skill, command, or script exists. Any agent or human reading the spec will try to find it and fail. Either add the skill or remove the reference — requires human edit (guard-file path).
+
 ---
 
 ## Promoted
