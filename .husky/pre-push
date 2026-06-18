@@ -11,9 +11,8 @@ PUSH_INPUT=$(cat)
 _ALL_DELETIONS=true
 BRANCH=""
 PUSH_SHA=""
-# Empty/unreadable stdin must NOT short-circuit to exit 0 — that would skip the whole gate.
-# Treat "no refs seen" as not-all-deletions so it falls through to the sentinel + test gate.
-[ -z "$PUSH_INPUT" ] && _ALL_DELETIONS=false
+# Empty stdin means the branch is already up-to-date — nothing being pushed, nothing to gate.
+[ -z "$PUSH_INPUT" ] && exit 0
 while IFS=' ' read -r _lref _lsha _rref _rsha; do
   [ -z "$_lsha" ] && continue
   if [ "$_lsha" != "0000000000000000000000000000000000000000" ]; then
