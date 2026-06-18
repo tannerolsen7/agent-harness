@@ -1,6 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
+# Read hook stdin first — it can only be consumed once.
+_INPUT=$(cat)
+
+# Write the session temp file. session-stop.sh reads it back to compute duration
+# and capture the model name for the activity record.
+_SESSION_ID=$(printf '%s' "$_INPUT" | jq -r '.session_id // ""')
+_MODEL=$(printf '%s' "$_INPUT" | jq -r '.model // "unknown"')
+if [ -n "$_SESSION_ID" ]; then
+  printf '%s %s\n' "$(date +%s)" "$_MODEL" \
+    > "/tmp/claude-activity-${_SESSION_ID}" 2>/dev/null || true
+fi
+unset _INPUT _SESSION_ID _MODEL
+
 # Truncate the permission log so each session starts clean
 HASH=$(echo "${CLAUDE_PROJECT_DIR:-/}" | md5 | cut -c1-8)
 > "/tmp/claude-perm-log-${HASH}.jsonl" 2>/dev/null || true

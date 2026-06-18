@@ -89,3 +89,6 @@ sed \
 mv "$TMP" "$HTML"
 
 echo "harness-progress.html updated: ${PR_COUNT} PRs merged, ${PCT}% progress, date: ${DATE}"
+
+# Refresh the activity dashboard alongside the progress dashboard.
+bash "$(git rev-parse --show-toplevel)/scripts/activity-report.sh" || true

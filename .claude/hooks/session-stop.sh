@@ -9,6 +9,10 @@ if printf '%s' "$INPUT" | jq -e '.stop_hook_active == true' >/dev/null 2>&1; the
   exit 0
 fi
 
+# Subagent stops include agent_type on stdin. Only top-level stops write a record.
+AGENT_TYPE=$(printf '%s' "$INPUT" | jq -r '.agent_type // ""')
+[ -n "$AGENT_TYPE" ] && exit 0
+
 PROJ="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 cd "$PROJ"
 
@@ -63,3 +67,41 @@ fi
 printf 'git status\n'
 printf '```\n'
 printf '\n'
+
+# Write one activity record to .claude/activity/{branch-slug}.jsonl.
+# Errors go to stderr only — this block must never block the session stop.
+(
+  set -euo pipefail
+  SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""')
+  HASH=$(echo "${CLAUDE_PROJECT_DIR:-/}" | md5 | cut -c1-8)
+  LOGFILE="/tmp/claude-perm-log-${HASH}.jsonl"
+
+  TMPFILE="/tmp/claude-activity-${SESSION_ID}"
+  if [ -f "$TMPFILE" ]; then
+    START_TS=$(cut -d' ' -f1 "$TMPFILE")
+    MODEL=$(cut -d' ' -f2- "$TMPFILE")
+    STOP_TS=$(date +%s)
+    DURATION_JSON=$((STOP_TS - START_TS))
+  else
+    MODEL="unknown"
+    DURATION_JSON="null"
+  fi
+
+  SKILLS_JSON="[]"
+  if [ -f "$LOGFILE" ]; then
+    SKILLS_JSON=$(jq -rs '[.[] | select(.tool == "Skill") | .val | select(. != "")] | unique | sort' \
+      "$LOGFILE" 2>/dev/null || printf '[]')
+  fi
+
+  SHA=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+  SLUG=$(printf '%s' "$BRANCH" | sed 's|/|-|g' | tr -cd 'a-zA-Z0-9-')
+  mkdir -p "$PROJ/.claude/activity"
+  TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+  printf '%s\n' \
+    "$(jq -nc --arg ts "$TS" --arg branch "$BRANCH" --arg sha "$SHA" \
+              --arg model "$MODEL" --argjson skills "$SKILLS_JSON" \
+              --argjson dur "$DURATION_JSON" \
+       '{ts:$ts,branch:$branch,sha:$sha,model:$model,skills:$skills,duration_s:$dur}')" \
+    >> "$PROJ/.claude/activity/${SLUG}.jsonl"
+) 2>&1 | sed 's/^/activity-writer: /' >&2 || true
