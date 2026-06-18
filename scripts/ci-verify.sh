@@ -36,4 +36,12 @@ else
   bash "$ROOT/scripts/check-integrity.sh" || echo "ci-verify: reference-integrity advisory (no .md files changed in this PR)"
 fi
 
+# Token lint: check UI files changed in this PR for hardcoded colors, spacing,
+# and absolute design bans (gradient text, glassmorphism, side-stripe borders,
+# hero-metric template, identical card grids, eyebrow-on-every-section).
+# Inert when docs/design/DESIGN.md does not exist — projects without a design
+# system are not blocked. Active the moment DESIGN.md is committed.
+echo "ci-verify: token-lint"
+bash "$ROOT/scripts/token-lint.sh" --diff
+
 echo "ci-verify: OK"

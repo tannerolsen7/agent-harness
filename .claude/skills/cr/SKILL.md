@@ -51,6 +51,29 @@ If the diff is not docs-only: proceed to Step 1.
 
 ---
 
+## Step 1b — Token lint (UI diffs only)
+
+If the diff contains any `.css`, `.scss`, `.less`, `.jsx`, `.tsx`, `.vue`, `.svelte`, or `.html` file inside a component directory (`src/`, `app/`, `pages/`, `components/`, `templates/`):
+
+Run the token linter against the changed files:
+
+```bash
+bash "$(git rev-parse --show-toplevel)/scripts/token-lint.sh" --diff
+```
+
+This checks for:
+- Hardcoded hex colors (`#rgb`, `#rrggbb`) and raw color functions (`rgb()`, `rgba()`, `hsl()`)
+- Raw pixel values in spacing properties where design tokens should be used
+- Six absolute bans: gradient text, glassmorphism, side-stripe borders, hero-metric template, identical card grids, eyebrow-on-every-section
+
+**If the script returns exit code 1 (errors found):** add a Must Fix item for each error. Warnings are Nice to Have.
+
+**If `docs/design/DESIGN.md` does not exist** (the script exits 0 with "skipped"), note it in the review as an advisory: "No design token file found — token linting skipped. Run @design-synthesizer to define the project's design system."
+
+**If the diff has no UI files:** skip this step entirely.
+
+---
+
 ## Step 2 — Spawn the analytical passes IN PARALLEL
 
 Pass the full diff and plan content directly in each prompt.
