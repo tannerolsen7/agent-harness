@@ -52,7 +52,7 @@ do_work'
 out=$(bash "$MTEST" \
   --files "$TMP/impl_body.sh" \
   --test-cmd "exit 1" 2>&1)
-if printf '%s\n' "$out" | grep -q 'delete-body: killed'; then
+if printf '%s\n' "$out" | grep -q 'delete-body.*killed'; then
   ok
 else
   no "delete-body mutation should be KILLED when test-cmd always fails (got: $out)"
@@ -72,7 +72,7 @@ guard "$@"'
 out=$(bash "$MTEST" \
   --files "$TMP/impl_exit.sh" \
   --test-cmd "exit 1" 2>&1)
-if printf '%s\n' "$out" | grep -q 'negate-exit: killed'; then
+if printf '%s\n' "$out" | grep -q 'negate-exit.*killed'; then
   ok
 else
   no "negate-exit mutation should be KILLED when test-cmd always fails (got: $out)"
@@ -89,7 +89,7 @@ check'
 out=$(bash "$MTEST" \
   --files "$TMP/impl_return.sh" \
   --test-cmd "exit 1" 2>&1)
-if printf '%s\n' "$out" | grep -q 'swap-return: killed'; then
+if printf '%s\n' "$out" | grep -q 'swap-return.*killed'; then
   ok
 else
   no "swap-return mutation should be KILLED when test-cmd always fails (got: $out)"
@@ -113,7 +113,7 @@ status; rc=\$?
 out=$(bash "$MTEST" \
   --files "$TMP/impl_checked.sh" \
   --test-cmd "bash $TMP/test_real.sh" 2>&1)
-if printf '%s\n' "$out" | grep -q 'swap-return: killed'; then
+if printf '%s\n' "$out" | grep -q 'swap-return.*killed'; then
   ok
 else
   no "real test should KILL swap-return mutation (test checks return value) (got: $out)"
@@ -137,7 +137,7 @@ exit 0"
 out=$(bash "$MTEST" \
   --files "$TMP/impl_unchecked.sh" \
   --test-cmd "bash $TMP/test_vacuous.sh" 2>&1)
-if printf '%s\n' "$out" | grep -q 'swap-return: SURVIVED'; then
+if printf '%s\n' "$out" | grep -q 'swap-return.*SURVIVED'; then
   ok
 else
   no "vacuous test should let swap-return SURVIVE (got: $out)"

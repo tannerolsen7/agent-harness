@@ -163,13 +163,65 @@ mutate_swap_return() {
   ' "$src"
 }
 
-# ── Core helper: apply a mutation and run the test suite ──────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+# Apply a named mutation to <src>, write the result to <out>, and return the
+# line number that was changed (printed to stdout). Returns 1 if no applicable
+# pattern was found (meaning the file is unchanged).
+#
+# Each mutation function emits "LINE:<n>" to its stderr to report which line it
+# touched. We capture that here by redirecting stderr to a temp file.
+apply_mutation() {
+  local src="$1" mname="$2" out="$3"
+  local stderr_tmp line_info
+
+  stderr_tmp=$(mktemp)
+
+  case "$mname" in
+    delete-body) mutate_delete_body "$src" > "$out" 2>"$stderr_tmp" ;;
+    negate-exit) mutate_negate_exit "$src" > "$out" 2>"$stderr_tmp" ;;
+    swap-return) mutate_swap_return "$src" > "$out" 2>"$stderr_tmp" ;;
+    *)
+      rm -f "$stderr_tmp"
+      echo "?" ; return 1
+      ;;
+  esac
+
+  line_info=$(grep '^LINE:' "$stderr_tmp" 2>/dev/null | head -1 | cut -d: -f2)
+  rm -f "$stderr_tmp"
+
+  # If the output equals the input, no pattern was found.
+  if diff -q "$src" "$out" >/dev/null 2>&1; then
+    return 1
+  fi
+
+  printf '%s\n' "${line_info:-?}"
+  return 0
+}
+
+# Shuffle lines from stdin using awk's pseudo-random number generator.
+# Each call uses a different seed so rounds differ.
+shuffle_lines() {
+  awk -v seed="$RANDOM" '
+    BEGIN { srand(seed) }
+    { lines[NR]=$0 }
+    END {
+      for (i=NR; i>1; i--) {
+        j=int(rand()*(i))+1
+        tmp=lines[i]; lines[i]=lines[j]; lines[j]=tmp
+      }
+      for (i=1; i<=NR; i++) print lines[i]
+    }
+  '
+}
+
+# ── Core helper: run the test suite against a mutant ─────────────────────────
 
 # Temporarily replace <orig> with <mutant>, run TEST_CMD, then restore.
-# Prints "survived" if all tests pass (the mutation was not caught).
-# Prints "killed" if any test fails (the mutation was caught — correct behavior).
+# Returns 0 if all tests passed (mutation survived — bad).
+# Returns 1 if any test failed (mutation was caught — good).
 run_against_mutation() {
-  local orig="$1" mutant="$2" label="$3"
+  local orig="$1" mutant="$2" label="$3" mutant_line="${4:-?}"
   local backup rc
 
   backup=$(mktemp)
@@ -196,10 +248,10 @@ run_against_mutation() {
   trap - INT TERM EXIT
 
   if [ "$rc" -eq 0 ]; then
-    echo "    $label: SURVIVED (tests did not catch this)"
+    echo "    $label (line $mutant_line): SURVIVED (tests did not catch this)"
     return 0  # survived
   else
-    echo "    $label: killed"
+    echo "    $label (line $mutant_line): killed"
     return 1  # killed
   fi
 }
