@@ -77,18 +77,27 @@ echo "── raw rgba() call: exits non-zero ──"
 F=$(tmpfile ".button { background: rgba(0, 0, 0, 0.5); }")
 out=$(run_lint "$F"); rc=$?
 [ "$rc" -ne 0 ] && ok || no "raw rgba() should exit non-zero"
+hasout "$out" "rgba" "names the function in output" "rgba() message"
 rm -f "$F"
 
 echo "── raw hsl() call: exits non-zero ──"
 F=$(tmpfile ".button { color: hsl(210, 50%, 40%); }")
 out=$(run_lint "$F"); rc=$?
 [ "$rc" -ne 0 ] && ok || no "raw hsl() should exit non-zero"
+hasout "$out" "hsl" "names the function in output" "hsl() message"
 rm -f "$F"
 
 echo "── var(--color) reference allowed: exits 0 ──"
 F=$(tmpfile ".button { color: var(--color-primary); background: var(--color-surface); }")
 rc=$(bash "$LINT" "$F" >/dev/null 2>&1; echo $?)
 [ "$rc" -eq 0 ] && ok || no "var(--color-*) usage should exit 0 (got $rc)"
+rm -f "$F"
+
+echo "── var(--) + bare hex on same line: bare hex still caught ──"
+F=$(tmpfile ".button { color: var(--color-primary); background: #ff0000; }")
+out=$(run_lint "$F"); rc=$?
+[ "$rc" -ne 0 ] && ok || no "bare hex after var(--) on same line should exit non-zero"
+hasout "$out" "hardcoded" "names violation even when var(--) present on line" "mixed-line hex"
 rm -f "$F"
 
 # ── Path 2: absolute bans ─────────────────────────────────────────────────────
