@@ -15,7 +15,24 @@ set -euo pipefail
 unset GIT_DIR GIT_WORK_TREE
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-HTML="$REPO_ROOT/harness-progress.html"
+
+# Write the HTML into whatever worktree is checked out on main, not necessarily
+# the repo root. The main worktree is often on a feature branch; writing there
+# would create an uncommitted change on that branch.
+HTML=""
+_wt=""
+while IFS= read -r _line; do
+  case "$_line" in
+    "worktree "*) _wt="${_line#worktree }" ;;
+    "branch refs/heads/main") HTML="$_wt/harness-progress.html" ;;
+  esac
+done < <(git -C "$REPO_ROOT" worktree list --porcelain)
+unset _wt _line
+
+if [ -z "$HTML" ]; then
+  # No worktree is on main — fall back to repo root.
+  HTML="$REPO_ROOT/harness-progress.html"
+fi
 
 if [ ! -f "$HTML" ]; then
   echo "error: harness-progress.html not found at $HTML" >&2
