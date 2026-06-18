@@ -54,22 +54,47 @@ engineering advice.
 **The recipe:**
 1. **Skill (`.claude/skills/<name>/SKILL.md`)** — Steps 1–N are interactive. The final interactive step builds structured task objects (JSON) and calls `Workflow({ scriptPath, args: [tasks] })`. Steps after the Workflow call process its return value.
 2. **Workflow (`.claude/workflows/<name>.js`)** — Three phases in order:
-   - **Setup** — `parallel()` (a barrier): create one worktree per task with the idempotent `scripts/worktree-add.sh`. Parallel because all worktrees must exist before Execute starts, and creation is independent.
-   - **Execute** — `pipeline()`: run one specialist agent (`agentType:`) per task. Tasks advance independently — task B can be in @reviewer while task A is still in @implementer.
-   - **Push** — sequential `for...of`: push and open PRs for tasks with a valid sentinel. Sequential because `scripts/pr.sh` reads and deletes `.cr-ok`; concurrent calls on the same worktree race.
-3. **Worktree script (`scripts/worktree-add.sh`)** — Add an idempotency guard at the top using `[ -f "$PATH/.git" ]` (see [2026-06-17-worktree-git-file-detection.md](./solutions/2026-06-17-worktree-git-file-detection.md)). This makes Setup safe to re-run on resume.
+   - **Setup + Execute** — Compute groups from `filesAffected` (see `parallel-task-stacking-by-file-overlap` below). Treat independent tasks as single-element groups. Call `parallel()` over all groups; within each group, a serial `for` loop creates the worktree and runs the task-runner, passing each branch as the `base-ref` for the next. This unified loop handles both independent and stacked tasks via the same code path.
+   - **Push** — sequential `for...of`: push and open PRs for tasks with a valid sentinel. Sequential because `scripts/pr.sh` reads and deletes `.cr-ok`; concurrent calls on the same worktree race. Stacked tasks get `--base feat/<prevSlug>` so each PR diff shows only that task's own changes.
+3. **Worktree script (`scripts/worktree-add.sh`)** — Add an idempotency guard at the top using `[ -f "$PATH/.git" ]` (see [2026-06-17-worktree-git-file-detection.md](./solutions/2026-06-17-worktree-git-file-detection.md)). This makes Setup safe to re-run on resume. Accept an optional `$3` base-ref: `BASE_REF="${3:-HEAD}"` and use it in the `git worktree add -b` call for new branches.
 4. **Smoke test (`tests/harness-smoke.test.sh`)** — Assert the Workflow script file exists: `[ -f ".claude/workflows/<name>.js" ] || note "..."`. The skill silently breaks if the file is deleted.
 
 **Golden exemplar:** `.claude/workflows/queue-execute.js` + `.claude/skills/queue/SKILL.md`.
 
-**Established by:** PR #34 (feat/queue-workflow-specwriter-gates).
+**Established by:** PR #34 (feat/queue-workflow-specwriter-gates). Updated by PR #80 (feat/queue-branch-stacking).
 
 **Gotchas:**
-- `resumeFromRunId` re-enters the Setup phase from the top — idempotent worktree creation is required, not optional.
-- `pipeline()` in Execute, not `parallel()` — `parallel()` is a barrier (waits for all tasks) and kills the wall-clock benefit; `pipeline()` lets each task advance as fast as it can.
+- `resumeFromRunId` re-enters from the top — idempotent worktree creation is required, not optional. The `.git` file guard in `worktree-add.sh` is what makes re-entry safe.
+- **Do not use `pipeline()` for the Execute phase.** The old recipe used `pipeline()`, which batched all tasks as a flat list and ran them independently end-to-end. The current recipe uses `parallel()` over groups, which lets independent groups run concurrently while stacked groups run serially within each group. `pipeline()` cannot express this "groups are concurrent, items within a group are serial" topology.
 - Push must be sequential: `scripts/pr.sh` deletes `.cr-ok` on success; two pushes for the same task would race and one would fail validation.
 - The Workflow has no pause-and-ask mechanism. Human approval of the task list must happen in the skill (Steps 1–2) before the Workflow is launched.
 - **`isolation: 'worktree'` creates `agent/*` branches, not your `feat/*` branches.** If Execute uses `isolation: 'worktree'`, commits land on `agent/wf_<run-id>-<seq>` branches regardless of what the agent prompt says. Either drop isolation (pre-created worktrees are sufficient) or parse the actual branch name from the agent result and push that in Push. See [solution doc](./solutions/2026-06-17-workflow-isolation-worktree-branch-naming.md).
+
+---
+
+## parallel-task-stacking-by-file-overlap
+
+**What:** Group a flat list of tasks into stacks before running them in parallel, so tasks that write to the same files run in series rather than racing to merge. Groups that share no files run concurrently.
+
+**When to use:** Any parallel batch where tasks may touch the same files. The canonical case is `/queue` batches that include multiple tasks in the same area of the codebase — config files, migration scripts, generated files.
+
+**When NOT to use:** Tasks with explicit ordering constraints that aren't captured in `filesAffected`. If B must run after A for logical reasons (not file-overlap reasons), this pattern won't detect that dependency. Also avoid when a single universal file (like `package.json`) would collapse all tasks into one serial chain — exclude common-to-everything files from `filesAffected` instead.
+
+**The recipe:**
+1. **`computeStacks(taskList)`** — Union-find over `filesAffected` strings. Two tasks that share any file path are merged into the same group. Transitivity is automatic: if A and B share a file, and B and C share a file, all three end up in one group even if A and C don't directly overlap. Tasks with no `filesAffected` (N/A, empty) are never grouped.
+2. **Unified execution: wrap independents as single-element groups** — `const allGroups = [...independent.map(t => [t]), ...stacks]`. This removes the need for two separate code paths. One `parallel()` over all groups runs them concurrently. One `for` loop inside each group's thunk serializes items within the group.
+3. **Thread the base-ref through three layers** — each non-first task in a group must branch from the previous task's post-implementation tip. Flow: `computeStacks()` → slug as `baseRef` in the worktree-create prompt → `worktree-add.sh $3` → `git worktree add -b $BRANCH $PATH $BASE_REF`. The `BASE_REF="${3:-HEAD}"` default keeps the script backwards-compatible with callers that don't pass `$3`.
+4. **Stack the PRs** — `buildPrevSlugMap(stacks)` maps each non-first slug to its predecessor. In the Push phase, pass `--base feat/<prevSlug>` for these tasks. Each PR diff shows only that task's own changes. GitHub retargets the PR to main automatically after the parent merges.
+
+**Golden exemplar:** `.claude/workflows/queue-execute.js` (`computeStacks()`, `buildPrevSlugMap()`, unified `parallel()` loop) + `scripts/worktree-add.sh` (`BASE_REF="${3:-HEAD}"` parameter).
+
+**Established by:** PR #80 (feat/queue-branch-stacking). See [solution doc](./solutions/2026-06-18-union-find-task-stacking.md).
+
+**Gotchas:**
+- Path normalization: `./src/a.ts` and `src/a.ts` are different strings and won't trigger stacking. Strip leading `./` before building the file sets.
+- Stack order within a group follows input-array (TASKS.md) order. If the correct execution order differs from TASKS.md position, sort the task list before calling `computeStacks()`.
+- When a stacked group aborts mid-chain (one task fails), the remaining tasks in that group are skipped silently. The structured summary counts only completed tasks — see BACKLOG.md.
+- `buildPrevSlugMap` is built from `stacks` only, not from `allGroups`. Independent tasks (single-element groups) never get a `--base` flag.
 
 ---
 
