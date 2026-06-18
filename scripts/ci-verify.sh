@@ -36,4 +36,37 @@ else
   bash "$ROOT/scripts/check-integrity.sh" || echo "ci-verify: reference-integrity advisory (no .md files changed in this PR)"
 fi
 
+# Performance budget check. Non-blocking: a breach prints WARN lines but does
+# not fail CI. The check requires measured metric data — either a --data FILE
+# written by a Lighthouse or web-vitals CI step, or explicit metric flags.
+# Without data the step is skipped cleanly.
+# To wire in real measurements: set PERF_DATA_FILE to the path your Lighthouse
+# step writes, or pass --lcp / --inp / --cls / --fcp / --ttfb directly.
+# Example integration in a GitHub Actions workflow:
+#   - name: Lighthouse CI
+#     run: lhci collect && lhci assert --no-patch
+#     env:
+#       LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+#   - name: Export vitals for perf-budget
+#     run: |
+#       # write a perf-budget data file from Lighthouse JSON output
+#       node -e "
+#         const r = require('.lighthouseci/lhr-*.json');
+#         const lcp = r.audits['largest-contentful-paint'].numericValue;
+#         // ... extract other metrics ...
+#         require('fs').writeFileSync('perf-data.json', JSON.stringify({LCP_ms: Math.round(lcp)}));
+#       "
+#       echo "PERF_DATA_FILE=perf-data.json" >> $GITHUB_ENV
+echo "ci-verify: perf-budget"
+PERF_DATA_FILE="${PERF_DATA_FILE:-}"
+PERF_PROJECT="${PERF_PROJECT:-default}"
+if [ -n "$PERF_DATA_FILE" ] && [ -f "$PERF_DATA_FILE" ]; then
+  bash "$ROOT/scripts/perf-budget.sh" --project "$PERF_PROJECT" --data "$PERF_DATA_FILE" \
+    || true  # exit code is always 0, but guard against unexpected failures
+else
+  echo "ci-verify: perf-budget advisory — no PERF_DATA_FILE set; skipping metric check."
+  echo "ci-verify: Set PERF_DATA_FILE to a JSON file with measured vitals to enable."
+  echo "ci-verify: See docs/perf-budget.md for data file format and integration steps."
+fi
+
 echo "ci-verify: OK"
