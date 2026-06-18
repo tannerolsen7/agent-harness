@@ -17,6 +17,9 @@ export const meta = {
 //   references  — CLAUDE.md / CONTEXT.md / AGENTS.md sections to read (or "N/A")
 //   tdd         — "TDD required" or "TDD N/A (no new behaviors)"
 const tasks = args
+if (!tasks || tasks.length === 0) {
+  return { summary: { total: 0, done: 0, blocked: 0, prsOpened: 0, prsFailed: 0 }, taskResults: [], prResults: [] }
+}
 
 // ── Stacking helpers ─────────────────────────────────────────────────────────
 // Parse a filesAffected string into a Set of trimmed, non-empty paths.
@@ -82,7 +85,7 @@ const TASK_RESULT_SCHEMA = {
   type: 'object',
   required: ['taskSlug', 'status', 'branch'],
   properties: {
-    taskSlug:         { type: 'string' },
+    taskSlug:         { type: 'string', pattern: '^[a-z0-9][a-z0-9-]*$' },
     status:           { type: 'string', enum: ['done', 'blocked', 'failed'] },
     branch:           { type: 'string' },
     commitSHAs:       { type: 'array', items: { type: 'string' } },

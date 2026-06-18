@@ -15,8 +15,9 @@ BRANCH="${2:?Usage: scripts/worktree-add.sh <path> <branch> [base-ref]}"
 BASE_REF="${3:-HEAD}"
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
-# Reject a branch name git would read as a flag (e.g. "-f", "--detach").
-case "$BRANCH" in -*) echo "worktree-add: refusing unsafe branch name '$BRANCH'" >&2; exit 1 ;; esac
+# Reject a branch name or base-ref that git would read as a flag (e.g. "-f", "--detach").
+case "$BRANCH"   in -*) echo "worktree-add: refusing unsafe branch name '$BRANCH'" >&2; exit 1 ;; esac
+case "$BASE_REF" in -*) echo "worktree-add: refusing unsafe base-ref '$BASE_REF'" >&2; exit 1 ;; esac
 
 # Idempotent: if the worktree directory already exists, skip creation.
 # On resume, the Workflow re-enters Setup and may call this script again —

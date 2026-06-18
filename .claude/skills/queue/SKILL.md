@@ -106,7 +106,7 @@ Workflow({ scriptPath: ".claude/workflows/queue-execute.js", args: [<task object
 
 The Workflow runs three phases automatically:
 1. **Setup** — creates a `feat/<slug>` worktree per task (idempotent: safe on resume)
-2. **Execute** — runs `@task-runner` per task via `pipeline()` (resumable)
+2. **Execute** — runs `@task-runner` per task; stacked groups run serially within each group, independent tasks run in parallel (resumable)
 3. **Push** — pushes branches and opens PRs for tasks with a valid `.cr-ok` sentinel
 
 Push is automatic for any task where task-runner wrote `.cr-ok` — the sentinel means `/cr`
