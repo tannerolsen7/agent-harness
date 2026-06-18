@@ -141,6 +141,23 @@ Use `-Fx` (fixed-string, full-line) — branch names with dots or brackets in th
 
 ---
 
+## Design contracts committed to task branches disappear in the next session
+
+**Area:** Cross-session design workflow
+
+**Rule:** Always commit a design contract (`docs/features/<slug>.md`) on the same branch where `TASKS.md` references it under `design:`. If you write the contract on a separate branch (e.g. a task-specific feature branch), the next session opening on a different branch won't find the file — Read tools, Edit tools, and Bash `ls` will all report it missing.
+
+**Why:** Each branch has its own working tree. A file committed only on `feat/foo` does not exist when the shell is on `feat/bar`. This burned a full session: the design contract was committed on `feat/progress-in-progress-view`, the next session opened on `feat/merge-conflict-detection`, and every tool call that tried to find `docs/features/one-command-install.md` failed. Half the session went to diagnosing why the file existed in some contexts (git show, git log) but not others (Read, Bash ls with absolute path, Edit).
+
+**Symptoms:** `File does not exist` from the Read tool on a path that `git log --all` confirms was committed; Edit tool failing with "file does not exist" before the Write tool works; `ls` returning empty for a directory that `git show <branch>:<path>` returns content for.
+
+**The fix:** Either (a) commit the design artifact directly on the working branch that holds the `TASKS.md` entry, or (b) merge the design branch to the working branch before adding the `design:` reference to `TASKS.md`. The `design:` field is only useful if the file is reachable on the branch where the task will be queued.
+
+**Source:** Session 2026-06-17 (design contract for one-command-install, feat/progress-in-progress-view vs feat/merge-conflict-detection).
+**Regression gate:** The `design:` field in `TASKS.md` is checked by `/queue` preflight — if the file doesn't exist on the current branch, the task is rejected before any agent work begins.
+
+---
+
 ## Feature work in the main worktree races against background processes
 
 **Area:** Git operations during feature development
