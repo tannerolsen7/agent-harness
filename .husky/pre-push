@@ -49,15 +49,16 @@ if command -v gh >/dev/null 2>&1 && [ "$BRANCH" != "HEAD" ]; then
 fi
 
 # Sync gate — block push if branch is behind origin's default branch.
-# Skips main/master/HEAD (they're merge targets, not feature branches).
+# Skips main/master/HEAD/"" (they're merge targets, not feature branches).
 case "$BRANCH" in
   main|master|HEAD|"") ;;
   *)
     _REF=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null)
     _MAIN="${_REF##*/}"
     _MAIN="${_MAIN:-main}"
-    if git fetch origin "$_MAIN" --quiet 2>/dev/null; then
-      _BEHIND=$(git rev-list --count "HEAD..origin/$_MAIN" 2>/dev/null || echo 0)
+    if GIT_TERMINAL_PROMPT=0 timeout 15 git fetch origin "$_MAIN" --quiet 2>/dev/null; then
+      _BEHIND=$(git rev-list --count "$PUSH_SHA..origin/$_MAIN" 2>/dev/null || echo 0)
+      _BEHIND="${_BEHIND:-0}"
       if [ "$_BEHIND" -gt 0 ]; then
         printf "Push blocked: '%s' is %s commit(s) behind origin/%s.\n" "$BRANCH" "$_BEHIND" "$_MAIN" >&2
         printf "Sync first:   git rebase origin/%s\n" "$_MAIN" >&2

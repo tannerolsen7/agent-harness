@@ -144,9 +144,10 @@ manually before pushing.
   --quiet` exits non-zero (e.g. no network), the gate skips the sync check and
   continues. The push is not blocked by a network error.
 
-- **DEFAULT_BRANCH is read from origin/HEAD:** The gate derives the default
-  branch name via `git symbolic-ref refs/remotes/origin/HEAD | sed 's|.*/||'`
-  and falls back to `main` when that command returns empty or fails.
+- **DEFAULT_BRANCH is read from origin/HEAD:** The gate reads
+  `git symbolic-ref refs/remotes/origin/HEAD` and strips the leading path with
+  shell parameter expansion (`${_REF##*/}`), falling back to `main` when the
+  command returns empty or fails.
 
 ## CLAUDE.md enforcement map
 
