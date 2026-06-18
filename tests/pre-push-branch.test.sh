@@ -35,6 +35,15 @@ mk() {
   printf '%s' "$d"
 }
 
+# Run the hook detached from the controlling terminal so it takes the sentinel
+# (non-interactive) path. Without this, running the test from an interactive
+# terminal lets the hook open /dev/tty and prompt the user, bypassing the sentinel.
+# perl's POSIX::setsid() creates a new session with no controlling terminal,
+# which makes the hook's `exec 3</dev/tty` fail and fall to the sentinel path.
+run_hook() {
+  perl -MPOSIX -e 'POSIX::setsid(); exec "bash", $ARGV[0] or die $!' -- "$1"
+}
+
 echo "── sentinel for feat/x passes when HEAD is on a different branch ──"
 D=$(mk)
 DEFAULT=$(cat "$D/.default-branch")
@@ -43,7 +52,7 @@ mkdir -p "$D/.claude"
 printf 'feat/x:%s' "$FEAT_SHA" > "$D/.claude/.cr-ok"
 # git sends: <local-ref> <local-sha> <remote-ref> <remote-sha>
 PUSH_INPUT="refs/heads/feat/x $FEAT_SHA refs/heads/feat/x 0000000000000000000000000000000000000000"
-rc=$(cd "$D" && printf '%s\n' "$PUSH_INPUT" | PATH="$STUB:$PATH" bash "$HOOK" 2>/dev/null; echo $?)
+rc=$(cd "$D" && printf '%s\n' "$PUSH_INPUT" | PATH="$STUB:$PATH" run_hook "$HOOK" 2>/dev/null; echo $?)
 ok "$rc" 0 "sentinel feat/x:SHA passes when HEAD=$DEFAULT"
 rm -rf "$D"
 
@@ -56,7 +65,7 @@ mkdir -p "$D/.claude"
 # Sentinel belongs to the default branch, not to feat/x — a wrong sentinel.
 printf '%s:%s' "$DEFAULT" "$DEFAULT_SHA" > "$D/.claude/.cr-ok"
 PUSH_INPUT="refs/heads/feat/x $FEAT_SHA refs/heads/feat/x 0000000000000000000000000000000000000000"
-rc=$(cd "$D" && printf '%s\n' "$PUSH_INPUT" | PATH="$STUB:$PATH" bash "$HOOK" 2>/dev/null; echo $?)
+rc=$(cd "$D" && printf '%s\n' "$PUSH_INPUT" | PATH="$STUB:$PATH" run_hook "$HOOK" 2>/dev/null; echo $?)
 ok "$rc" 1 "wrong branch in sentinel blocks push of feat/x (HEAD=$DEFAULT)"
 rm -rf "$D"
 
