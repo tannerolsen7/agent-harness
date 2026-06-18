@@ -137,9 +137,10 @@
       padding: 2px 8px; border-radius: 99px; margin-right: 4px;
       background: #1f2937; color: #d1d5db;
     }
-    .step-tag.warn { background: #451a03; color: #fed7aa; }
-    .step-tag.gate { background: #172554; color: #93c5fd; }
-    .step-tag.def  { background: #1c1917; color: #78716c; }
+    .step-tag.warn   { background: #451a03; color: #fed7aa; }
+    .step-tag.gate   { background: #172554; color: #93c5fd; }
+    .step-tag.def    { background: #1c1917; color: #78716c; }
+    .step-tag.active { background: #3b2802; color: #fde68a; }
 
     .spacer { height: 28px; }
 
@@ -169,11 +170,11 @@
 
   <!-- Progress banner -->
   <div class="progress-banner">
-    <div class="progress-label">52 PRs merged</div>
-    <div class="progress-track"><div class="progress-fill" style="width:68%"></div></div>
+    <div class="progress-label">53 PRs merged</div>
+    <div class="progress-track"><div class="progress-fill" style="width:69%"></div></div>
     <div class="progress-note">Step 0 + Phases 0&ndash;2 done &middot; Phase 3 in progress &middot; Phase 4 queued</div>
   </div>
-  <div class="auto-update-status">Last auto-updated: June 17, 2026 at 9:47 PM · 46→52 PRs</div>
+  <div class="auto-update-status">Last auto-updated: June 17, 2026 at 9:54 PM · 53 PRs (no change)</div>
 
   <!-- ── DONE ── -->
   <div class="section-label">Done</div>
@@ -515,6 +516,68 @@
 
   <div class="spacer"></div>
 
+  <!-- ── IN PROGRESS ── -->
+  <div class="section-label">In Progress</div>
+
+  <div class="phase-label">Phase 3 — Quality systems (5 open worktrees)</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M7 4.5V7L8.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Design system synthesizer</div>
+        <div class="card-desc">Builds <code>@design-synthesizer</code> and the <code>docs/design/</code> structure. Accepts one or more source design systems and produces a single <code>docs/design/DESIGN.md</code>. Required before UI token lint can run — it provides the token reference the linter reads.</div>
+        <span class="tag tag-blue">feat/design-synthesizer</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M7 4.5V7L8.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">UI token lint + design-system enforcement</div>
+        <div class="card-desc">Lints every UI change for hardcoded colors and spacing. Gates <code>/cr</code> on design-system compliance. Depends on design-synthesizer writing <code>docs/design/DESIGN.md</code> first.</div>
+        <span class="tag tag-blue">feat/ui-token-lint</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M7 4.5V7L8.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Performance budget with measured warnings</div>
+        <div class="card-desc">Defines Core Web Vitals targets per project. Measures and logs them on each build. CI warns (non-blocking) when a budget is breached — never silently passes a violation.</div>
+        <span class="tag tag-blue">feat/perf-budget</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M7 4.5V7L8.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Mutation testing — verify tests by breaking the code</div>
+        <div class="card-desc">Automatically corrupts implementation code and checks that tests fail. Catches tests that pass vacuously (always green, regardless of what the code does). Uses a loop-until-dry pattern so coverage is saturated, not sampled.</div>
+        <span class="tag tag-blue">feat/mutation-testing</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M7 4.5V7L8.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Comments-earned lint + all 6 data states required</div>
+        <div class="card-desc">Two lint rules delivered together: (1) blocks "what" comments — only "why" comments are allowed; (2) requires every UI component to handle all 6 states: empty, loading, error, no data, some data, and lots of data.</div>
+        <span class="tag tag-blue">feat/comment-lint-and-data-states</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
   <!-- ── STEPS TO FINISH ── -->
   <div class="section-label">Steps to finish</div>
 
@@ -542,6 +605,7 @@
       <div class="step-content">
         <div class="step-title">UI token lint + design-system enforcement</div>
         <div class="step-desc">Auto-install a design system if missing. Lint every UI change for token usage — no hardcoded colors or spacing. Gate review on design-system compliance.</div>
+        <div class="step-tags"><span class="step-tag active">In Progress</span></div>
       </div>
     </div>
 
@@ -550,6 +614,7 @@
       <div class="step-content">
         <div class="step-title">Performance budget with measured warnings</div>
         <div class="step-desc">Core Web Vitals targets defined per project. Measured and logged on each build. CI warns when a budget is breached — doesn't silently pass.</div>
+        <div class="step-tags"><span class="step-tag active">In Progress</span></div>
       </div>
     </div>
 
@@ -558,6 +623,7 @@
       <div class="step-content">
         <div class="step-title">Mutation testing (verify tests by breaking the code)</div>
         <div class="step-desc">Automatically deletes and corrupts implementation code to verify that tests actually fail when they should. Catches tests that pass vacuously.</div>
+        <div class="step-tags"><span class="step-tag active">In Progress</span></div>
       </div>
     </div>
 
@@ -566,6 +632,7 @@
       <div class="step-content">
         <div class="step-title">Comments-earned lint + all 6 data states required</div>
         <div class="step-desc">Lint blocks comments that describe "what" (the code already says that) — only "why" comments are allowed. Separately: every UI component must handle all 6 states (empty, loading, error, no data, some data, lots of data).</div>
+        <div class="step-tags"><span class="step-tag active">In Progress</span></div>
       </div>
     </div>
 

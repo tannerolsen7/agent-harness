@@ -7,7 +7,7 @@
 #   1. Pick target implementation files (scripts/*.sh, bug-catch/*.sh by default,
 #      or a list you pass in).
 #   2. Each round randomly shuffles the target list and applies mutations one at a time:
-#        delete   — wipe a shell function body (replace it with "return 0")
+#        - delete   — wipes the function body (replaces it with "return 0")
 #        negate   — flip an exit-code check ("exit 1" → "exit 0" and vice versa)
 #        swap     — change a return/exit value (swap 0 and 1)
 #   3. Run the test suite against each mutated copy.
