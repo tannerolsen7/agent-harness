@@ -168,9 +168,9 @@
 
   <!-- Progress banner -->
   <div class="progress-banner">
-    <div class="progress-label">44 PRs merged</div>
-    <div class="progress-track"><div class="progress-fill" style="width:58%"></div></div>
-    <div class="progress-note">Step 0 + Phases 0&ndash;2 done &middot; Phase 3 next &middot; Phase 4 queued</div>
+    <div class="progress-label">46 PRs merged</div>
+    <div class="progress-track"><div class="progress-fill" style="width:60%"></div></div>
+    <div class="progress-note">Step 0 + Phases 0&ndash;2 done &middot; Phase 3 in progress &middot; Phase 4 queued</div>
   </div>
 
   <!-- ── DONE ── -->
@@ -498,6 +498,19 @@
     </div>
   </div>
 
+  <!-- Phase 3 -->
+  <div class="phase-label">Phase 3 — Quality systems</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">UX reviewer with accessibility gate</div>
+        <div class="card-desc">The ux-reviewer agent gained a third review pass powered by the axe-core engine. Accessibility regressions — violations that existed before this change — are MUST FIX. Net-new a11y issues are flagged but don't block the PR. Only real axe results appear in the report; no faked scores or estimated percentages.</div>
+      </div>
+    </div>
+  </div>
+
   <div class="spacer"></div>
 
   <!-- ── STEPS TO FINISH ── -->
@@ -505,7 +518,7 @@
 
   <div class="steps-block">
     <div class="steps-block-header">
-      <div class="count">15 remaining — 10 steps + 5 backlog</div>
+      <div class="count">14 remaining — 9 steps + 5 backlog</div>
       <div class="note">Phases 3 &rarr; 4, then fleet</div>
     </div>
 
@@ -533,21 +546,13 @@
     <div class="step-row">
       <div class="step-num">3</div>
       <div class="step-content">
-        <div class="step-title">UX reviewer with accessibility gate</div>
-        <div class="step-desc">Tiered UX review that runs axe accessibility checks. Distinguishes regressions (must fix) from new friction (flag only). Never fakes human-facing metrics.</div>
-      </div>
-    </div>
-
-    <div class="step-row">
-      <div class="step-num">4</div>
-      <div class="step-content">
         <div class="step-title">Performance budget with measured warnings</div>
         <div class="step-desc">Core Web Vitals targets defined per project. Measured and logged on each build. CI warns when a budget is breached — doesn't silently pass.</div>
       </div>
     </div>
 
     <div class="step-row">
-      <div class="step-num">5</div>
+      <div class="step-num">4</div>
       <div class="step-content">
         <div class="step-title">Mutation testing (verify tests by breaking the code)</div>
         <div class="step-desc">Automatically deletes and corrupts implementation code to verify that tests actually fail when they should. Catches tests that pass vacuously.</div>
@@ -555,7 +560,7 @@
     </div>
 
     <div class="step-row">
-      <div class="step-num">6</div>
+      <div class="step-num">5</div>
       <div class="step-content">
         <div class="step-title">Comments-earned lint + all 6 data states required</div>
         <div class="step-desc">Lint blocks comments that describe "what" (the code already says that) — only "why" comments are allowed. Separately: every UI component must handle all 6 states (empty, loading, error, no data, some data, lots of data).</div>
@@ -565,7 +570,7 @@
     <div class="steps-phase-label">Phase 4 — Fleet &amp; distribution</div>
 
     <div class="step-row">
-      <div class="step-num">7</div>
+      <div class="step-num">6</div>
       <div class="step-content">
         <div class="step-title">One-command install for new projects</div>
         <div class="step-desc"><code>/init</code> + <code>sync-harness.sh</code> — run once and the full harness is installed as a self-contained add-on into any repo, with no manual steps.</div>
@@ -573,7 +578,7 @@
     </div>
 
     <div class="step-row">
-      <div class="step-num">8</div>
+      <div class="step-num">7</div>
       <div class="step-content">
         <div class="step-title">AI activity dashboard</div>
         <div class="step-desc">Per-task record of every AI action: which commit, which model, which skills were used, how long it took. Makes the AI's work auditable and comparable over time.</div>
@@ -581,7 +586,7 @@
     </div>
 
     <div class="step-row">
-      <div class="step-num">9</div>
+      <div class="step-num">8</div>
       <div class="step-content">
         <div class="step-title">Audit CLAUDE.md rules → move to deterministic hooks</div>
         <div class="step-desc">Every rule that can be enforced mechanically (via a hook or lint script) should be — not just documented and hoped for. This pass converts as many CLAUDE.md rules as possible into actual enforcement.</div>
@@ -589,7 +594,7 @@
     </div>
 
     <div class="step-row">
-      <div class="step-num">10</div>
+      <div class="step-num">9</div>
       <div class="step-content">
         <div class="step-title">Sync harness to all 5 target repos</div>
         <div class="step-desc">Once the one-command installer works, roll the harness out to the full fleet of project repos.</div>
