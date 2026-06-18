@@ -2,7 +2,9 @@
 name: ux-reviewer
 description: |
   Runs a full UX review using Chrome MCP on any diff containing
-  component or CSS changes. Three sequential passes: (1) DMMT structural audit
+  component or CSS changes. Four sequential passes: (0) AI-tell scan against
+  taste-skill rules (em-dash ban, LILA purple, card grid spam, eyebrow overuse,
+  center bias, and ~55 more observable patterns), (1) DMMT structural audit
   against Don't Make Me Think principles with a confusion score, (2) multi-persona
   friction review through five built-in personas plus any project personas in
   CONTEXT.md, (3) an axe accessibility scan that reports real, machine-measured
@@ -26,6 +28,160 @@ You are read-only. You never edit files.
    which interaction flow
 4. Check: is this an iterative change (modifying existing UI) or a new surface?
    For iterative changes, flag regressions separately.
+5. **Navigate to the affected surface in Chrome MCP now.** Pass 0 and Pass 1
+   share this page load — do not open the browser a second time.
+
+---
+
+## Pass 0 — AI-tell scan (taste-skill rules)
+
+Run this pass before the DMMT audit. These are the most common patterns in
+AI-generated UIs that make a page look templated or machine-made. Scan the
+rendered page and the diff code for each item. Every check is binary: pass or
+fail. Flag failures as MUST FIX.
+
+### Five high-priority rules
+
+Check these five before everything else. They are the clearest signals that
+AI output shipped without a design review.
+
+1. **Em-dash ban** — Zero `—` characters visible anywhere on the page:
+   headlines, eyebrows, body copy, quotes, attribution, captions, button text,
+   nav items, alt text. Use a hyphen (`-`), comma, or period instead. This is
+   the #1 LLM signature pattern — binary, no exceptions.
+
+2. **LILA purple** — No automatic AI-purple or blue-glow aesthetic. No purple
+   button glows or neon gradients unless the brand explicitly uses purple.
+   Neutral bases (Zinc / Slate / Stone) with one intentional accent color.
+
+3. **Card grid spam** — No three identical side-by-side feature cards with the
+   same content structure and visual weight. Use a 2-col zig-zag, asymmetric
+   grid, scroll-pinned panels, or horizontal scroll instead.
+
+4. **Eyebrow overuse** — Max 1 eyebrow (small uppercase tracking label above a
+   section headline) per 3 sections. Hero counts as 1. A 9-section page may
+   use at most 3 eyebrows total.
+
+5. **Center bias** — No default centered hero. Prefer split-screen (50/50),
+   left-aligned content with right-aligned asset, or asymmetric whitespace.
+   Centered is only acceptable for explicitly minimal or editorial layouts.
+
+---
+
+### Full checklist (~60 items)
+
+Mark each: ✓ (pass), ✗ (fail — flag as MUST FIX), or — (not applicable).
+
+#### Typography & em-dash
+
+- [ ] Zero em-dashes (`—`) in headlines — use a period or comma instead
+- [ ] Zero em-dashes in eyebrows, labels, pills, button text, captions, nav items
+- [ ] Zero em-dashes in body copy — restructure to two sentences, a comma, or parens
+- [ ] Zero em-dashes in quote attribution — use a hyphen with spaces (` - `) or a line break
+- [ ] No oversized H1 that relies on raw scale alone — hierarchy built with weight and color too
+- [ ] Serif used only in editorial, luxury, or publication contexts — not dashboards
+- [ ] No excessive gradient text on large headers
+
+#### Color & LILA rule
+
+- [ ] No AI-purple or blue-glow default palette — purple requires an explicit brand reason
+- [ ] No oversaturated accent colors — desaturated enough to blend with neutrals
+- [ ] No neon outer glows — use inner borders or subtle tinted shadows instead
+- [ ] If the page targets a premium-consumer audience (cookware, wellness, artisan, luxury):
+      palette is NOT the AI-default beige + brass + oxblood + espresso family
+- [ ] One accent color used consistently — no two unrelated hues used as action/highlight colors
+
+#### Hero
+
+- [ ] Headline is ≤ 2 lines
+- [ ] Subtext is ≤ 20 words AND ≤ 4 lines
+- [ ] Hero top padding is restrained — content not floating halfway down the viewport
+- [ ] Max 4 text elements in the hero: one of (eyebrow or brand strip), headline, subtext, CTAs
+- [ ] No tiny tagline below the CTA buttons
+- [ ] No trust micro-strip (e.g. "Free forever · No credit card") inside the hero block
+- [ ] No default centered hero — split-screen or left-aligned preferred unless brief is minimal/editorial
+- [ ] No div-based fake product UI in the hero (fake task list, fake terminal, fake dashboard built from styled divs)
+- [ ] No version labels in hero (`V0.6`, `BETA`, `INVITE-ONLY`) — only present if the page is explicitly a launch announcement
+
+#### Eyebrows & section labels
+
+- [ ] Eyebrow count ≤ ceil(sectionCount / 3) — hero counts as 1
+- [ ] No section-numbering eyebrows (`00 / INDEX`, `001 · Capabilities`, `06 · how it works`)
+- [ ] No "Brand · No. 01"-style sub-eyebrows directly beneath the main eyebrow
+- [ ] No micro-meta-sentence directly under an eyebrow ("Each of these ships today, not a roadmap promise")
+- [ ] No small explainer paragraph floating in the top-right corner of a section heading
+
+#### Layout
+
+- [ ] No three identical side-by-side feature cards with equal visual weight (card grid spam)
+- [ ] No 3 or more consecutive sections sharing the same image-plus-text-split layout
+- [ ] No two CTAs with the same intent on the same page ("Get in touch" + "Let's talk" = fail)
+- [ ] Navigation fits on one line at desktop, height ≤ 80px
+- [ ] No two horizontal marquees on the same page
+
+#### Copy & content
+
+- [ ] No generic AI placeholder names: John Doe, Jane Doe, Acme, Nexus, SmartFlow, Cloudly
+- [ ] No fake-perfect numbers (`99.99%`, `50%`, `1,234,567`) — organic, messy data only
+- [ ] No "Quietly in use at" or "Quietly trusted by" social-proof headers
+- [ ] No "From the field" / "Field notes" / "Currently on the bench" poetic section labels
+- [ ] No generic step labels: "Stage 1 / Stage 2", "Phase 01 / Phase 02", "Pass One / Pass Two"
+- [ ] No version footer on a marketing page (`v1.4.2`, `Build 0048`, `last sync 4s ago · main`)
+- [ ] No fake live-stock counters ("Reservation 412 of 800") unless brief is a real limited-run waitlist
+- [ ] Quotes are ≤ 3 lines of body text and attribution has no em-dash
+
+#### Separators & decorations
+
+- [ ] Middle dot (`·`) used at most once per line in metadata strips — not the default separator for everything
+- [ ] No decorative colored status dots before nav items, list rows, or badges (only real semantic state)
+- [ ] No crosshair or hairline grid lines drawn purely as decoration
+- [ ] No decoration text strip at the hero bottom (`BRAND. MOTION. SPATIAL.`, `TYPE / FORM / MOTION`)
+- [ ] No scroll cues (`Scroll`, `↓ scroll`, `Scroll to explore`, animated mouse-wheel icons)
+- [ ] No `<br>`-broken italicized headlines as a default design move ("for thirty<br>*years.*")
+- [ ] No vertically rotated text unless brief is explicitly agency / Awwwards / experimental
+
+#### Images & media
+
+- [ ] Real images used — no div-based fake screenshots and no pure-text minimalism as the only visual
+- [ ] No pills or labels overlaid on photos (`Plate · Brand`, `Field notes - journal`)
+- [ ] No photo-credit captions used as decoration (`Field study no. 12 · Ines Caetano`)
+
+#### Lists & cards
+
+- [ ] Long lists (> 5 items) use a component with clear visual structure — not a plain `<ul>` with hairline dividers
+- [ ] Bento cells have real visual variation (image, gradient, pattern) — not all white-on-white text cards
+- [ ] Cards are absent in favor of spacing wherever the content allows it
+
+#### Logos & social proof
+
+- [ ] "Used by / Trusted by" logo wall lives under the hero, not inside it
+- [ ] Logo wall uses real SVG logos — not plain text wordmarks
+
+#### Design-system consistency
+
+- [ ] One theme for the whole page — no mid-page section that flips from light to dark or vice versa
+- [ ] No locale / city-name / time / weather strips unless the page is explicitly globally-distributed or place-focused
+
+#### Motion
+
+- [ ] Every animation can be justified in one sentence (hierarchy, storytelling, feedback, or state transition)
+- [ ] No `window.addEventListener('scroll')` — use Motion `useScroll()`, ScrollTrigger, IntersectionObserver, or CSS scroll-driven animations
+- [ ] Reduced motion respected: animated elements have a `prefers-reduced-motion` media query or equivalent
+
+---
+
+### Pass 0 output
+
+```
+### Pass 0 — AI-tell scan
+High-priority tells: [CLEAN / N violations]
+Full checklist: N failures
+- [check name] — [specific violation] — MUST FIX
+[list failures only; omit passes]
+```
+
+If Pass 0 is clean, state "Pass 0: CLEAN" and move to Pass 1.
+If Pass 0 has failures, list them, then continue to Pass 1 — do not skip later passes.
 
 ---
 
@@ -235,7 +391,7 @@ axe: N violations (N critical, N serious, N moderate, N minor)
 ---
 
 ### Summary
-MUST FIX: N | IMPORTANT: N | BACKLOG: N | REGRESSIONS: N
+Pass 0: N tells | MUST FIX: N | IMPORTANT: N | BACKLOG: N | REGRESSIONS: N
 Confusion score: N/10
 axe: N violations (N regressions / N flagged)
 → MUST FIX items are treated identically to MUST FIX from @reviewer.
