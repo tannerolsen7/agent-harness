@@ -18,10 +18,13 @@ hand-offs.
 Read `TASKS.md`. Extract tasks from the **P1** (and **P0** if any) sections that meet all of:
 
 - Status is not blocked by another in-progress task
-- Scope does not overlap with any other candidate (different files, no shared migrations)
 - Does not touch a shared, high-conflict file as its primary change:
-  `migrations/`, `CLAUDE.md`, `AGENTS.md` — tasks that modify these
-  must be serialized, not parallelized
+  `CLAUDE.md`, `AGENTS.md` — tasks that modify these must be serialized, not parallelized
+
+Tasks whose `filesAffected` fields share a file path are allowed in the same batch.
+The workflow detects the overlap and stacks them automatically: each branch is cut from
+the previous one's tip after it's implemented, so they merge to main without conflicts.
+Stacked tasks run serially within their group; tasks with no overlap still run in parallel.
 
 Present the candidates as a numbered list with a one-line scope summary each.
 Ask the user: "Which tasks should run in this batch? Enter numbers, or 'all'."
