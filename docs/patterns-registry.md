@@ -157,6 +157,32 @@ engineering advice.
 
 ---
 
+## cross-hook-session-state
+
+**What:** Pass state from a `SessionStart` hook to a `SessionStop` hook (or any two hook invocations in the same session) using a temp file keyed on `session_id`.
+
+**When to use:** When a `SessionStart` hook captures something — a timestamp, the model name, a snapshot — that a later hook in the same session needs to read back. The canonical use is session duration: start time is captured at start, stop time is read at stop, and the delta is written to the activity log.
+
+**When NOT to use:** Sharing state across sessions (different `session_id` values). Sharing large payloads (prefer a project-level state file). Use a `PreToolUse`→`PostToolUse` pair for per-tool state; the `session_id` temp file is for session-level lifecycle only.
+
+**The recipe:**
+1. **`SessionStart` hook (`.claude/hooks/session-start.sh`)** — Read stdin into a variable immediately. Stdin can only be consumed once, so this must be the first thing the hook does. Extract `session_id` and any data to carry forward. Write a temp file at `/tmp/claude-activity-${SESSION_ID}` with the data as a single line. Wrap the write in `2>/dev/null || true` so a write failure never blocks the session.
+2. **`SessionStop` hook (`.claude/hooks/session-stop.sh`)** — Add a subagent guard near the top: `AGENT_TYPE=$(printf '%s' "$INPUT" | jq -r '.agent_type // ""'); [ -n "$AGENT_TYPE" ] && exit 0`. This skips subagent stops — they share the parent's session but should not write their own lifecycle records. Read the temp file by matching `session_id`. Handle the missing-file case explicitly: use `null` (not `0`) for numeric fields that cannot be computed without the start data.
+3. **Protect the stop hook from failures** — Wrap writes inside a subshell with `(set -euo pipefail; ...) 2>&1 | sed 's/^/prefix: /' >&2 || true`. The `|| true` after the subshell ensures any failure inside is swallowed. The `sed` prefix makes error messages identifiable.
+4. **Tests (`tests/activity.test.sh`)** — Write a temp file manually before calling the stop hook in the test. Assert: file written, model field matches, skills deduplicated, duration positive. In a second test, omit the temp file and assert `duration_s: null`.
+
+**Golden exemplar:** `.claude/hooks/session-start.sh` (writes temp file) + `.claude/hooks/session-stop.sh` (reads it, writes record) + `tests/activity.test.sh` (end-to-end verification).
+
+**Established by:** feat/activity-dashboard. See [solution doc](./solutions/2026-06-18-cross-hook-state-via-temp-file.md).
+
+**Gotchas:**
+- Stdin in a `SessionStart` hook can only be consumed once. Always `_INPUT=$(cat)` as the very first line, before any `jq` calls. A `jq` call on a named input (`.session_id`) will silently get empty results if stdin was already consumed.
+- The temp file may be absent at stop time (session crashed before start hook ran, or `/tmp` was cleared). Never assume it exists. The missing-file path must produce a valid, spec-conformant record with `null` for unmeasurable fields.
+- The `agent_type` guard must appear BEFORE any output the hook produces — including handoff summaries. Subagent stops should produce nothing: no record, no handoff output.
+- Session activity files go to `.claude/activity/{branch-slug}.jsonl`. Commit the `.gitkeep` to ensure the directory is tracked; the JSONL files accumulate and can be committed on a schedule.
+
+---
+
 ## Entry format
 
 Copy this skeleton for each new recipe.
