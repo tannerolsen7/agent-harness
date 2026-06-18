@@ -76,6 +76,13 @@ file and you reset the loop's memory.
 **Locations:** scripts/gc.sh (Pass 2 NO_UPSTREAM, lines 35–41; active-worktree exclusion, lines 51–62)
 **Detail:** Two instances of the same class. (1) The Pass 2 no-upstream detection did not exclude main/master/develop — fixed by adding `grep -vE "^(main|master|develop)$"`. (2) It also did not exclude branches checked out in active worktrees — a freshly-created worktree branch (no commits yet) has its tip at the branch point, so `git merge-base --is-ancestor` returns true and it looks merged. Fixed by collecting `ACTIVE_WT_BRANCHES` from `git worktree list --porcelain` and filtering them from the NO_UPSTREAM candidate list with `grep -vFxf`. Both fixes use `-F` (fixed-string) and `-x` (full-line) to avoid regex metacharacter issues in branch names. Pattern: every new candidate-collection pass in gc.sh must explicitly enumerate and apply all exclusions from the existing pass.
 
+### no-signal-trap-in-mutation-runner
+**Signature:** A script that temporarily replaces a file (mutant swap) has no signal trap, leaving the original file in a mutated state if the script is interrupted mid-run.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** scripts/mutation-test.sh (run_against_mutation function)
+**Detail:** After cp mutant→orig and before cp backup→orig, a SIGINT leaves the original file as the mutant. A `trap` restoring from backup on INT/TERM/EXIT would prevent this. Not a correctness bug during normal operation, but a recovery hazard. Nice-to-have fix.
+
 ---
 
 ## Promoted
