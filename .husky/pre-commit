@@ -3,3 +3,21 @@
 # (The directive replaces the shebang as shellcheck's shell hint — without it shellcheck errors SC2148.)
 set -e
 npm run lint
+
+# Comment lint: block WHAT comments on staged shell and JS/TS files.
+# Only WHY comments belong in code — comments restating what code does become
+# stale noise as the code changes.
+STAGED_CODE=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(sh|js|ts|jsx|tsx)$' || true)
+if [ -n "$STAGED_CODE" ]; then
+  # shellcheck disable=SC2086
+  bash scripts/comment-lint.sh $STAGED_CODE
+fi
+
+# Data-state lint: check that every staged UI component handles all 6 states.
+# A component missing any state (empty, loading, error, no-data, some-data,
+# lots-of-data) will show a blank screen or crash when that state occurs.
+STAGED_COMPONENTS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(tsx|jsx)$' || true)
+if [ -n "$STAGED_COMPONENTS" ]; then
+  # shellcheck disable=SC2086
+  bash scripts/data-state-lint.sh $STAGED_COMPONENTS
+fi
