@@ -126,6 +126,7 @@ check_file() {
   [ -f "$abs_f" ] || return 0
 
   local lineno=0
+  local loc stripped check
   while IFS= read -r line; do
     lineno=$((lineno + 1))
     loc="$f:$lineno"
@@ -197,10 +198,9 @@ check_file() {
 # ── Absolute ban checks (run on full file content, not line-by-line) ───────
 check_bans() {
   local f="$1"
-  local abs_f
+  local abs_f content _gradient_ban _bl_check
   if [ -f "$ROOT/$f" ]; then abs_f="$ROOT/$f"; else abs_f="$f"; fi
   [ -f "$abs_f" ] || return 0
-  local content
   content=$(cat "$abs_f")
 
   # Ban 1: Gradient text (background-clip: text pattern)
