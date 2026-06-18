@@ -52,3 +52,13 @@
 - **Backlog mechanism research** — per-project target (Linear / Issues / file) + an aging/severity
   mechanism that prevents this list from building forever. Produces the durable replacement for
   this interim file.
+
+## [shard-testing-md] Slug derives from branch name (mutable identifier)
+
+The shard slug is derived from the branch name at the time `@spec-writer` runs. If a branch is renamed after a shard is created, the old shard filename stays and both appear in the assembled output. No dedup or rename detection exists.
+
+**Impact:** Low — branch renames are rare in practice. Both shards would assemble without error; a human would spot the duplicate section.
+
+**Possible fix:** Use a hand-chosen slug stored in the shard filename itself, or a task ID from TASKS.md, rather than deriving it from the live branch name.
+
+Source: /cr of feat/shard-testing-md — [P9] devil's advocate pass

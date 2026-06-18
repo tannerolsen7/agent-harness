@@ -171,9 +171,9 @@
   <div class="progress-banner">
     <div class="progress-label">53 PRs merged</div>
     <div class="progress-track"><div class="progress-fill" style="width:69%"></div></div>
-    <div class="progress-note">Step 0 + Phases 0&ndash;2 done &middot; Phase 3 in progress &middot; Phase 4 queued</div>
+    <div class="progress-note">Step 0 + Phases 0&ndash;3 done &middot; Phase 4 in progress</div>
   </div>
-  <div class="auto-update-status">Last auto-updated: June 18, 2026 at 5:29 AM · 53 PRs (no change)</div>
+  <div class="auto-update-status">Last auto-updated: June 18, 2026 at 6:24 AM · 53 PRs (no change)</div>
 
   <!-- ── DONE ── -->
   <div class="section-label">Done</div>
@@ -500,6 +500,27 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Progress page auto-updates on every session start</div>
+        <div class="card-desc">The <code>update-progress.sh</code> script runs automatically on SessionStart. It counts merged PRs from git, updates the date and progress bar, and writes a timestamped status line. Uses portable sed (BSD + GNU) and clears the inherited git environment so it works correctly from inside worktrees.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">/cr and PR open block merge-conflicted branches</div>
+        <div class="card-desc">/cr now checks for merge conflicts before starting the review. If the branch conflicts with the base, it stops immediately and tells you to resolve first. The PR open flow does the same check. Prevents wasted review cycles on branches that can't merge.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Phase 3 -->
   <div class="phase-label">Phase 3 — Quality systems</div>
 
@@ -513,6 +534,90 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Design synthesizer: one coherent design system from any sources</div>
+        <div class="card-desc">The @design-synthesizer agent takes 1–N design sources (refero files, described systems, or your own) and always produces one output: <code>docs/design/DESIGN.md</code>. A single source is normalized and written directly. Multiple sources are compared across 12 axes (color, typography, spacing, motion, etc.) — the agent asks you to resolve only the genuine conflicts, then synthesizes one system. Includes a validate script and test coverage for both paths.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">UI token lint and design-system enforcement</div>
+        <div class="card-desc">Every UI change is linted for hardcoded colors and spacing values — no raw hex, no px values outside a token reference. If a design system is missing, the linter says to run @design-synthesizer first instead of silently passing. Also bakes in 13 absolute bans from impeccable (gradient text, glassmorphism, identical card grids, etc.) as static checks. Wired into /cr and the pre-commit hook.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Performance budget with measured warnings</div>
+        <div class="card-desc">Core Web Vitals targets (LCP, CLS, FID) are defined per project in a config file. <code>scripts/perf-budget.sh</code> measures and logs them on each build. CI warns — but does not block — when a budget is breached. A breached budget never silently passes.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Mutation testing: verify tests by breaking the code</div>
+        <div class="card-desc"><code>scripts/mutation-test.sh</code> deletes and corrupts implementation code to confirm that tests actually fail when the code is wrong. Catches tests that pass vacuously regardless of the implementation. Uses a loop-until-dry pattern: keeps running until 2 consecutive rounds find no new survivors, guaranteeing saturation rather than a single random sample.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Comment lint + all 6 data states required</div>
+        <div class="card-desc">Two lint rules shipped together. (1) Comment lint: blocks "what" comments — the code already says what it does; only "why" comments (hidden constraints, workarounds, non-obvious invariants) are allowed. (2) Data state lint: every UI component must handle all 6 states: empty, loading, error, no data, some data, and lots of data. Both run as pre-commit hooks.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 4 -->
+  <div class="phase-label">Phase 4 — Fleet &amp; distribution</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">One-command install for new projects</div>
+        <div class="card-desc">Run <code>scripts/install.sh</code> once and the full harness lands in any repo. Delivers the install script, a sync/drift-detection script, a husky hook wiring script, and the <code>/init</code> skill for interactive CLAUDE.md setup. Template files (CLAUDE.md, PITFALLS.md, AGENTS.md, CONTEXT.md) are written on first install and never overwritten — project knowledge stays yours.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Install scripts hardened + pre-push hook fixed</div>
+        <div class="card-desc">A /cr pass on the install scripts surfaced two bugs: the scripts weren't guarded against common failure modes, and the pre-push hook was reading the branch name from HEAD instead of from the push ref-list (which breaks when HEAD is detached or when pushing a branch that isn't checked out). Both fixed.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">AI activity dashboard</div>
+        <div class="card-desc">Every session is now recorded: which commit, which model, which skills fired, how long it took. Records are written as flat files (git-native, no database required) and rendered into <code>harness-activity.html</code>. The dashboard makes the AI's work auditable and comparable across sessions over time.</div>
+      </div>
+    </div>
+  </div>
+
   <div class="spacer"></div>
 
   <!-- ── STEPS TO FINISH ── -->
@@ -520,75 +625,14 @@
 
   <div class="steps-block">
     <div class="steps-block-header">
-      <div class="count">14 remaining — 9 steps + 5 backlog</div>
-      <div class="note">Phases 3 &rarr; 4, then fleet</div>
-    </div>
-
-    <div class="steps-phase-label">Phase 1 — One item gated</div>
-
-    <div class="step-row">
-      <div class="step-num">1</div>
-      <div class="step-content">
-        <div class="step-title">Consolidate 9 review passes → 1 efficient pass</div>
-        <div class="step-desc">Right now /cr loads 9 separate agent contexts. Merge them into one pass plus a lint step. Keep splits only where recall measurably drops. Cannot start until the bug-catch suite logs ≥80 confirmed real defects — currently 13 seeded cases, needs real-world data to establish a reliable baseline.</div>
-        <div class="step-tags"><span class="step-tag gate">Gated on bug-catch baseline</span></div>
-      </div>
-    </div>
-
-    <div class="steps-phase-label">Phase 3 — Quality systems</div>
-
-    <div class="step-row">
-      <div class="step-num">2</div>
-      <div class="step-content">
-        <div class="step-title">UI token lint + design-system enforcement</div>
-        <div class="step-desc">Auto-install a design system if missing. Lint every UI change for token usage — no hardcoded colors or spacing. Gate review on design-system compliance.</div>
-      </div>
-    </div>
-
-    <div class="step-row">
-      <div class="step-num">3</div>
-      <div class="step-content">
-        <div class="step-title">Performance budget with measured warnings</div>
-        <div class="step-desc">Core Web Vitals targets defined per project. Measured and logged on each build. CI warns when a budget is breached — doesn't silently pass.</div>
-      </div>
-    </div>
-
-    <div class="step-row">
-      <div class="step-num">4</div>
-      <div class="step-content">
-        <div class="step-title">Mutation testing (verify tests by breaking the code)</div>
-        <div class="step-desc">Automatically deletes and corrupts implementation code to verify that tests actually fail when they should. Catches tests that pass vacuously.</div>
-      </div>
-    </div>
-
-    <div class="step-row">
-      <div class="step-num">5</div>
-      <div class="step-content">
-        <div class="step-title">Comments-earned lint + all 6 data states required</div>
-        <div class="step-desc">Lint blocks comments that describe "what" (the code already says that) — only "why" comments are allowed. Separately: every UI component must handle all 6 states (empty, loading, error, no data, some data, lots of data).</div>
-      </div>
+      <div class="count">8 remaining — 2 steps + 6 backlog</div>
+      <div class="note">Phase 4, then fleet</div>
     </div>
 
     <div class="steps-phase-label">Phase 4 — Fleet &amp; distribution</div>
 
     <div class="step-row">
-      <div class="step-num">6</div>
-      <div class="step-content">
-        <div class="step-title">One-command install for new projects</div>
-        <div class="step-desc"><code>/init</code> + <code>sync-harness.sh</code> — run once and the full harness is installed as a self-contained add-on into any repo, with no manual steps.</div>
-      </div>
-    </div>
-
-    <div class="step-row">
-      <div class="step-num">7</div>
-      <div class="step-content">
-        <div class="step-title">AI activity dashboard</div>
-        <div class="step-desc">Per-task record of every AI action: which commit, which model, which skills were used, how long it took. Makes the AI's work auditable and comparable over time.</div>
-      </div>
-    </div>
-
-    <div class="step-row">
-      <div class="step-num">8</div>
+      <div class="step-num">1</div>
       <div class="step-content">
         <div class="step-title">Audit CLAUDE.md rules → move to deterministic hooks</div>
         <div class="step-desc">Every rule that can be enforced mechanically (via a hook or lint script) should be — not just documented and hoped for. This pass converts as many CLAUDE.md rules as possible into actual enforcement.</div>
@@ -596,7 +640,7 @@
     </div>
 
     <div class="step-row">
-      <div class="step-num">9</div>
+      <div class="step-num">2</div>
       <div class="step-content">
         <div class="step-title">Sync harness to all 5 target repos</div>
         <div class="step-desc">Once the one-command installer works, roll the harness out to the full fleet of project repos.</div>
@@ -612,6 +656,15 @@
 
   <!-- ── BACKLOG ── -->
   <div class="section-label">Backlog</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-body">
+        <div class="card-title">Consolidate 9 review passes → 1 efficient pass <span style="font-size:11px;font-weight:600;background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:99px;margin-left:6px;">Gated</span></div>
+        <div class="card-desc">Merge /cr's 9 separate agent contexts into one pass plus a lint step. Keep splits only where recall measurably drops. Cannot start until the bug-catch suite logs ≥80 confirmed real defects — currently 13 seeded cases, so this needs real-world data before it can begin.</div>
+      </div>
+    </div>
+  </div>
 
   <div class="card">
     <div class="card-header">
