@@ -122,6 +122,41 @@ engineering advice.
 
 ---
 
+## managed-file-distribution
+
+**What:** Install a set of harness files into an arbitrary repo, record each file's sha and ownership policy in a manifest, and run three-way conflict detection on subsequent updates so project-owned customizations are never clobbered.
+
+**When to use:** A toolset (skills, scripts, hooks, config) lives in one repo and needs to land — and stay current — in many target repos. Some files the toolset owns forever; others are starter templates the project will edit. You need a safe update path without git submodules, without a package manager, and without requiring the target project to change its toolchain.
+
+**When NOT to use:** The toolset is a versioned library with a semver contract (use a package manager). The files are binary or generated (sha comparison produces spurious conflicts). The consuming repos are few and a git submodule or monorepo is practical. Automatic updates without human review are required (this pattern always asks a human to run `sync-harness.sh`).
+
+**The recipe:**
+1. **Installer (`scripts/install.sh`)** — Classify every file into one of two categories: `"copy"` (harness-owned, always updated on sync) or `"create-once"` (written from `docs/templates/` the first time only, then project-owned). Never touch category-3 (project-only) files — they simply don't appear in the manifest. Copy category-1 files, create category-2 from templates, then write `.claude/.harness-manifest.json` LAST. Writing the manifest last makes any interrupted install safe to re-run: no manifest = re-install everything. Use `mktemp` + `mv` for the write, not a direct redirect — atomic write prevents a half-written manifest from wedging sync on a mid-run kill. Guard against `HARNESS_SRC == TARGET_DIR` (would `cp` a file onto itself) and verify a sha tool exists before doing anything.
+2. **Manifest (`.claude/.harness-manifest.json`)** — Records `source`, `installed_at`, `synced_at`, and per-file `{ sha, policy }` entries. The sha is the anchor value for three-way comparison. The `source` field must be present; sync reads it to locate the harness; a missing field must be a hard error, not a fallback.
+3. **Sync (`scripts/sync-harness.sh`)** — For each `"copy"` file, compute `local_sha`, `old_sha` (manifest), `upstream_sha` (source). Apply the five-case decision table:
+   - `local == old AND local == upstream` → nothing to do
+   - `local == old AND local != upstream` → update from upstream
+   - `local != old AND local == upstream` → user edited to match; record local sha
+   - `local != old AND old == upstream` → user-only edit; leave it alone, record local sha
+   - `local != old AND old != upstream AND local != upstream` → CONFLICT, exit non-zero, leave file untouched, do NOT rewrite the manifest
+   For `"create-once"` files: if the file exists, skip; if it's gone, restore from the template. Use the same `mktemp` + `mv` pattern for the manifest rewrite; withhold the rewrite if any conflict exists.
+4. **Templates (`docs/templates/`)** — Create-once starters that install.sh copies to the target root on first install. Template paths are hardcoded in install.sh's `CREATE_ONCE` variable as `dest:source` pairs. If the dest exists, skip. If it's gone, sync restores it from the template.
+5. **Tests (`tests/install.test.sh`)** — Each test creates throwaway `mktemp -d` git repos (never the real harness tree). Unset `GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_PREFIX/GIT_COMMON_DIR/GIT_OBJECT_DIRECTORY/GIT_NAMESPACE` at the top — inherited env contaminates `git init` in temp dirs. Cover: conflict path, user-only-edit path, create-once skip, re-create-on-delete, and both hooks-script paths.
+6. **Hooks script (`scripts/install-harness-hooks.sh`)** — Separate from install.sh. Runs `npm install` and edits `package.json`. Users run this explicitly. Never call it from install.sh — keeping the installer side-effect-free lets CI re-run it safely.
+
+**Golden exemplar:** `scripts/install.sh` + `scripts/sync-harness.sh` + `tests/install.test.sh`.
+
+**Established by:** PR #72 (feat/one-command-install). See [solution doc](./solutions/2026-06-18-harness-file-install-and-sync.md).
+
+**Gotchas:**
+- The fourth decision-table case is the easy-to-miss one: `local != old AND old == upstream` means the user edited the file but upstream didn't change — it is NOT a conflict. Missing this case causes a false-positive conflict on any user customization and blocks sync. See [solution doc](./solutions/2026-06-18-harness-file-install-and-sync.md) for the full decision table.
+- `mktemp -p DIR` is not portable — BSD `mktemp` (macOS) does not support `-p`. Use `mktemp "$DIR/.file.XXXXXX"` instead.
+- The manifest must be written LAST by install.sh, and withheld entirely by sync when conflicts exist. Both invariants make re-run safe; breaking either causes partial installs that are hard to debug.
+- Name the env var used to skip npm in tests with a private prefix (e.g. `_HARNESS_SKIP_NPM`) rather than a plain name. An ambient `SKIP_NPM=1` in a shell session silently bypasses npm install in a real install.
+- Add `docs/solutions` to `COPY_DIRS` if the harness ships solution docs, OR remove references to `docs/solutions/` from the CLAUDE.md template. A template referencing a path the installer doesn't create produces a broken session start on every installed repo.
+
+---
+
 ## Entry format
 
 Copy this skeleton for each new recipe.

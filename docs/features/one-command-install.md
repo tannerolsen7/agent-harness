@@ -290,6 +290,10 @@ All six open questions from the initial design are resolved:
 - Notifying users when a create-once template has been updated upstream. They can compare
   manually against `docs/templates/` at any time.
 
+## Patterns established
+
+- [managed-file-distribution](../patterns-registry.md#managed-file-distribution) — install a shared file set into arbitrary repos with three-way conflict detection
+
 ## Relevant Files
 
 - [scripts/install-locks.sh](../../scripts/install-locks.sh) — existing install pattern; install.sh follows the same shape

@@ -214,3 +214,37 @@ cd .claude/worktrees/<slug>
 
 **Source:** `docs/solutions/2026-06-17-stash-during-rebase-corrupts-continue.md`
 **Regression gate:** Human-process rule — no automated check yet.
+
+---
+
+## Shell scripts — `mktemp -p DIR` is GNU-only; breaks silently on macOS
+
+**Area:** Shell scripts (`scripts/install.sh`, `scripts/sync-harness.sh`, any script that writes temp files)
+
+**Rule:** Never use `mktemp -p DIR`. Use `mktemp "DIR/file.XXXXXX"` instead — this form is portable across GNU (Linux) and BSD (macOS).
+
+**Why:** GNU `mktemp` accepts `-p DIRECTORY [TEMPLATE]` (two separate args). BSD `mktemp` does not support `-p` at all — it only accepts a positional template with the `XXXXXX` suffix. On macOS, `mktemp -p DIR` either fails with `unknown option -- p` or writes the temp file to the wrong location, and `set -euo pipefail` aborts the script mid-run. The breakage is on the primary dev platform (macOS), so it hits the first person to run the script locally.
+
+**Symptoms:** Script aborts with `mktemp: unknown option -- p` on macOS. Manifest is not written because `mktemp` failed before the write.
+
+**The fix:** Replace `mktemp -p "$DIR"` with `mktemp "$DIR/.file.XXXXXX"`.
+
+**Source:** PR #72 (feat/one-command-install), adversarial review pass finding [P10-assumption].
+**Regression gate:** Human review — run the script on macOS before merging any change to a `mktemp` call.
+
+---
+
+## File sync — omitting the "user-only edit" branch causes false-positive conflicts
+
+**Area:** Shell scripts that do three-way file comparison (`scripts/sync-harness.sh`)
+
+**Rule:** A three-way sha comparison (local vs. manifest/baseline vs. upstream) needs five cases, not four. The easy-to-miss case is: `local != old AND old == upstream`. This means the user edited the file but upstream did not change — it is NOT a conflict. Treat it as a user customization and leave the file alone.
+
+**Why:** Without the `old == upstream` case, the `else` branch fires for any local edit regardless of whether upstream actually changed. Every user customization to a harness-owned file permanently blocks sync with a false conflict. The user has no escape except hand-editing the manifest.
+
+**Symptoms:** Running sync after editing any harness-owned file reports CONFLICT even though the source file hasn't changed. The conflict message names the file correctly, but there is no conflicting upstream change.
+
+**The fix:** Add `elif [ "$old_sha" = "$upstream_sha" ]; then` before the conflict `else` branch. See `scripts/sync-harness.sh` for the canonical implementation.
+
+**Source:** PR #72 (feat/one-command-install); `docs/RECURRING-FINDINGS.md` entry `three-state-conflict-missing-user-only-branch`.
+**Regression gate:** `tests/install.test.sh` — "sync: conflict" test covers the real conflict path; a separate user-only-edit case should be added (currently tested implicitly by the re-run test).

@@ -123,6 +123,7 @@ CLEAN_REPO="$CLEAN_TMP/repo"; mkdir -p "$CLEAN_REPO"
 if [ "$clean_rc" -eq 0 ]; then pass=$((pass+1)); else echo "  MISS (clean pass): pr.sh rejected a clean (non-conflicting) branch"; fail=$((fail+1)); fi
 rm -rf "$CLEAN_TMP"
 
+
 echo "── merge conflict aborts before sentinel consumption ──"
 # A branch whose shared file diverged from origin/main (same line changed differently) must be
 # rejected BEFORE the sentinel is consumed, so the user can rebase and retry without re-running /cr.
