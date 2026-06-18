@@ -185,7 +185,7 @@ Instead: [what to do instead, if known]
 - Present the candidate to the human before writing it.
 
 If the slice test passes:
-- Add to `docs/TESTING.md` under tracer bullets
+- Add to `docs/testing/<slug>.md` under tracer bullets (or a shard for the spike topic)
 - Write filled `TASK-TEMPLATE.md` as a Tiny task referencing
   the passing test and the spike decision record
 

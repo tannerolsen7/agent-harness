@@ -106,8 +106,7 @@ Before forming any fix hypothesis:
 The failing test is the contract. It defines what "fixed" means.
 Nothing proceeds without it.
 
-Add the failing test to `docs/TESTING.md` under "Known gaps" with
-a note: `[BUG] confirmed failing — awaiting fix via /feature`.
+Add the failing test to `docs/testing/<slug>.md` under "Known gaps" (run `bash scripts/derive-slug.sh` to get the slug; do not write to `docs/TESTING.md` directly — that file is generated) with a note: `[BUG] confirmed failing — awaiting fix via /feature`.
 
 ---
 
@@ -174,7 +173,7 @@ STOP AND SURFACE: <any items that need human decision before fix proceeds>
 - Root cause confirmed (not hypothesized)
 - Failing test written and confirmed red for the right reason
 - TASK-TEMPLATE.md filled as Tiny task
-- TESTING.md updated with `[BUG]` entry under Known gaps
+- `docs/testing/<slug>.md` shard updated with `[BUG]` entry under Known gaps
 - PITFALLS.md checked — new entry proposed if this is a recurring trap
 - Final report delivered
 - Fix has NOT been written — /feature owns the fix

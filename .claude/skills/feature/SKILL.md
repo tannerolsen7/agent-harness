@@ -136,7 +136,8 @@ has signed off on the sheet, schema, and mockup.
    also invoke `/cr-security`.
 6. Run `npx tsc --noEmit` — must exit zero
 7. Commit with conventional commit format
-8. Report
+8. **Checklist** — spawn a fresh agent (not the one that wrote the code) to write `tests/manual-checklist.sh`. See [Manual checklist rule](#manual-checklist-rule) below.
+9. Report
 
 ---
 
@@ -163,7 +164,8 @@ has signed off on the sheet, schema, and mockup.
     - What alternatives did you reject, and why?
     - What are you least confident about?
 14. **Compound** — if non-obvious pattern introduced, invoke `/compound`
-15. **Report**
+15. **Checklist** — spawn a fresh agent (not the one that wrote the code) to write `tests/manual-checklist.sh`. See [Manual checklist rule](#manual-checklist-rule) below.
+16. **Report**
 
 ---
 
@@ -190,7 +192,8 @@ has signed off on the sheet, schema, and mockup.
 14. **Commit**
 15. **Compound questions**
 16. **Compound** — invoke `/compound` if non-obvious pattern introduced
-17. **Report**
+17. **Checklist** — spawn a fresh agent (not the one that wrote the code) to write `tests/manual-checklist.sh`. See [Manual checklist rule](#manual-checklist-rule) below.
+18. **Report**
 
 ---
 
@@ -208,17 +211,35 @@ has signed off on the sheet, schema, and mockup.
 
 ---
 
+## Manual checklist rule
+
+After every feature (all size tiers), spawn a **fresh agent** — not the one that wrote the code — to produce the manual verification output. The implementing agent must not write the checklist itself; it hands off context and waits.
+
+**What to pass the fresh agent:**
+- The git diff for the branch (`git diff main...HEAD`)
+- The confirmed behavior entries from `docs/testing/<slug>.md`
+- The path to any existing `tests/manual-checklist.sh` (so it can see the established style)
+
+**What the fresh agent produces:**
+- `tests/manual-checklist.sh` — a runnable shell script that checks every behavior it can check automatically. Each item should be one `ok`/`no` assertion (follow the style in any existing checklist). Only include checks that genuinely require running the code or inspecting file state; do not pad with trivial checks.
+- A short bulleted list (in its reply, not in the script) for anything it cannot automate — visual confirmation, subjective UX, external service calls, etc.
+
+**Do not commit the script.** It is a one-time verification artifact for the human to run after the feature lands, not a permanent test. If the project already has a permanent test suite entry for the behavior, the checklist item should still exist as a quick sanity check, but the source of truth is the test suite.
+
+---
+
 ## Final report format
 
 ```
 ## /feature complete
 Built: <one sentence>
 Size: <Tiny | Small | Medium | Large>
-Behaviors: <N confirmed behaviors added to docs/TESTING.md>
+Behaviors: <N confirmed behaviors added to docs/testing/<slug>.md>
 Tests: <N tests written, what they cover>
 Review: <cr: N must-fix auto-fixed>
 Commit: <hash and short message>
 Security tier: <ran | not required>
+Checklist: tests/manual-checklist.sh (run to verify); manual-only steps: <list or "None">
 Needs human: <list or "None">
 ```
 
@@ -233,6 +254,7 @@ Needs human: <list or "None">
 - `/simplify` has run
 - `/cr` clean (and `/cr-security` if security-sensitive code touched)
 - `npx tsc --noEmit` exits zero
+- `tests/manual-checklist.sh` written by a fresh agent (not the implementation agent); not committed
 - Final report delivered
 - If non-obvious pattern introduced: `/compound` has run
 - If feature changed a documented pattern: affected solution doc updated

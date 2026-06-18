@@ -78,7 +78,7 @@ reason — what production data or running system is needed.
 ## Step 4 — Determine next step
 
 **Passes:**
-- Add test to `docs/TESTING.md` under tracer bullets
+- Add test to `docs/testing/<slug>.md` under tracer bullets (or a shard for the spike topic)
 - Fill TASK-TEMPLATE.md as a Tiny task:
   - TASK: one sentence, what the feature makes true
   - SUCCESS CRITERIA: failing test now passes, no regressions

@@ -9,6 +9,7 @@ OUTPUT="$ROOT/docs/TESTING.md"
 SHARDS_DIR="$ROOT/docs/testing"
 
 mkdir -p "$(dirname "$OUTPUT")"
+TMP=$(mktemp "$OUTPUT.XXXX")
 {
   printf '<!-- generated — do not edit directly. Run scripts/assemble-testing.sh to regenerate. -->\n\n'
   printf '# TESTING — confirmed behaviors\n\n'
@@ -20,4 +21,4 @@ mkdir -p "$(dirname "$OUTPUT")"
     printf '\n---\n\n'
     cat "$f"
   done
-} > "$OUTPUT"
+} > "$TMP" && mv "$TMP" "$OUTPUT"
