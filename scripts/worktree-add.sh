@@ -42,16 +42,21 @@ fi
 TASK_SLUG=""
 case "$BRANCH" in feat/*) TASK_SLUG="${BRANCH#feat/}" ;; esac
 if [ -n "$TASK_SLUG" ] && [ -f "$REPO_ROOT/TASKS.md" ]; then
-  TASK_SLUG_LINE=$(grep -n "^  Slug: ${TASK_SLUG}$" "$REPO_ROOT/TASKS.md" | head -1 | cut -d: -f1) || true
+  TASK_SLUG_ESCAPED=$(printf '%s' "$TASK_SLUG" | sed 's/[.[\*^$]/\\&/g')
+  TASK_SLUG_LINE=$(grep -n "^  Slug: ${TASK_SLUG_ESCAPED}$" "$REPO_ROOT/TASKS.md" | head -1 | cut -d: -f1) || true
   if [ -n "$TASK_SLUG_LINE" ]; then
     # Walk back from the slug line to find the nearest preceding unchecked task header.
     TASK_HEADER_LINE=$(awk -v lim="$TASK_SLUG_LINE" \
       'NR <= lim && /^- \[ \]/ { last=NR } END { print last+0 }' "$REPO_ROOT/TASKS.md")
     if [ "${TASK_HEADER_LINE:-0}" -gt 0 ] 2>/dev/null; then
       TASK_TMP="$(mktemp)"
-      sed "${TASK_HEADER_LINE}s/^- \[ \]/- [~]/" "$REPO_ROOT/TASKS.md" > "$TASK_TMP" \
-        && mv "$TASK_TMP" "$REPO_ROOT/TASKS.md"
-      echo "worktree-add: marked '${TASK_SLUG}' as in-progress in TASKS.md"
+      trap 'rm -f "$TASK_TMP"' EXIT
+      if sed "${TASK_HEADER_LINE}s/^- \[ \]/- [~]/" "$REPO_ROOT/TASKS.md" > "$TASK_TMP" \
+          && mv "$TASK_TMP" "$REPO_ROOT/TASKS.md"; then
+        echo "worktree-add: marked '${TASK_SLUG}' as in-progress in TASKS.md"
+      else
+        echo "worktree-add: WARNING: could not update TASKS.md for '${TASK_SLUG}'" >&2
+      fi
     fi
   fi
 fi
