@@ -193,5 +193,6 @@ file and you reset the loop's memory.
 ## Promoted
 
 ### stale-comment-wrong-output-protocol
-**Promoted:** 2026-06-18 (Occurrences: 3)
+**Promoted:** 2026-06-18 (Occurrences: 3 → 4 post-promotion)
 **Entry:** PITFALLS.md → "Stale comments: describing code state that has since changed"
+**Post-promotion occurrences:** scripts/worktree-add.sh line 3 header comment (2026-06-18 — `Usage: <path> <branch>` not updated when `[base-ref]` was added; caught and fixed by /cr)

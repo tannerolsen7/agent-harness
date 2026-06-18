@@ -62,3 +62,21 @@ The shard slug is derived from the branch name at the time `@spec-writer` runs. 
 **Possible fix:** Use a hand-chosen slug stored in the shard filename itself, or a task ID from TASKS.md, rather than deriving it from the live branch name.
 
 Source: /cr of feat/shard-testing-md — [P9] devil's advocate pass
+
+## [queue-branch-stacking] Path normalization in parseFiles()
+
+`parseFiles()` in `queue-execute.js` splits `filesAffected` on commas and trims whitespace, but does no path normalization. Two tasks that both touch `src/foo.ts` but one lists it as `./src/foo.ts` are treated as non-overlapping and run in parallel — producing the exact merge conflict stacking was meant to prevent.
+
+**Impact:** Low in practice (paths from TASKS.md tend to be consistent), but a silent correctness failure when it does happen.
+
+**Fix:** Strip leading `./` and normalize separators in `parseFiles()` before inserting into the Set.
+
+Source: /cr of feat/queue-branch-stacking — [P10-abuse]
+
+## [queue-branch-stacking] Skipped stack-tail tasks missing from structured summary
+
+When a stacked group aborts mid-run (task A fails, tasks B and C never start), B and C produce no result objects. The log message names them, but the structured `summary` return value doesn't count them — `done + blocked` won't add up to `total`.
+
+**Fix:** Push skipped tasks with `status: 'skipped'` and add a `skipped` count to the return summary.
+
+Source: /cr of feat/queue-branch-stacking — [P10-cascade]

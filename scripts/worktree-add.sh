@@ -1,6 +1,6 @@
 #!/bin/sh
 # Create a git worktree, provision its env files, and assert the gate machinery is
-# live (worktree G1 — fail-closed). Usage: scripts/worktree-add.sh <path> <branch>
+# live (worktree G1 — fail-closed). Usage: scripts/worktree-add.sh <path> <branch> [base-ref]
 #
 # UNATTENDED=1 + a per-project local-env adapter (scripts/gen-local-env.sh):
 #   write local/ephemeral backend credentials, fail-closed (no prod fallback).
