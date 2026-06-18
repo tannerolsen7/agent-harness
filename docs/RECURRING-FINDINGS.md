@@ -64,10 +64,10 @@ file and you reset the loop's memory.
 
 ### new-detection-path-missing-branch-exclusions
 **Signature:** A new code path that collects branch candidates doesn't apply the same exclusion rules as the existing path for the same script.
-**Occurrences:** 1
+**Occurrences:** 2
 **Last seen:** 2026-06-17
-**Locations:** scripts/gc.sh (Pass 2 NO_UPSTREAM, lines 35–41)
-**Detail:** The Pass 2 no-upstream detection in gc.sh collected branches with no upstream but did not exclude main/master/develop. When gc runs from a feature branch worktree (normal during /queue), those protected branches are ancestors of HEAD, pass the merge-verify check, and would be deleted. Fixed by adding `grep -vE "^(main|master|develop)$"` to the NO_UPSTREAM pipeline, mirroring the same exclusion list already in block-dangerous-git.sh.
+**Locations:** scripts/gc.sh (Pass 2 NO_UPSTREAM, lines 35–41; active-worktree exclusion, lines 51–62)
+**Detail:** Two instances of the same class. (1) The Pass 2 no-upstream detection did not exclude main/master/develop — fixed by adding `grep -vE "^(main|master|develop)$"`. (2) It also did not exclude branches checked out in active worktrees — a freshly-created worktree branch (no commits yet) has its tip at the branch point, so `git merge-base --is-ancestor` returns true and it looks merged. Fixed by collecting `ACTIVE_WT_BRANCHES` from `git worktree list --porcelain` and filtering them from the NO_UPSTREAM candidate list with `grep -vFxf`. Both fixes use `-F` (fixed-string) and `-x` (full-line) to avoid regex metacharacter issues in branch names. Pattern: every new candidate-collection pass in gc.sh must explicitly enumerate and apply all exclusions from the existing pass.
 
 ---
 
