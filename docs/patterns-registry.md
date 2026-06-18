@@ -183,6 +183,37 @@ engineering advice.
 
 ---
 
+## per-file-merge-driver
+
+**What:** Add a per-file merge strategy to a shared doc file so that concurrent edits from multiple feature branches auto-resolve without human intervention.
+
+**When to use:** A file is touched by many branches at once, merge conflicts on it are always the same mechanical operation (keep both sides, or pick the higher value), and no merge should ever produce conflict markers in CI. Classic targets: append-only doc files, task-state files, and auto-regenerated files that should always keep the main-branch version.
+
+**When NOT to use:** Files where concurrent edits can be genuinely incompatible in ways that need human judgment — e.g. overlapping config changes, schema migrations. Do not use `merge=union` on any file whose fields drive automated logic: union keeps duplicate lines when two branches update the same field, so the field becomes ambiguous.
+
+**The recipe:**
+1. **`.gitattributes`** — add one line per file: `<glob> merge=<strategy>`. Three built-in strategies: `union` (keep all lines from both sides), `ours` (always keep current-branch version), or a custom name for a shell-script driver. Add a comment block explaining each choice.
+2. **`scripts/<driver-name>.sh`** (custom drivers only) — POSIX sh script that receives `$1=%O` (ancestor), `$2=%A` (output), `$3=%B` (other). Try `git merge-file "$CURRENT" "$ANCESTOR" "$OTHER"` first; if it exits 0, done. Otherwise awk over the conflict markers, resolve what the domain allows, leave the rest as markers, and set `bad=1`. Exit `$bad`. Guard the temp file: `TMP=$(mktemp); trap 'rm -f "$TMP"' EXIT`. Only move `$TMP` onto `$CURRENT` when awk exits 0 or 1 — any other code means awk failed and `$CURRENT` must not be overwritten.
+3. **`scripts/register-merge-drivers.sh`** — register every non-`union` strategy in `.git/config`. One `git config merge.<name>.driver "..."` line per driver. `merge=ours` requires `merge.ours.driver "true"`. Include a `git config merge.<name>.name "..."` line for human-readable `git log --merges` output.
+4. **`package.json`** `prepare` script — append `&& bash scripts/register-merge-drivers.sh` so `npm install` and `npm ci` both register the drivers on fresh clones and in CI. Without this step, `.gitattributes` is cloned but the registrations are not — git silently falls back to 3-way merge and produces conflict markers.
+5. **`tests/<driver-name>.test.sh`** — one test per behavior. Each test: `git init` a temp dir, copy `.gitattributes`, register both drivers with `git -C "$dir" config`, make three commits (base + two conflicting branches), run `git merge`, assert the result. Use `printf -- '- [x] ...\n'` (with `--`) in bash test scripts when the format string starts with `- `. Cover: each rank comparison, and the unresolvable-conflict path (verify both exit non-zero and markers present).
+
+**Golden exemplar:**
+- `.gitattributes` — four file rules
+- `scripts/tasks-merge-driver.sh` — the higher-state-wins custom driver
+- `scripts/register-merge-drivers.sh` — the registration script
+- `tests/gitattributes-merge-drivers.test.sh` — 24-case regression suite
+
+**Established by:** feat/gitattributes-merge-drivers (PR #TBD). See [solution doc](./solutions/2026-06-18-gitattributes-merge-drivers-for-shared-docs.md).
+
+**Gotchas:**
+- `merge=union` keeps ALL distinct lines from both sides. When two branches update the same counter field (e.g. `**Occurrences:** 2` vs. `**Occurrences:** 3`), union keeps BOTH lines — the file is not broken, but it now has two conflicting values for the same field. This is acceptable as a lower-bound approximation only if the field is human-read. If automated logic reads the field, use a custom driver instead.
+- Driver registration lives in `.git/config`, which is never committed or cloned. Always wire registration into `npm prepare`. A comment in `.gitattributes` saying "run these commands after cloning" is always missed.
+- In the awk script, anchor field reads to a fixed position: `substr(s, 3, 3)` reads the bracket at position 3. Do NOT use `index(s, "[x]")` — that matches `[x]` anywhere in the line, so a task whose description mentions `[x]` gets misranked.
+- In bash 3.2 (macOS default shell), `printf '- [x] ...'` fails: the builtin treats the leading `- ` as an option flag. Always use `printf -- '- [x] ...'` in test scripts. zsh (used by the Bash tool interactively) handles this correctly, so the bug is invisible until the test suite runs under bash. See PITFALLS.md § "bash 3.2 printf: leading dash in format string treated as option flag".
+
+---
+
 ## Entry format
 
 Copy this skeleton for each new recipe.
