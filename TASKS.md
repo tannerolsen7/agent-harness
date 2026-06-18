@@ -21,11 +21,11 @@ Phase 3 (Quality Systems) tasks are ready to queue. Phase 4 tasks are noted with
 
 ## P1 — Ready to Queue
 
-- [~] One-command install for new projects (@task-runner) (see .claude/questions.md)
+- [x] One-command install for new projects
   Size: LARGE
   Slug: one-command-install
   design: docs/features/one-command-install.md
-  Notes: Self-contained installer for any repo. Delivers: `scripts/install.sh` (copies harness files, writes manifest), `scripts/sync-harness.sh` (drift detection and update), `scripts/install-harness-hooks.sh` (husky/npm wiring, separate from install.sh), `/init` skill (interactive CLAUDE.md setup), and `docs/templates/` (CLAUDE.md + PITFALLS.md + AGENTS.md + CONTEXT.md starters with setup checklist at top). Three file categories: copy (harness always updates), create-once (template on first install, never touched again), never-installed (project knowledge — solutions, memory, TESTING.md). settings.json split: env block removed, project context moves to CLAUDE.md. See design doc for manifest format, drift algorithm, and full interface contract.
+  Notes: Self-contained installer for any repo. Delivers: `scripts/install.sh` (copies harness files, writes manifest), `scripts/sync-harness.sh` (drift detection and update), `scripts/install-harness-hooks.sh` (husky/npm wiring, separate from install.sh), `/init` skill (interactive CLAUDE.md setup), and `docs/templates/` (CLAUDE.md + PITFALLS.md + AGENTS.md + CONTEXT.md starters with setup checklist at top). Three file categories: copy (harness always updates), create-once (template on first install, never touched again), never-installed (project knowledge — solutions, memory, TESTING.md). settings.json split: env block removed, project context moves to CLAUDE.md. See design doc for manifest format, drift algorithm, and full interface contract. Merged: PR #72.
 
 - [~] Design system synthesizer
   Size: MEDIUM

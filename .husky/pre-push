@@ -9,6 +9,8 @@ set -e
 # Deletions have local-sha1 = 0000000000000000000000000000000000000000.
 PUSH_INPUT=$(cat)
 _ALL_DELETIONS=true
+BRANCH=""
+PUSH_SHA=""
 # Empty/unreadable stdin must NOT short-circuit to exit 0 — that would skip the whole gate.
 # Treat "no refs seen" as not-all-deletions so it falls through to the sentinel + test gate.
 [ -z "$PUSH_INPUT" ] && _ALL_DELETIONS=false
@@ -16,6 +18,10 @@ while IFS=' ' read -r _lref _lsha _rref _rsha; do
   [ -z "$_lsha" ] && continue
   if [ "$_lsha" != "0000000000000000000000000000000000000000" ]; then
     _ALL_DELETIONS=false
+    # Capture branch and SHA from the first non-deletion ref so the sentinel check
+    # uses the branch being pushed, not the branch HEAD currently points to.
+    BRANCH=$(printf '%s' "$_lref" | sed 's|^refs/heads/||')
+    PUSH_SHA="$_lsha"
     break
   fi
 done <<EOF
@@ -25,7 +31,12 @@ if $_ALL_DELETIONS; then
   exit 0
 fi
 
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
+# Fail closed if stdin parsing produced no branch (unexpected input format).
+# In a real git push, BRANCH is always populated by the loop above.
+if [ -z "$BRANCH" ]; then
+  echo "Push blocked: could not read branch from push refs — unexpected stdin format." >&2
+  exit 1
+fi
 
 # Block pushes to branches whose PR is already merged — new commits need a new branch.
 if command -v gh >/dev/null 2>&1 && [ "$BRANCH" != "HEAD" ]; then
@@ -58,9 +69,8 @@ else
     exit 1
   fi
 
-  SHA=$(git rev-parse HEAD)
   SENTINEL_CR=".claude/.cr-ok"
-  EXPECTED="${BRANCH}:${SHA}"
+  EXPECTED="${BRANCH}:${PUSH_SHA}"
 
   if [ ! -f "$SENTINEL_CR" ]; then
     echo "Push blocked: .cr-ok not found. Run /cr before pushing." >&2

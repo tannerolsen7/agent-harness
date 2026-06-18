@@ -58,6 +58,24 @@ auto-updated" line so you can tell at a glance that it ran and what changed.
 
 ---
 
+## Pre-push hook (`.husky/pre-push`) — branch from push ref-list
+
+The pre-push hook validates a `.cr-ok` sentinel before any non-interactive push is
+allowed. The sentinel records `branch:sha` — the branch and commit that `/cr` ran on.
+The hook must read the branch being pushed from git's stdin ref-list, not from `HEAD`,
+so that pushing a branch from a worktree not checked out on that branch still checks
+the right sentinel.
+
+### Confirmed behaviors
+
+- **Branch name comes from push ref-list, not HEAD:** When git calls the hook with
+  `refs/heads/feat/x` in stdin and `HEAD` points to a different branch, the hook
+  validates the sentinel for `feat/x`, not for the HEAD branch. A sentinel written
+  for `feat/x:SHA_feat_x` allows the push; a sentinel written for a different branch
+  blocks it.
+
+---
+
 ## PR opener (`scripts/pr.sh`) — merge conflict check
 
 `pr.sh` verifies the branch merges cleanly into the remote base branch before
