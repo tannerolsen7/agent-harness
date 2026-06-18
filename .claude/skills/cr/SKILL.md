@@ -28,9 +28,11 @@ description: |
 ## Pre-flight — Merge readiness
 
 Before running any review passes, verify the branch merges cleanly into the remote
-base branch. A branch with merge conflicts cannot be reviewed meaningfully — the
-conflicts must be resolved first. **If conflicts are detected, stop here. Do not run
-any passes. Do not write the sentinel.**
+base branch. The sentinel certifies a specific sha. If conflicts exist, what
+actually merges will differ from what was reviewed — the certificate would be for
+a sha that never ships. Resolve conflicts first so the review and the merge cover
+the same code. **If conflicts are detected, stop here. Do not run any passes. Do
+not write the sentinel.**
 
 1. **Detect the base branch** (network call; `2>/dev/null` handles offline gracefully):
    ```bash
