@@ -74,8 +74,13 @@ Before writing any spec, test, or code, create an isolated git worktree for this
 feature. Working in the main worktree risks branch conflicts with concurrent workflow
 agents and background hooks that may switch the main worktree's branch mid-session.
 
+Determine the slug for this task from its name — lower-case, hyphens instead of
+spaces, e.g. `rate-limiter` for a feature called "Add Rate Limiter". If you are
+already on `feat/<slug>`, `bash scripts/derive-slug.sh` reads it from the branch.
+Otherwise, set it directly from the task name.
+
 ```sh
-SLUG=$(bash scripts/derive-slug.sh)
+SLUG=<slug>   # e.g. "rate-limiter" — not "main" or the name of another branch
 bash scripts/worktree-add.sh .claude/worktrees/"$SLUG" feat/"$SLUG"
 ```
 
