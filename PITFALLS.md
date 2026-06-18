@@ -1,6 +1,6 @@
 <!-- context-meta
 owner: tanner
-last-reviewed: 2026-06-17
+last-reviewed: 2026-06-18
 review-frequency: on-merge
 drift-signals:
   - an entry was fixed by a newer solution and no longer applies
@@ -11,6 +11,20 @@ drift-signals:
 
 Known traps in this codebase. Each entry is a real incident, not a speculation.
 Check this file before any `/cr` pass. If you see a pattern here in a diff, flag it MUST FIX.
+
+---
+
+## Stale comments: written for a state that has since changed
+
+**Area:** Any shell script, test file, or skill doc with inline comments or header explanations
+
+**Rule:** Comments that describe prerequisites ("run X first"), expected output format, or current behavior must be updated whenever the code they describe changes. A stale comment is not cosmetic — it actively misleads the next reader into doing the wrong thing.
+
+**Why:** This pattern appeared three times in three PRs before being promoted: an awk comment describing the wrong column names, a skill doc claiming a command makes no network call when it does, and a test header telling readers to manually apply a diff that was already committed in the same PR. In each case the comment was accurate when written and wrong when read.
+
+**Symptoms:** A reader follows a comment's instructions and gets an unexpected result, then goes back to the code to find the comment was describing an older state.
+
+**The check:** Before committing, read every comment in files you changed and ask: does this comment describe the current behavior? Instructions to "run X first" or "apply Y before using" are especially likely to go stale when the dependency is eliminated by the same commit.
 
 ---
 
