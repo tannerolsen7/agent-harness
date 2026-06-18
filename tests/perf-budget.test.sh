@@ -3,7 +3,7 @@
 #
 # Covers:
 #   pass path  — all metrics under budget: exits 0, prints "pass" lines, no "WARN"
-#   warn path  — one metric over budget: exits 0 still (non-blocking), prints "WARN" for that metric
+#   warn path  — one metric over budget: exits 1 (non-zero), prints "WARN" for that metric
 #   config     — a project config file overrides the defaults
 #   fallback   — curl fallback (no lighthouse) exits 0 and prints results
 set -u
@@ -33,7 +33,7 @@ run_with_lighthouse() {
   # Write a shell script that outputs just enough JSON for perf-budget.sh's grep.
   cat >"$fake_bin/lighthouse" <<EOFLH
 #!/usr/bin/env sh
-printf '{"largest-contentful-paint":{"numericValue":%s},"cumulative-layout-shift":{"numericValue":%s},"max-potential-fid":{"numericValue":%s}}' \
+printf '{"largest-contentful-paint":{"numericValue":%s},"cumulative-layout-shift":{"numericValue":%s},"experimental_interaction-to-next-paint":{"numericValue":%s}}' \
   "$lcp" "$cls" "$fid"
 EOFLH
   chmod +x "$fake_bin/lighthouse"
@@ -78,27 +78,27 @@ printf '%s\n' "$out" | grep -q "pass CLS" \
   && ok \
   || no "pass path: expected 'pass CLS' in output"
 
-printf '%s\n' "$out" | grep -q "pass FID" \
+printf '%s\n' "$out" | grep -q "pass INP" \
   && ok \
-  || no "pass path: expected 'pass FID' in output"
+  || no "pass path: expected 'pass INP' in output"
 
 printf '%s\n' "$out" | grep -q "OK" \
   && ok \
   || no "pass path: expected 'OK' summary line in output"
 
-printf '%s\n' "$out" | grep -qv "WARN" \
+! printf '%s\n' "$out" | grep -q "WARN" \
   && ok \
   || no "pass path: unexpected 'WARN' in output when all metrics are within budget"
 
 # ── warn path: LCP over budget ────────────────────────────────────────────────
-# Even with a breach, the script must exit 0 (non-blocking).
+# A breach exits 1; ci-verify.sh uses || to make it non-blocking in CI.
 
 out=$(run_with_lighthouse 3500 0.05 60)
 rc=$?
 
-[ "$rc" -eq 0 ] \
+[ "$rc" -eq 1 ] \
   && ok \
-  || no "warn path: exit code $rc (want 0 even on breach)"
+  || no "warn path: exit code $rc (want 1 on breach)"
 
 printf '%s\n' "$out" | grep -q "WARN LCP" \
   && ok \
@@ -108,7 +108,7 @@ printf '%s\n' "$out" | grep -q "pass CLS" \
   && ok \
   || no "warn path: CLS should still pass when only LCP is over budget"
 
-printf '%s\n' "$out" | grep -q "pass FID" \
+printf '%s\n' "$out" | grep -q "pass INP" \
   && ok \
   || no "warn path: FID should still pass when only LCP is over budget"
 
@@ -130,16 +130,16 @@ local_fake="$TMP/fake-lh-cfg"
 mkdir -p "$local_fake"
 cat >"$local_fake/lighthouse" <<EOFLHCFG
 #!/usr/bin/env sh
-printf '{"largest-contentful-paint":{"numericValue":1200},"cumulative-layout-shift":{"numericValue":0.05},"max-potential-fid":{"numericValue":60}}'
+printf '{"largest-contentful-paint":{"numericValue":1200},"cumulative-layout-shift":{"numericValue":0.05},"experimental_interaction-to-next-paint":{"numericValue":60}}'
 EOFLHCFG
 chmod +x "$local_fake/lighthouse"
 
 out=$(PATH="$local_fake:$PATH" bash "$SCRIPT" --url "http://fake.test" --config "$CONFIG" 2>&1)
 rc=$?
 
-[ "$rc" -eq 0 ] \
+[ "$rc" -eq 1 ] \
   && ok \
-  || no "config: exit code $rc (want 0)"
+  || no "config: exit code $rc (want 1 — LCP breaches the 1000ms custom budget)"
 
 printf '%s\n' "$out" | grep -q "WARN LCP" \
   && ok \
@@ -154,14 +154,14 @@ rc=$?
   && ok \
   || no "curl fallback: exit code $rc (want 0)"
 
-# CLS and FID are 0 in curl mode — they pass automatically.
+# CLS and INP are 0 in curl mode — they pass automatically.
 printf '%s\n' "$out" | grep -q "pass CLS" \
   && ok \
   || no "curl fallback: expected 'pass CLS: 0' (not measurable, defaults to 0)"
 
-printf '%s\n' "$out" | grep -q "pass FID" \
+printf '%s\n' "$out" | grep -q "pass INP" \
   && ok \
-  || no "curl fallback: expected 'pass FID: 0' (not measurable, defaults to 0)"
+  || no "curl fallback: expected 'pass INP: 0' (not measurable, defaults to 0)"
 
 # LCP in curl mode = 1500ms (1.5 s * 1000), within the 2500ms default budget.
 printf '%s\n' "$out" | grep -q "pass LCP" \
