@@ -48,6 +48,25 @@ if command -v gh >/dev/null 2>&1 && [ "$BRANCH" != "HEAD" ]; then
   fi
 fi
 
+# Sync gate — block push if branch is behind origin's default branch.
+# Skips main/master/HEAD (they're merge targets, not feature branches).
+case "$BRANCH" in
+  main|master|HEAD|"") ;;
+  *)
+    _REF=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null)
+    _MAIN="${_REF##*/}"
+    _MAIN="${_MAIN:-main}"
+    if git fetch origin "$_MAIN" --quiet 2>/dev/null; then
+      _BEHIND=$(git rev-list --count "HEAD..origin/$_MAIN" 2>/dev/null || echo 0)
+      if [ "$_BEHIND" -gt 0 ]; then
+        printf "Push blocked: '%s' is %s commit(s) behind origin/%s.\n" "$BRANCH" "$_BEHIND" "$_MAIN" >&2
+        printf "Sync first:   git rebase origin/%s\n" "$_MAIN" >&2
+        exit 1
+      fi
+    fi
+    ;;
+esac
+
 # git pipes the push ref-list to stdin, so `[ -t 0 ]` is ALWAYS false in a pre-push hook —
 # it would treat a human push like an automated one. Detect a human by whether a controlling
 # terminal is reachable (/dev/tty); the agent's non-interactive Bash has none, so it takes the

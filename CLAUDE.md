@@ -28,3 +28,20 @@ These rules are mandatory — follow them before writing or moving any code.
 **Refactor** (moving, splitting, extracting, or renaming code without changing behavior) → invoke `/refactor` first. Don't hand-edit a structural move.
 
 **New or changed behavior** (a new feature, an update to how something works, a new function, or any step that changes what the system does) → invoke `/feature` first. `/feature` runs TDD for you — don't skip it and write the code directly.
+
+# Mechanical enforcement
+
+These rules are enforced by hooks or scripts — violations stop the action automatically.
+
+| Rule | Where enforced |
+|------|----------------|
+| Commit messages must follow conventional commit format (`type(scope)?: description`) | `.husky/commit-msg` → `scripts/commit-msg-lint.sh` |
+| Feature branches must not be ahead of `origin/main` at push time | `.husky/pre-push` sync gate |
+| Design must be confirmed before coding | `.claude/.design-confirmed` sentinel, checked by `/feature` |
+| Code review must pass before pushing | `.claude/.cr-ok` sentinel, checked by `.husky/pre-push` |
+| Staged code must pass lint, comment-lint, and token-lint | `.husky/pre-commit` |
+
+These rules are guidance only — no hook can enforce them automatically:
+
+- **Communication voice** (9th-grade reading level, plain language) — judgment call; no linter catches bad prose.
+- **`/refactor` before structural moves** — no reliable way to detect a structural move from a diff alone.
