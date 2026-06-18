@@ -141,6 +141,23 @@ Use `-Fx` (fixed-string, full-line) — branch names with dots or brackets in th
 
 ---
 
+## Design contracts committed to task branches disappear in the next session
+
+**Area:** Cross-session design workflow
+
+**Rule:** Always commit a design contract (`docs/features/<slug>.md`) on the same branch where `TASKS.md` references it under `design:`. If you write the contract on a separate branch (e.g. a task-specific feature branch), the next session opening on a different branch won't find the file — Read tools, Edit tools, and Bash `ls` will all report it missing.
+
+**Why:** Each branch has its own working tree. A file committed only on `feat/foo` does not exist when the shell is on `feat/bar`. This burned a full session: the design contract was committed on `feat/progress-in-progress-view`, the next session opened on `feat/merge-conflict-detection`, and every tool call that tried to find `docs/features/one-command-install.md` failed. Half the session went to diagnosing why the file existed in some contexts (git show, git log) but not others (Read, Bash ls with absolute path, Edit).
+
+**Symptoms:** `File does not exist` from the Read tool on a path that `git log --all` confirms was committed; Edit tool failing with "file does not exist" before the Write tool works; `ls` returning empty for a directory that `git show <branch>:<path>` returns content for.
+
+**The fix:** Either (a) commit the design artifact directly on the working branch that holds the `TASKS.md` entry, or (b) merge the design branch to the working branch before adding the `design:` reference to `TASKS.md`. The `design:` field is only useful if the file is reachable on the branch where the task will be queued.
+
+**Source:** Session 2026-06-17 (design contract for one-command-install, feat/progress-in-progress-view vs feat/merge-conflict-detection).
+**Regression gate:** The `design:` field in `TASKS.md` is checked by `/queue` preflight — if the file doesn't exist on the current branch, the task is rejected before any agent work begins.
+
+---
+
 ## Feature work in the main worktree races against background processes
 
 **Area:** Git operations during feature development
@@ -160,4 +177,40 @@ cd .claude/worktrees/<slug>
 ```
 
 **Source:** Session 2026-06-17 (feat/progress-in-progress-view); root cause identified after repeated ref-lock failures and sentinel mismatches caused by concurrent `wf_*` workflow agents.
+**Regression gate:** Human-process rule — no automated check yet.
+
+---
+
+## Workflow `isolation: 'worktree'` commits to `agent/*` branches, not your `feat/*` branches
+
+**Area:** Queue workflows (`.claude/workflows/*.js`)
+
+**Rule:** Never pass `isolation: 'worktree'` to an agent call and expect its commits to land on a pre-created `feat/*` branch. `isolation: 'worktree'` always creates a new `agent/wf_<run-id>-<seq>` branch. The branch name in the agent prompt is prompt text — git never sees it.
+
+**Why:** `isolation: 'worktree'` is a concurrency safety mechanism. It creates an isolated sandbox so parallel agents don't step on each other's files. That sandbox is a fresh worktree on a fresh branch, named by the workflow runtime. Any pre-created `feat/*` branches remain untouched.
+
+**Symptoms:** Setup phase creates `feat/perf-budget`. Execute phase returns `Branch: agent/wf_...-7`. Push phase pushes `feat/perf-budget`, finds it at the same SHA as main, and `gh pr create` fails with "no commits between head branch and base branch."
+
+**The fix:** Choose one approach and stick to it:
+- **No isolation:** Drop `isolation: 'worktree'`. Pass the pre-created worktree path in the agent prompt. The agent commits to the branch that worktree is already on.
+- **With isolation:** Accept `agent/*` branches. Parse the actual branch from the agent's return value and push that in the Push phase. Delete the pre-created `feat/*` branches — they will be empty.
+
+**Source:** `docs/solutions/2026-06-17-workflow-isolation-worktree-branch-naming.md`
+**Regression gate:** Human-process rule — no automated check yet.
+
+---
+
+## `git stash` during a rebase conflict corrupts `--continue` state
+
+**Area:** Git operations (rebase + stash interaction)
+
+**Rule:** Never run `git stash` while in a rebase conflict state. Once stashed and popped, `git rebase --continue` will refuse with "You must edit all merge conflicts" even when `git ls-files -u` is empty and all conflict files look resolved.
+
+**Why:** `git stash` snapshots the index and clears it. When `git stash pop` restores files, it writes to the working tree but does not reconstruct the exact index entries rebase was tracking (stage 1/2/3 unmerged markers). The rebase ledger is now out of sync — it still records unresolved paths that no longer exist as unmerged entries.
+
+**Symptoms:** `git rebase --continue` loops with "You must edit all merge conflicts and then mark them as resolved using git add." `git ls-files -u` returns nothing. `git add` on every modified file makes no difference. The error persists.
+
+**The fix:** `git rebase --abort` and use `git merge origin/main` instead. Merge commits are safe here — the sentinel and pre-push hook do not distinguish merge commits from regular commits.
+
+**Source:** `docs/solutions/2026-06-17-stash-during-rebase-corrupts-continue.md`
 **Regression gate:** Human-process rule — no automated check yet.
