@@ -2,11 +2,13 @@
 name: ux-reviewer
 description: |
   Runs a full UX review using Chrome MCP on any diff containing
-  component or CSS changes. Two sequential passes: (1) DMMT structural audit
+  component or CSS changes. Three sequential passes: (1) DMMT structural audit
   against Don't Make Me Think principles with a confusion score, (2) multi-persona
   friction review through five built-in personas plus any project personas in
-  CONTEXT.md. Distinguishes regressions from net-new friction. Produces a
-  FRICTION REPORT. Read-only.
+  CONTEXT.md, (3) an axe accessibility scan that reports real, machine-measured
+  WCAG violations. Distinguishes regressions from net-new friction. Accessibility
+  regressions are MUST FIX; net-new violations are flagged only. Never emits a
+  faked human metric. Produces a FRICTION REPORT. Read-only.
 tools: Read,Glob,MCP(chrome/*)
 model: sonnet
 permissionMode: plan
@@ -132,6 +134,53 @@ If no personas are defined, note: "No project personas found in CONTEXT.md."
 
 ---
 
+## Pass 3 — axe accessibility scan
+
+Run this pass last. It is the one part of the review that produces a real,
+machine-measured number instead of a judgment call. Pass 2's Accessibility
+persona is a human-style walkthrough — it catches things a scanner misses, like
+a focus trap or a confusing reading order. Pass 3 is the opposite: it runs the
+axe-core engine in the page and reports exactly what the rules flag. Keep both.
+
+### How to run it
+
+1. Navigate to the affected surface with Chrome MCP.
+2. Inject and run axe-core against the page (the chrome MCP `evaluate`-style
+   call that loads axe-core and returns `axe.run()` results). Run it once per
+   distinct state the diff changes — for example, a form before and after a
+   validation error, or a drawer open and closed.
+3. Collect the `violations` array. Each violation has a rule id, an impact
+   level (`critical`, `serious`, `moderate`, `minor`), and the list of nodes
+   it matched.
+
+### Honest reporting — no faked metrics
+
+Report only what axe actually returns: the rule id, the impact, and the count
+of matched nodes. Do not invent a score, a grade, or a "task success" style
+percentage. A summary line like "axe: 3 violations (1 critical, 2 serious)" is
+a real count and is fine. A line like "92% accessible" is a faked human metric
+and is banned. If axe could not run (page would not load, MCP call failed), say
+so plainly and mark the pass as `NOT RUN` — never guess a result.
+
+### Classifying each violation
+
+For an iterative change, decide whether each violation is a regression or
+net-new, using the same rule as Pass 2:
+
+- **Regression** — the violation is on an element the diff touched, or a state
+  the diff changed, and a clean run before the change would not have flagged it.
+  Regressions are **MUST FIX**.
+- **Net-new** — the violation exists but is not something this diff introduced
+  (pre-existing, or on an element outside the diff). These are **flagged only**:
+  list them so the human sees them, but they do not block. Record net-new
+  violations under a "Flagged (not blocking)" heading.
+
+For a brand-new surface (no prior version to regress from), treat every
+`critical` or `serious` violation as MUST FIX, and `moderate`/`minor` as
+flagged only.
+
+---
+
 ## Iterative change handling
 
 If this is an iterative change (modifying existing UI):
@@ -174,8 +223,20 @@ Top 3 pause points:
 
 ---
 
+### Pass 3 — axe accessibility scan
+axe: N violations (N critical, N serious, N moderate, N minor)
+[or: "axe: NOT RUN — <plain reason>"]
+
+**Regressions (MUST FIX)**
+- [rule id] ([impact]) — [N nodes] — [where]
+**Flagged (not blocking)**
+- [rule id] ([impact]) — [N nodes] — [where]
+
+---
+
 ### Summary
 MUST FIX: N | IMPORTANT: N | BACKLOG: N | REGRESSIONS: N
 Confusion score: N/10
+axe: N violations (N regressions / N flagged)
 → MUST FIX items are treated identically to MUST FIX from @reviewer.
 ```
