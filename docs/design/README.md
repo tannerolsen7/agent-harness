@@ -36,4 +36,4 @@ Run this to check that `DESIGN.md` has all required content sections:
 cd <repo-root> && bash scripts/design-system-validate.sh docs/design/DESIGN.md
 ```
 
-This script exits non-zero and names any missing section. It is called automatically by `token-lint` as a pre-flight check.
+This script exits non-zero and names any missing section.
