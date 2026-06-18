@@ -99,6 +99,51 @@ slug=$(derive_slug "feat/auth/login-v2")
 [ "$slug" = "auth-login-v2" ] \
   && ok || no "feat/auth/login-v2 should produce auth-login-v2 (got $slug)"
 
+# ── Path 4: pre-commit hook auto-stages assembled file ───────────────────────
+
+echo "── pre-commit hook: runs assemble-testing.sh and stages docs/TESTING.md ──"
+D=$(mktemp -d)
+(
+  cd "$D" || exit 1
+  unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
+  git init -q
+  git config user.email t@example.com; git config user.name tester
+  git commit -q --allow-empty --no-verify -m init
+
+  mkdir -p docs/testing scripts
+  cp "$ROOT/scripts/assemble-testing.sh" scripts/assemble-testing.sh
+
+  cat > docs/testing/my-feature.md << 'SHARD'
+## My feature
+
+### Confirmed behaviors
+
+- **My behavior:** A behavior.
+SHARD
+
+  git add docs/testing/my-feature.md
+
+  # Run just the shard-detection logic from the pre-commit hook.
+  STAGED_SHARDS=$(git diff --cached --name-only --diff-filter=ACM | grep "^docs/testing/" || true)
+  if [ -n "$STAGED_SHARDS" ]; then
+    bash scripts/assemble-testing.sh
+    git add docs/TESTING.md
+  fi
+
+  git diff --cached --name-only | grep -q "^docs/TESTING.md$" && echo "staged" || echo "not-staged"
+) > "$D/result.txt" 2>/dev/null
+
+result=$(cat "$D/result.txt" 2>/dev/null || echo "not-staged")
+[ "$result" = "staged" ] \
+  && ok || no "docs/TESTING.md should be auto-staged when a shard file is staged (got: $result)"
+rm -rf "$D"
+
+# Structural guard: the pre-commit hook must call assemble-testing.sh and git add docs/TESTING.md.
+grep -q "assemble-testing.sh" "$ROOT/.husky/pre-commit" 2>/dev/null \
+  && ok || no "pre-commit hook must call assemble-testing.sh"
+grep -q "git add docs/TESTING.md" "$ROOT/.husky/pre-commit" 2>/dev/null \
+  && ok || no "pre-commit hook must stage docs/TESTING.md after assembling"
+
 echo ""
 printf 'assemble-testing: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
