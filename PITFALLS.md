@@ -262,3 +262,37 @@ cd .claude/worktrees/<slug>
 
 **Source:** PR #72 (feat/one-command-install); `docs/RECURRING-FINDINGS.md` entry `three-state-conflict-missing-user-only-branch`.
 **Regression gate:** `tests/install.test.sh` — "sync: conflict" test covers the real conflict path; a separate user-only-edit case should be added (currently tested implicitly by the re-run test).
+
+---
+
+## bash 3.2 printf: leading dash in format string treated as option flag
+
+**Area:** Shell scripts / test fixtures (any bash script that writes task-list items via `printf`)
+
+**Rule:** Always use `printf -- '- [x] ...\n'` (with the `--` end-of-options marker) when the format string starts with a dash-space (`- `). Never write `printf '- [x] ...'` — it fails silently in bash 3.2, writing 0 bytes.
+
+**Why:** bash's built-in `printf` in bash 3.2 (the macOS default) treats a format string starting with `-` as an option flag: it sees `- ` and tries to parse it as an unknown option, exits non-zero, and writes nothing. The `--` tells printf that options are done and the next argument is the format string. zsh (used by Claude Code's Bash tool) handles `printf '- ...'` correctly, so the bug is invisible in interactive testing but breaks test scripts that run under bash.
+
+**Symptoms:** A test fixture or setup step that calls `printf '- [x] do the thing\n' > file.md` silently creates an empty file. The test that follows fails with "file contains unexpected content" or "file has 0 lines" — not with a printf error — because the subshell's stderr is redirected to `/dev/null`. Adding `set -x` inside the subshell reveals `printf: - : invalid option` at the printf call.
+
+**The fix:** Change `printf '- [status] ...'` to `printf -- '- [status] ...'`. The `--` is harmless on all other shells and bash versions.
+
+**Source:** feat/gitattributes-merge-drivers — root cause of 2/18 tests failing; discovered by reading the subshell trace via `exec 2>/tmp/dbg-subshell.log` inside the test's `( ... )` block.
+**Regression gate:** `tests/gitattributes-merge-drivers.test.sh` — all 24 test fixtures use `printf --` for task-list items.
+
+---
+
+## gitattributes merge drivers: registration is lost on fresh clone
+
+**Area:** `.gitattributes` + git merge drivers
+
+**Rule:** Any time you add `merge=ours` or `merge=<custom-name>` to `.gitattributes`, immediately wire the corresponding `git config merge.<name>.driver "..."` calls into `npm prepare` (or the equivalent project setup step). Never depend on a comment or README to prompt manual registration.
+
+**Why:** `.gitattributes` is committed and clones with the repo. The driver registration — the `merge.<name>.driver` entry in `.git/config` — is local-only; git never commits or clones it. A fresh clone gets the attributes but not the config. git silently falls back to 3-way merge for the affected files, producing conflict markers despite the `.gitattributes` declaration. The developer on the original machine never sees this; CI and new team members do.
+
+**Symptoms:** Driver works in the original dev environment. After `git clone` on a new machine or in CI, the files produce conflict markers exactly as if `.gitattributes` weren't there. Running `git config --list | grep merge` reveals the registrations are missing.
+
+**The fix:** Create `scripts/register-merge-drivers.sh` with the `git config` calls. Add `&& bash scripts/register-merge-drivers.sh` to the `prepare` script in `package.json` so every `npm install` and `npm ci` registers the drivers automatically.
+
+**Source:** feat/gitattributes-merge-drivers — identified in /cr Pass Pgov/P8 and added to `docs/RECURRING-FINDINGS.md` entry `driver-missing-install-registration`.
+**Regression gate:** Human review — confirm `scripts/register-merge-drivers.sh` exists and `package.json` `prepare` includes it whenever a new merge driver is added to `.gitattributes`.

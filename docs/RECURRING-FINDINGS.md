@@ -111,6 +111,13 @@ file and you reset the loop's memory.
 **Locations:** .claude/agents/design-synthesizer.md (line 9 — "via /design-init")
 **Detail:** No /design-init skill, command, or script exists. Any agent or human reading the spec will try to find it and fail. Either add the skill or remove the reference — requires human edit (guard-file path).
 
+### driver-missing-install-registration
+**Signature:** A custom git merge driver is declared in `.gitattributes` but no setup script registers it in `.git/config`, so the driver silently falls back to 3-way merge on any fresh clone or CI environment.
+**Occurrences:** 1
+**Last seen:** 2026-06-18
+**Locations:** `.gitattributes` (merge=ours + merge=tasks-higher-state without corresponding npm prepare step)
+**Detail:** `.gitattributes` declared two drivers requiring `.git/config` registration (`merge.ours.driver`, `merge.tasks-higher-state.driver`). A fresh clone gets the attributes but not the config, so both file types silently conflict instead of auto-resolving. Fixed by adding `scripts/register-merge-drivers.sh` and wiring it into the `prepare` npm script.
+
 ### documented-edge-case-not-guarded
 **Signature:** A guard condition documents a fallback for an edge case (e.g. "falls back to X if Y") but the code only checks the most obvious form — a related but distinct form of Y slips through.
 **Occurrences:** 1

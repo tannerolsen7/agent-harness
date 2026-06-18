@@ -1,0 +1,25 @@
+# Merge strategies for shared doc files that multiple feature branches edit concurrently.
+# Each line tells git which merge behavior to use when both sides changed the same file.
+#
+# merge=union    — keep all lines from both sides; no conflict markers. Safe for files
+#                  where branches append new sections at EOF. Two branches both adding a
+#                  new ## section results in both sections being kept.
+#
+# merge=ours     — always keep the current-branch version; discard the merged branch.
+#                  Requires the 'ours' driver registered in .git/config (driver = true).
+#                  Used for harness-progress.html because the session-start hook regenerates
+#                  the file fresh anyway — branch auto-updates are always stale.
+#
+# merge=tasks-higher-state — custom driver (scripts/tasks-merge-driver.sh) that picks the
+#                  higher task state when two branches both updated the same task entry.
+#                  State order: [x] > [~] > [ ]. Registered in .git/config; see
+#                  scripts/tasks-merge-driver.sh for the driver source.
+#
+# Driver registration runs automatically via npm prepare (npm install).
+# To register manually: bash scripts/register-merge-drivers.sh
+
+docs/TESTING.md            merge=union
+docs/RECURRING-FINDINGS.md merge=union
+docs/patterns-registry.md  merge=union
+harness-progress.html      merge=ours
+TASKS.md                   merge=tasks-higher-state
