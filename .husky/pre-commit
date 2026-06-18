@@ -3,3 +3,5 @@
 # (The directive replaces the shebang as shellcheck's shell hint — without it shellcheck errors SC2148.)
 set -e
 npm run lint
+bash scripts/comment-lint.sh
+bash scripts/data-state-lint.sh
