@@ -76,6 +76,20 @@ file and you reset the loop's memory.
 **Locations:** scripts/gc.sh (Pass 2 NO_UPSTREAM, lines 35–41; active-worktree exclusion, lines 51–62)
 **Detail:** Two instances of the same class. (1) The Pass 2 no-upstream detection did not exclude main/master/develop — fixed by adding `grep -vE "^(main|master|develop)$"`. (2) It also did not exclude branches checked out in active worktrees — a freshly-created worktree branch (no commits yet) has its tip at the branch point, so `git merge-base --is-ancestor` returns true and it looks merged. Fixed by collecting `ACTIVE_WT_BRANCHES` from `git worktree list --porcelain` and filtering them from the NO_UPSTREAM candidate list with `grep -vFxf`. Both fixes use `-F` (fixed-string) and `-x` (full-line) to avoid regex metacharacter issues in branch names. Pattern: every new candidate-collection pass in gc.sh must explicitly enumerate and apply all exclusions from the existing pass.
 
+### case-short-circuit-silences-later-ban
+**Signature:** A `case` statement that checks allow-conditions and ban-conditions in the same block silently skips the ban when an allow-condition matches first.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** scripts/token-lint.sh (border-left ban, lines 245–254 in original; fixed in this PR)
+**Detail:** Ban 3 checked `border-left: 1px solid` (allowed), `border-left: 2px solid` (warn), then `border-left:*px solid` (error) as a single `case` statement. A file with both `1px solid` and `4px solid` matched the 1px arm and exited the case — the 4px ban was never evaluated. Fix: strip all allowed thicknesses from a copy of the content, then check the copy for banned patterns. The allow-list and ban-check run on different inputs and cannot short-circuit each other.
+
+### advertised-feature-is-dead-code
+**Signature:** Code is described as reading or using an external file, but the variable populated from that file is never referenced in any check.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** scripts/token-lint.sh (known_tokens variable, original lines 54–78)
+**Detail:** The script header said "reads the active design token names from docs/design/DESIGN.md" and built a `known_tokens` variable. The variable was never used — checks used `var(--` structural detection, not the token name list. Fixed by removing the loop and updating the header comment to describe what the linter actually does.
+
 ---
 
 ## Promoted
