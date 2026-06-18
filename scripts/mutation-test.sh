@@ -6,14 +6,15 @@
 # How it works:
 #   1. Pick target implementation files (scripts/*.sh, bug-catch/*.sh by default,
 #      or a list you pass in).
-#   2. For each file, apply one mutation at a time in a temp copy:
+#   2. Each round randomly shuffles the target list and applies mutations one at a time:
 #        delete   — wipe a shell function body (replace it with "return 0")
 #        negate   — flip an exit-code check ("exit 1" → "exit 0" and vice versa)
 #        swap     — change a return/exit value (swap 0 and 1)
-#   3. Run the test suite against the mutated copy.
-#   4. Report:
+#   3. Run the test suite against each mutated copy.
+#   4. Report per mutation:
 #        KILLED   — at least one test failed (the mutation was caught — good)
 #        SURVIVED — all tests passed despite the mutation (the test is weak — bad)
+#   5. Loop until 2 consecutive rounds find no new survivors (coverage is saturated).
 #
 # A survived mutation means the tests didn't care about that piece of code.
 # Fix the tests so they would have caught it, then re-run.
@@ -26,7 +27,8 @@
 #   --files  Comma-separated list of implementation files to mutate.
 #            Default: scripts/*.sh (excluding mutation-test.sh itself and run-tests.sh).
 #   --test-cmd  Shell command to run for each mutation. Default: bash scripts/run-tests.sh.
-#   --max-per-file  Max mutations per file (default: 5 — keeps the run tractable).
+#   --max-per-file  Max mutations per file per round (default: 5 — keeps the run tractable).
+#   --dry-rounds  Consecutive rounds with no new survivors before stopping (default: 2).
 #   --verbose  Print the mutation diff before each test run.
 #
 # Exit codes:
@@ -42,6 +44,7 @@ ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 FILES=""
 TEST_CMD="bash scripts/run-tests.sh"
 MAX_PER_FILE=5
+DRY_ROUNDS=2
 VERBOSE=0
 
 while [ $# -gt 0 ]; do
@@ -49,9 +52,10 @@ while [ $# -gt 0 ]; do
     --files)        FILES="${2:-}";          shift 2 ;;
     --test-cmd)     TEST_CMD="${2:-}";       shift 2 ;;
     --max-per-file) MAX_PER_FILE="${2:-5}";  shift 2 ;;
+    --dry-rounds)   DRY_ROUNDS="${2:-2}";   shift 2 ;;
     --verbose)      VERBOSE=1;               shift ;;
     -h|--help)
-      echo "usage: mutation-test.sh [--files f1.sh,f2.sh] [--test-cmd cmd] [--max-per-file N] [--verbose]"
+      echo "usage: mutation-test.sh [--files f1.sh,f2.sh] [--test-cmd cmd] [--max-per-file N] [--dry-rounds N] [--verbose]"
       exit 0
       ;;
     *) echo "mutation-test: unknown argument: $1" >&2; exit 2 ;;
@@ -104,6 +108,7 @@ mutate_delete_body() {
     !in_fn && !replaced && /^function[[:space:]]+[A-Za-z_]/ { in_fn=1 }
     in_fn && /{/ && depth==0 {
       depth=1
+      print "LINE:" NR > "/dev/stderr"
       print
       print "  return 0"
       next
@@ -132,7 +137,10 @@ mutate_negate_exit() {
     BEGIN { done=0 }
     done { print; next }
     /^[[:space:]]*#/ { print; next }
-    /exit[[:space:]]+1/ && !done { sub(/exit[[:space:]]+1/, "exit 0"); done=1 }
+    /exit[[:space:]]+1/ && !done {
+      print "LINE:" NR > "/dev/stderr"
+      sub(/exit[[:space:]]+1/, "exit 0"); done=1
+    }
     { print }
   ' "$src"
 }
@@ -147,7 +155,10 @@ mutate_swap_return() {
     BEGIN { done=0 }
     done { print; next }
     /^[[:space:]]*#/ { print; next }
-    /return[[:space:]]+0/ && !done { sub(/return[[:space:]]+0/, "return 1"); done=1 }
+    /return[[:space:]]+0/ && !done {
+      print "LINE:" NR > "/dev/stderr"
+      sub(/return[[:space:]]+0/, "return 1"); done=1
+    }
     { print }
   ' "$src"
 }
@@ -163,6 +174,12 @@ run_against_mutation() {
 
   backup=$(mktemp)
   cp "$orig" "$backup"
+
+  # Restore the original if the script is interrupted mid-mutation.
+  # Without this, Ctrl-C after the swap but before the restore leaves the
+  # original file in a mutated state.
+  trap 'cp "$backup" "$orig" 2>/dev/null; rm -f "$backup"' INT TERM EXIT
+
   cp "$mutant" "$orig"
 
   # Preserve the executable bit. macOS stat uses -f '%A'; GNU stat uses -c '%a'.
@@ -176,6 +193,7 @@ run_against_mutation() {
 
   cp "$backup" "$orig"
   rm -f "$backup"
+  trap - INT TERM EXIT
 
   if [ "$rc" -eq 0 ]; then
     echo "    $label: SURVIVED (tests did not catch this)"
