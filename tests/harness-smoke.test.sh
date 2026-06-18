@@ -15,7 +15,7 @@ for h in block-dangerous-bash block-credential-read block-egress block-dangerous
 done
 
 # Executable scripts.
-for s in worktree-add assert-husky-shim pr cr-ok design-confirm detect-forge check-routing check-integrity gc test-local lint run-tests ci-verify install-locks; do
+for s in worktree-add assert-husky-shim pr cr-ok design-confirm detect-forge check-routing check-integrity gc test-local lint run-tests ci-verify install-locks update-progress; do
   [ -x "scripts/$s.sh" ] || note "scripts/$s.sh (executable)"
 done
 
@@ -65,7 +65,7 @@ done
 
 # Side-effect skills (irreversible external mutations — issue creation, PRD publish, migration,
 # parallel PR open) must opt out of autonomous model invocation (R4-D8 / F9). Agents must never
-# invoke these unprompted; only explicit user invocation is safe.
+# these must never be triggered autonomously — only explicit user action is safe.
 for sk in to-issues to-prd migrate queue; do
   grep -q '^disable-model-invocation: true' ".claude/skills/$sk/SKILL.md" \
     || note ".claude/skills/$sk/SKILL.md missing disable-model-invocation: true (R4-D8 / F9)"

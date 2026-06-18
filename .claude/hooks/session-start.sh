@@ -11,6 +11,21 @@ HASH=$(echo "${CLAUDE_PROJECT_DIR:-/}" | md5 | cut -c1-8)
 # [gone], merge-verified branches and prints a recovery SHA for each.
 ( cd "${CLAUDE_PROJECT_DIR:-$(pwd)}" && bash scripts/gc.sh ) || true
 
+# Report how far the current branch is behind main so the gap is visible
+# before any feature work starts, not at PR time.
+_REPO="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+_BRANCH=$(git -C "$_REPO" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+if [ -n "$_BRANCH" ] && [ "$_BRANCH" != "HEAD" ]; then
+  _BEHIND=$(git -C "$_REPO" rev-list --count HEAD..origin/main 2>/dev/null || echo "0")
+  _AHEAD=$(git -C "$_REPO" rev-list --count origin/main..HEAD 2>/dev/null || echo "0")
+  if [ "$_BEHIND" -gt 0 ]; then
+    echo "=== Branch '$_BRANCH' is $_BEHIND commit(s) behind main (you are $_AHEAD ahead) ==="
+    echo "Sync with main before starting new work."
+  fi
+fi
+unset _REPO _BRANCH _BEHIND _AHEAD
+
+
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
