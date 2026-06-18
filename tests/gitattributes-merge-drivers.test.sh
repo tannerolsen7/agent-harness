@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Verifies that .gitattributes merge strategies prevent conflict markers on four shared doc files:
-#   - docs/TESTING.md          merge=union  (EOF-append conflicts auto-resolve)
-#   - docs/RECURRING-FINDINGS.md merge=union (same)
-#   - harness-progress.html    merge=ours   (current branch always wins)
-#   - TASKS.md                 merge=tasks-higher-state (custom driver: [x]>[~]>[ ])
+# Verifies that .gitattributes merge strategies prevent conflict markers on five shared doc files:
+#   - docs/TESTING.md             merge=union  (EOF-append conflicts auto-resolve)
+#   - docs/RECURRING-FINDINGS.md  merge=union  (same)
+#   - docs/patterns-registry.md   merge=union  (same)
+#   - harness-progress.html       merge=ours   (current branch always wins)
+#   - TASKS.md                    merge=tasks-higher-state (custom driver: [x]>[~]>[ ])
 
 set -u
 # Derive ROOT from the test file's location (tests/ is always one level below repo root).
@@ -235,6 +236,33 @@ MERGE_EXIT=$?
 chk "$?" "tasks driver unresolvable: merge exits non-zero"
 grep -q "<<<<<<" "$REPO/TASKS.md"
 chk "$?" "tasks driver unresolvable: conflict markers present"
+
+# ── Behavior 5: merge=union for docs/patterns-registry.md ───────────────────
+echo "── merge=union: docs/patterns-registry.md resolves concurrent EOF appends ──"
+REPO="$TMP/union-patterns"
+setup_repo "$REPO"
+(
+  cd "$REPO" || exit 1
+  mkdir -p docs
+  printf '## Existing pattern\n\nbase content\n' > docs/patterns-registry.md
+  git add . && git commit -q --no-verify -m base
+
+  git checkout -q -b branchA
+  printf '## Existing pattern\n\nbase content\n\n## Pattern A\n\nrecipe from branch A\n' > docs/patterns-registry.md
+  git add docs/patterns-registry.md && git commit -q --no-verify -m "append pattern A"
+
+  git checkout -q -b branchB "$(git rev-parse branchA^)"
+  printf '## Existing pattern\n\nbase content\n\n## Pattern B\n\nrecipe from branch B\n' > docs/patterns-registry.md
+  git add docs/patterns-registry.md && git commit -q --no-verify -m "append pattern B"
+
+  git merge -q branchA --no-edit --no-verify 2>/dev/null
+) 2>/dev/null
+MERGE_EXIT=$?
+chk "$MERGE_EXIT" "merge=union patterns-registry.md: merge exits 0"
+grep -q "Pattern A" "$REPO/docs/patterns-registry.md" && grep -q "Pattern B" "$REPO/docs/patterns-registry.md"
+chk "$?" "merge=union patterns-registry.md: both appended sections present"
+! grep -q "<<<<<<" "$REPO/docs/patterns-registry.md"
+chk "$?" "merge=union patterns-registry.md: no conflict markers"
 
 echo ""
 echo "gitattributes-merge-drivers: $pass passed, $fail failed"

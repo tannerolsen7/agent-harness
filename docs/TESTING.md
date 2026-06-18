@@ -57,7 +57,7 @@ browsable HTML page committed to the repo.
 
 ## Merge conflict prevention (`.gitattributes` + `scripts/tasks-merge-driver.sh`)
 
-Four shared doc files accumulate changes from many feature branches at once.
+Five shared doc files accumulate changes from many feature branches at once.
 Without help, git produces a conflict marker every time two branches touch the
 same file. These behaviors describe how each file is handled so that concurrent
 work auto-resolves without human intervention.
@@ -95,6 +95,13 @@ work auto-resolves without human intervention.
   `[x]`. The driver is implemented in `scripts/tasks-merge-driver.sh` and is
   registered in `.git/config` as a local driver named `tasks-higher-state`. The
   `.gitattributes` file assigns `merge=tasks-higher-state` to `TASKS.md`.
+
+- **patterns-registry.md auto-resolves concurrent appends:** When two feature
+  branches each append a new `##` section to `docs/patterns-registry.md` and are
+  then merged, git keeps both appended sections and produces no conflict markers.
+  The `.gitattributes` file assigns `merge=union` to `docs/patterns-registry.md`.
+  The `/compound` step runs after every merge and appends to this file, making
+  concurrent appends the normal case.
 
 ---
 
