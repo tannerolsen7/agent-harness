@@ -43,10 +43,10 @@ file and you reset the loop's memory.
 
 ### test-mk-no-gitdir-guard
 **Signature:** A test helper that calls `git init` in a temp dir does not unset inherited `GIT_DIR` env vars, risking real-repo corruption when run from a worktree.
-**Occurrences:** 1
-**Last seen:** 2026-06-17
-**Locations:** tests/check-integrity.test.sh (mk() function, lines 18–30)
-**Detail:** Matches the documented PITFALL "Running tests from inside a worktree corrupts the real repo." The fix is to unset GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_PREFIX/GIT_COMMON_DIR/GIT_OBJECT_DIRECTORY/GIT_NAMESPACE at the top of the test file. Fixed in this PR.
+**Occurrences:** 2
+**Last seen:** 2026-06-18
+**Locations:** tests/check-integrity.test.sh (mk() function, lines 18–30); tests/install.test.sh (line 695 — correctly handled)
+**Detail:** Matches the documented PITFALL "Running tests from inside a worktree corrupts the real repo." The fix is to unset GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_PREFIX/GIT_COMMON_DIR/GIT_OBJECT_DIRECTORY/GIT_NAMESPACE at the top of the test file. Fixed in both locations. At Occurrences ≥3 this should be promoted to a named /cr check.
 
 ### stale-comment-wrong-output-protocol
 **Signature:** A comment describes the behavior or output of a command/function, but the actual behavior differs, misleading anyone who reads or extends it.
@@ -117,6 +117,13 @@ file and you reset the loop's memory.
 **Last seen:** 2026-06-17
 **Locations:** scripts/pr.sh (line 85 — `[ -z "$MERGE_CHECK_BASE" ]` caught empty string but not `"(unknown)"` from git); .claude/skills/cr/SKILL.md (same guard)
 **Detail:** `git remote show origin` outputs the literal string `(unknown)` when the remote HEAD symref is unset. TESTING.md documented "falls back to main if the remote HEAD cannot be determined" — but `(unknown)` is non-empty, so the guard didn't fire. Fixed by adding `|| [ "$X" = "(unknown)" ]`.
+
+### three-state-conflict-missing-user-only-branch
+**Signature:** A three-way sha comparison (local vs. manifest vs. upstream) omits the "user edited, upstream unchanged" branch, causing a false-positive conflict when the user modifies a file that upstream has not touched.
+**Occurrences:** 1
+**Last seen:** 2026-06-18
+**Locations:** scripts/sync-harness.sh (conflict `else` branch, fixed in this PR)
+**Detail:** The `else` clause fired when `local_sha != old_sha AND local_sha != upstream_sha`, but did not verify `old_sha != upstream_sha`. A user-only edit hit this branch and blocked sync with "CONFLICT." Fix: add `elif [ "$old_sha" = "$upstream_sha" ]` before the conflict branch to handle the user-edit-only case as a non-error.
 
 ### one-sided-test-no-happy-path
 **Signature:** A test covers only the rejection / failure path of a new guard; without a passing-path test, a regression that blocks all inputs looks green.

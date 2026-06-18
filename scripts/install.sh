@@ -109,6 +109,7 @@ now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 mkdir -p "$TARGET_DIR/.claude"
 manifest="$TARGET_DIR/.claude/.harness-manifest.json"
+_manifest_tmp=$(mktemp -p "$TARGET_DIR/.claude")
 {
   printf '{\n'
   printf '  "schema": 1,\n'
@@ -127,7 +128,8 @@ manifest="$TARGET_DIR/.claude/.harness-manifest.json"
 $manifest_lines
 EOF
   printf '\n  }\n}\n'
-} > "$manifest"
+} > "$_manifest_tmp"
+mv "$_manifest_tmp" "$manifest"
 
 echo "  installed: .claude/.harness-manifest.json"
 echo ""

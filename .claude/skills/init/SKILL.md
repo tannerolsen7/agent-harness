@@ -17,6 +17,10 @@ Check that `.claude/.harness-manifest.json` exists. If it does not, stop and tel
 
 ## Step 1 — Create missing starter docs
 
+`scripts/install.sh` already copies these files on first install, so this step is a safety net.
+It exists for the case where someone runs `/init` before `install.sh`, or where `install.sh` was
+interrupted before writing a particular template file.
+
 For each of `CLAUDE.md`, `AGENTS.md`, `CONTEXT.md`, `PITFALLS.md` at the repo root:
 
 - If the file already exists: leave it untouched. Record it as "skipped (already existed)".

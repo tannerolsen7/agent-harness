@@ -114,6 +114,9 @@ while IFS=$'\t' read -r rel old_sha policy; do
   elif [ "$local_sha" = "$upstream_sha" ]; then    # user edited it but it already matches upstream
     echo "  up-to-date: $rel"
     record_sha "$rel" "$local_sha"
+  elif [ "$old_sha" = "$upstream_sha" ]; then       # user edited it; upstream unchanged — leave it
+    echo "  local-edit (upstream unchanged): $rel"
+    record_sha "$rel" "$local_sha"
   else                                             # user edited it AND upstream changed — conflict
     echo "  CONFLICT: $rel — local edits + upstream change; resolve manually and re-run"
     conflicts="${conflicts}${rel}
