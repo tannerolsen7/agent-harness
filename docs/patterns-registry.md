@@ -96,6 +96,31 @@ engineering advice.
 
 ---
 
+## preflight-structural-guard
+
+**What:** Add a structural pre-flight check to both the review skill and the PR script so that a branch cannot be reviewed or a PR opened if a structural precondition fails.
+
+**When to use:** When a check must fire before any review work begins AND again as a last-resort gate before the PR opens. The canonical example is merge-conflict detection: checking in the review skill blocks wasted review effort; checking again in `pr.sh` covers the window between review and PR open.
+
+**When NOT to use:** Content/quality checks (logic correctness, test coverage) — those belong in the analytical review passes, not Pre-flight. Also not for checks that only matter at one stage — if the check is only meaningful at PR time, put it in `pr.sh` only.
+
+**The recipe:**
+1. **Review skill (`.claude/skills/cr/SKILL.md`)** — Add a `## Pre-flight — <name>` section before `## Step 0`. The section must: (a) run its check, (b) hard-block with a clear message if it fails, and (c) explicitly say "Do not run any passes. Do not write the sentinel." if it blocks. No sentinel is written when Pre-flight fails.
+2. **PR script (`scripts/pr.sh`)** — Add the same check after the remote-branch precondition (around line 78, `git ls-remote`) but BEFORE the sentinel is consumed (around line 112, `mv "$SENTINEL" "$CONSUMED"`). On failure: exit non-zero, leave the sentinel intact. The ordering is the invariant: precondition first (proves the branch exists remotely), then this check (structural gate), then sentinel consumption (certifies the whole flow ran).
+3. **Tests (`tests/pr-host-agnostic.test.sh`)** — Add TWO test cases for the new check: (a) the failure path (check fires, pr.sh exits non-zero, sentinel intact), and (b) the passing path (check is clean, pr.sh exits zero). A one-sided test that only covers the failure path will miss a regression that blocks all branches.
+4. **`docs/TESTING.md`** — Add confirmed-behavior entries for both paths, under a section for the relevant script.
+
+**Golden exemplar:** Pre-flight section in `.claude/skills/cr/SKILL.md` + merge-conflict block in `scripts/pr.sh` (lines 83–97) + two test cases in `tests/pr-host-agnostic.test.sh` (lines 93–159).
+
+**Established by:** PR #68 (feat/merge-conflict-detection). See [solution doc](./solutions/2026-06-17-merge-conflict-preflight-guard.md).
+
+**Gotchas:**
+- The ordering in `pr.sh` is a hard invariant: precondition → this check → sentinel consumption. The sentinel must be the last thing consumed; any earlier check that fails must leave it intact so the user can fix and retry without re-running `/cr`.
+- Always add a passing-path test alongside the failing-path test. If only the failure path is tested, a regression that blocks all branches will look green.
+- The Pre-flight section in SKILL.md describes what an LLM agent should do. The shell code in `pr.sh` runs unconditionally. Keep them conceptually in sync but don't try to DRY them — they serve different contexts (LLM prompt vs. shell execution) and have different error-message requirements.
+
+---
+
 ## Entry format
 
 Copy this skeleton for each new recipe.

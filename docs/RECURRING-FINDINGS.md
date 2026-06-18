@@ -49,11 +49,11 @@ file and you reset the loop's memory.
 **Detail:** Matches the documented PITFALL "Running tests from inside a worktree corrupts the real repo." The fix is to unset GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_PREFIX/GIT_COMMON_DIR/GIT_OBJECT_DIRECTORY/GIT_NAMESPACE at the top of the test file. Fixed in this PR.
 
 ### stale-comment-wrong-output-protocol
-**Signature:** A comment describes the output format of a function, but the actual format differs, misleading anyone who tries to extend or debug it.
-**Occurrences:** 1
+**Signature:** A comment describes the behavior or output of a command/function, but the actual behavior differs, misleading anyone who reads or extends it.
+**Occurrences:** 2
 **Last seen:** 2026-06-17
-**Locations:** scripts/check-integrity.sh (lines 34–37, comment above run_one())
-**Detail:** Comment said awk emits `BROKEN<TAB>source<TAB>target` and `CHECKED<TAB>n`; awk actually emits `CHECK<TAB>src<TAB>tgt<TAB>path`. Fixed in this PR.
+**Locations:** scripts/check-integrity.sh (lines 34–37, comment above run_one()); .claude/skills/cr/SKILL.md (Pre-flight step 1 — parenthetical said "no network call" but the command makes one)
+**Detail:** (1) Comment said awk emits `BROKEN<TAB>source<TAB>target`; it actually emits `CHECK<TAB>src<TAB>tgt<TAB>path`. (2) `git remote show origin` parenthetical claimed "reads local config, no network call" — only true with the `-n` flag, which this command does NOT use. Fixed in both PRs.
 
 ### internal-code-no-explanation
 **Signature:** An internal label (CMP*, R4-D*, Fx) is used in prose or code without being explained, leaving cold readers confused.
@@ -110,6 +110,20 @@ file and you reset the loop's memory.
 **Last seen:** 2026-06-17
 **Locations:** .claude/agents/design-synthesizer.md (line 9 — "via /design-init")
 **Detail:** No /design-init skill, command, or script exists. Any agent or human reading the spec will try to find it and fail. Either add the skill or remove the reference — requires human edit (guard-file path).
+
+### documented-edge-case-not-guarded
+**Signature:** A guard condition documents a fallback for an edge case (e.g. "falls back to X if Y") but the code only checks the most obvious form — a related but distinct form of Y slips through.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** scripts/pr.sh (line 85 — `[ -z "$MERGE_CHECK_BASE" ]` caught empty string but not `"(unknown)"` from git); .claude/skills/cr/SKILL.md (same guard)
+**Detail:** `git remote show origin` outputs the literal string `(unknown)` when the remote HEAD symref is unset. TESTING.md documented "falls back to main if the remote HEAD cannot be determined" — but `(unknown)` is non-empty, so the guard didn't fire. Fixed by adding `|| [ "$X" = "(unknown)" ]`.
+
+### one-sided-test-no-happy-path
+**Signature:** A test covers only the rejection / failure path of a new guard; without a passing-path test, a regression that blocks all inputs looks green.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** tests/pr-host-agnostic.test.sh (conflict test added without a clean-branch test for the same guard)
+**Detail:** The conflict-detection test verified that a conflicting branch is rejected. No test verified that a clean branch passes. A bug making `grep -c` always return non-zero would block every PR, but all tests would still pass. Fixed by adding a separate test for the clean-branch path.
 
 ---
 

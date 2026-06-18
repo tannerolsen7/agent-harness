@@ -58,6 +58,32 @@ auto-updated" line so you can tell at a glance that it ran and what changed.
 
 ---
 
+## PR opener (`scripts/pr.sh`) — merge conflict check
+
+`pr.sh` verifies the branch merges cleanly into the remote base branch before
+consuming the `/cr` sentinel. This is a safety net: `/cr` runs the same check
+as its first step, and `pr.sh` re-runs it as a last guard in case the branch
+received a commit after `/cr` ran.
+
+### Confirmed behaviors
+
+- **Conflict detection aborts before sentinel consumption:** Given a branch
+  where the same file has conflicting changes in HEAD versus `origin/<base>`,
+  when `pr.sh` runs non-interactively with a valid `.cr-ok` sentinel, it exits
+  non-zero and leaves the sentinel intact — the sentinel is still there once
+  the conflicts are resolved and the user retries.
+
+- **Clean branch passes conflict check:** Given a branch where both HEAD and
+  the base branch have advanced independently with no overlapping file changes,
+  when `pr.sh` runs non-interactively with a valid `.cr-ok` sentinel, it exits
+  zero and the PR proceeds normally.
+
+- **Base branch detected dynamically:** The merge check reads the base branch
+  from `git remote show origin`, falling back to `main` if the remote HEAD
+  cannot be determined (including when the remote reports `(unknown)`).
+
+---
+
 ## Performance budget (`scripts/perf-budget.sh`)
 
 Measures Core Web Vitals (LCP, CLS, INP) against per-project targets. Exits 1 when any metric
@@ -125,3 +151,49 @@ signatures relevant to its task instead of the full file.
 - **Unknown file type falls back safely:** For a file type the slicer has no rules
   for, it prints the whole file rather than silently dropping content. A safe
   fallback never hides code from the agent.
+
+## AI activity dashboard
+
+Records one entry per top-level session stop and shows the full history in a
+browsable HTML page committed to the repo.
+
+### Confirmed behaviors
+
+- **Session start writes temp file:** When `session-start.sh` runs and hook stdin
+  JSON contains a `session_id` and `model`, it writes
+  `/tmp/claude-activity-{session_id}` with a single line of the form
+  `{start_unix_ts} {model}` — a Unix timestamp and the model string,
+  space-separated.
+
+- **Subagent stop writes no record:** When `session-stop.sh` runs and hook stdin
+  JSON contains a non-empty `agent_type`, the hook exits without writing anything
+  to `.claude/activity/`. Only top-level session stops produce records.
+
+- **Top-level stop writes a valid JSONL record:** When `session-stop.sh` runs with
+  no `agent_type` in hook stdin, it appends one valid JSON object to
+  `.claude/activity/{branch-slug}.jsonl`. The object contains `ts` (ISO-8601 UTC),
+  `branch`, `sha`, `model`, `skills` (array), and `duration_s` (integer or null).
+
+- **Missing temp file yields null duration:** When the session temp file
+  `/tmp/claude-activity-{session_id}` does not exist at stop time, the written
+  record has `duration_s` set to `null` — not `0` and not omitted — and `model`
+  set to `"unknown"`.
+
+- **Skills are extracted and deduplicated:** The written record's `skills` array
+  holds only the names of Skill calls found in the session permission log,
+  deduplicated, with no duplicates. When the log is empty or absent, `skills`
+  is `[]`.
+
+- **activity-report.sh writes harness-activity.html:** Running
+  `scripts/activity-report.sh` reads all `.claude/activity/*.jsonl` files and
+  writes `harness-activity.html` with a summary bar (total sessions, top-3 skills,
+  average duration excluding nulls) and a sessions table ordered newest-first
+  (columns: Date, Branch, SHA, Model, Skills, Duration).
+
+- **Bad JSONL line is skipped, not fatal:** A malformed line in any
+  `.claude/activity/*.jsonl` file does not stop the report from completing. Valid
+  records before and after the bad line still appear in the output.
+
+- **update-progress.sh calls activity-report.sh:** Running
+  `scripts/update-progress.sh` also regenerates `harness-activity.html` so the
+  dashboard stays fresh at every session start.

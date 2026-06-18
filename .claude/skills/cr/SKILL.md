@@ -25,6 +25,57 @@ description: |
 
 ---
 
+## Pre-flight — Merge readiness
+
+Before running any review passes, verify the branch merges cleanly into the remote
+base branch. The sentinel certifies a specific sha. If conflicts exist, what
+actually merges will differ from what was reviewed — the certificate would be for
+a sha that never ships. Resolve conflicts first so the review and the merge cover
+the same code. **If conflicts are detected, stop here. Do not run any passes. Do
+not write the sentinel.**
+
+1. **Detect the base branch** (network call; `2>/dev/null` handles offline gracefully):
+   ```bash
+   BASE=$(git remote show origin 2>/dev/null | awk '/HEAD branch/{print $NF}')
+   [ -z "$BASE" ] || [ "$BASE" = "(unknown)" ] && BASE="main"
+   ```
+
+2. **Fetch the latest state of the base branch** (best-effort — if offline, the check
+   runs against the locally-cached remote ref):
+   ```bash
+   git fetch origin "$BASE" --quiet 2>/dev/null || true
+   ```
+
+3. **Find the common ancestor:**
+   ```bash
+   MERGE_BASE=$(git merge-base HEAD "origin/$BASE" 2>/dev/null || true)
+   ```
+   If `MERGE_BASE` is empty (no shared history, or `origin/$BASE` does not exist locally),
+   skip the merge-tree check and proceed to Step 0 with a one-line warning.
+
+4. **Dry-run the three-way merge:**
+   ```bash
+   CONFLICTS=$(git merge-tree "$MERGE_BASE" HEAD "origin/$BASE" 2>/dev/null \
+     | grep -c '<<<<<<<' || true)
+   ```
+
+5. **If `$CONFLICTS` is greater than 0 — HARD BLOCK:**
+
+   Emit this message and stop. Do not proceed to Step 0.
+   ```
+   /cr blocked: branch has merge conflicts with '<BASE>'.
+
+   Rebase first:
+     git fetch origin
+     git rebase origin/<BASE>
+
+   Then re-run /cr.
+   ```
+
+6. **If no conflicts** — proceed to Step 0.
+
+---
+
 ## Step 0 — Docs-only check
 
 If every changed file in `git diff origin/main...HEAD` is `.md`, under `.claude/`, or non-code config:
