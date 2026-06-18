@@ -22,7 +22,8 @@
 #
 # UI file extensions covered: .css .scss .less .html .jsx .tsx .vue .svelte .styled.ts .styled.js
 #
-# Adding a new ban: add a check_ban_* function below and call it from check_bans().
+# Adding a new ban: add a "# Ban N:" block inside check_bans(), following the comment
+# structure and case-statement pattern of the existing ban blocks.
 set -euo pipefail
 
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
@@ -32,7 +33,7 @@ DESIGN="$ROOT/docs/design/DESIGN.md"
 RED=""
 YELLOW=""
 RESET=""
-if [ -t 1 ]; then
+if [ -t 2 ]; then
   RED='\033[0;31m'
   YELLOW='\033[0;33m'
   RESET='\033[0m'
@@ -149,8 +150,9 @@ check_file() {
         # 6-digit hex. Allow only inside CSS custom property references or comments.
         # Crude but effective: if the line contains a #RRGGBB not preceded by var(-- it's bare.
         check="${line}"
-        # Strip var(--color-*: #...) style declarations (those are token definitions in DESIGN.md-style tables, not usage)
-        check="${check//var(--[a-zA-Z0-9_-]*/}"
+        # Replace each var(--token-name) with a placeholder, stopping at the closing paren.
+        # Bash glob substitution is greedy and would eat past the closing paren, so use sed.
+        check=$(printf '%s\n' "$check" | sed 's/var(--[^)]*)/TOKENREF/g')
         case "$check" in
           *'#'[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
             emit_error "$loc: hardcoded 6-digit hex color. Use a design token (e.g. var(--color-primary))." ;;
@@ -162,7 +164,7 @@ check_file() {
         # 3-digit hex only (exclude 6-digit already caught above and longer sequences like #abc123)
         # This catches #abc, #fff, #000 style values
         check="${line}"
-        check="${check//var(--[a-zA-Z0-9_-]*/}"
+        check=$(printf '%s\n' "$check" | sed 's/var(--[^)]*)/TOKENREF/g')
         case "$check" in
           *'#'[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][!0-9a-fA-F]*)
             emit_error "$loc: hardcoded 3-digit hex color. Use a design token (e.g. var(--color-border))." ;;
