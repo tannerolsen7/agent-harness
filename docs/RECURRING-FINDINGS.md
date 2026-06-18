@@ -83,6 +83,34 @@ file and you reset the loop's memory.
 **Locations:** scripts/mutation-test.sh (run_against_mutation function)
 **Detail:** After cp mutant→orig and before cp backup→orig, a SIGINT leaves the original file as the mutant. A `trap` restoring from backup on INT/TERM/EXIT would prevent this. Not a correctness bug during normal operation, but a recovery hazard. Nice-to-have fix.
 
+### case-short-circuit-silences-later-ban
+**Signature:** A `case` statement that checks allow-conditions and ban-conditions in the same block silently skips the ban when an allow-condition matches first.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** scripts/token-lint.sh (border-left ban, lines 245–254 in original; fixed in this PR)
+**Detail:** Ban 3 checked `border-left: 1px solid` (allowed), `border-left: 2px solid` (warn), then `border-left:*px solid` (error) as a single `case` statement. A file with both `1px solid` and `4px solid` matched the 1px arm and exited the case — the 4px ban was never evaluated. Fix: strip all allowed thicknesses from a copy of the content, then check the copy for banned patterns. The allow-list and ban-check run on different inputs and cannot short-circuit each other.
+
+### advertised-feature-is-dead-code
+**Signature:** Code is described as reading or using an external file, but the variable populated from that file is never referenced in any check.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** scripts/token-lint.sh (known_tokens variable, original lines 54–78)
+**Detail:** The script header said "reads the active design token names from docs/design/DESIGN.md" and built a `known_tokens` variable. The variable was never used — checks used `var(--` structural detection, not the token name list. Fixed by removing the loop and updating the header comment to describe what the linter actually does.
+
+### section-count-mismatch-in-agent-spec
+**Signature:** An agent spec says "N required sections" in its body but the actual numbered list has a different count, causing the agent to silently skip injecting the extra sections.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** .claude/agents/design-synthesizer.md (lines 29 and 108 say "6"; list has 7 entries)
+**Detail:** Body and output-format header both say 6 required sections; the numbered list ends at 7. The commit message correctly states 7. An agent reading the text would stop injecting stubs after section 6. Fix: update both occurrences of "6" to "7" — requires human edit (guard-file path).
+
+### dangling-skill-reference-in-agent-frontmatter
+**Signature:** An agent's description frontmatter mentions a slash command or skill that does not exist in the repo.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** .claude/agents/design-synthesizer.md (line 9 — "via /design-init")
+**Detail:** No /design-init skill, command, or script exists. Any agent or human reading the spec will try to find it and fail. Either add the skill or remove the reference — requires human edit (guard-file path).
+
 ---
 
 ## Promoted
