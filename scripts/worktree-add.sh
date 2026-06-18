@@ -10,8 +10,9 @@
 # Project-agnostic: a project that needs no env files simply has none to symlink.
 set -e
 
-WORKTREE_PATH="${1:?Usage: scripts/worktree-add.sh <path> <branch>}"
-BRANCH="${2:?Usage: scripts/worktree-add.sh <path> <branch>}"
+WORKTREE_PATH="${1:?Usage: scripts/worktree-add.sh <path> <branch> [base-ref]}"
+BRANCH="${2:?Usage: scripts/worktree-add.sh <path> <branch> [base-ref]}"
+BASE_REF="${3:-HEAD}"
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
 # Reject a branch name git would read as a flag (e.g. "-f", "--detach").
@@ -34,7 +35,7 @@ fi
 if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
   git worktree add "$WORKTREE_PATH" "$BRANCH"
 else
-  git worktree add -b "$BRANCH" "$WORKTREE_PATH" HEAD
+  git worktree add -b "$BRANCH" "$WORKTREE_PATH" "$BASE_REF"
 fi
 
 # --- TASKS.md: mark task in-progress for feat/<slug> branches ---
