@@ -128,36 +128,41 @@ rm -f "$F"
 # ── 3. Missing Typography ──
 echo "── missing Typography section: exits non-zero ──"
 F=$(design_missing "Typography")
-rc=$(bash "$VALIDATE" "$F" >/dev/null 2>&1; echo $?)
+out=$(bash "$VALIDATE" "$F" 2>&1); rc=$?
 if [ "$rc" -ne 0 ]; then pass=$((pass+1)); else echo "  MISS: missing Typography should exit non-zero"; fail=$((fail+1)); fi
+hasout "$out" "Typography" "names the missing section"
 rm -f "$F"
 
 # ── 4. Missing Spacing ──
 echo "── missing Spacing section: exits non-zero ──"
 F=$(design_missing "Spacing")
-rc=$(bash "$VALIDATE" "$F" >/dev/null 2>&1; echo $?)
+out=$(bash "$VALIDATE" "$F" 2>&1); rc=$?
 if [ "$rc" -ne 0 ]; then pass=$((pass+1)); else echo "  MISS: missing Spacing should exit non-zero"; fail=$((fail+1)); fi
+hasout "$out" "Spacing" "names the missing section"
 rm -f "$F"
 
 # ── 5. Missing Components ──
 echo "── missing Components section: exits non-zero ──"
 F=$(design_missing "Components")
-rc=$(bash "$VALIDATE" "$F" >/dev/null 2>&1; echo $?)
+out=$(bash "$VALIDATE" "$F" 2>&1); rc=$?
 if [ "$rc" -ne 0 ]; then pass=$((pass+1)); else echo "  MISS: missing Components should exit non-zero"; fail=$((fail+1)); fi
+hasout "$out" "Components" "names the missing section"
 rm -f "$F"
 
 # ── 6. Missing Shapes & elevation ──
 echo "── missing Shapes & elevation section: exits non-zero ──"
 F=$(design_missing "Shapes")
-rc=$(bash "$VALIDATE" "$F" >/dev/null 2>&1; echo $?)
+out=$(bash "$VALIDATE" "$F" 2>&1); rc=$?
 if [ "$rc" -ne 0 ]; then pass=$((pass+1)); else echo "  MISS: missing Shapes should exit non-zero"; fail=$((fail+1)); fi
+hasout "$out" "Shapes" "names the missing section"
 rm -f "$F"
 
 # ── 7. Missing Philosophy & constraints ──
 echo "── missing Philosophy & constraints section: exits non-zero ──"
 F=$(design_missing "Philosophy")
-rc=$(bash "$VALIDATE" "$F" >/dev/null 2>&1; echo $?)
+out=$(bash "$VALIDATE" "$F" 2>&1); rc=$?
 if [ "$rc" -ne 0 ]; then pass=$((pass+1)); else echo "  MISS: missing Philosophy should exit non-zero"; fail=$((fail+1)); fi
+hasout "$out" "Philosophy" "names the missing section"
 rm -f "$F"
 
 # ── 8. Multiple missing sections: reports each one ──

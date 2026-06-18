@@ -18,7 +18,7 @@ The `design-synthesizer` agent builds `DESIGN.md`. You give it one or more sourc
 
 ## Required sections
 
-Every `DESIGN.md` must have these 6 sections, in this order:
+Every `DESIGN.md` must have these 7 sections, in this order:
 
 1. **Colors** — named color tokens with hex values and a neutral scale.
 2. **Typography** — font families, type scale levels, and usage rules.
@@ -30,7 +30,7 @@ Every `DESIGN.md` must have these 6 sections, in this order:
 
 ## Validation
 
-Run this to check that `DESIGN.md` has all 6 required sections:
+Run this to check that `DESIGN.md` has all required content sections:
 
 ```sh
 cd <repo-root> && bash scripts/design-system-validate.sh docs/design/DESIGN.md
