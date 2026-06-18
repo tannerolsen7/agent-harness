@@ -99,7 +99,9 @@ grep -q "finding-new" "$REPO/docs/RECURRING-FINDINGS.md" \
 chk "$?" "merge=union RECURRING-FINDINGS.md: both new findings present"
 ! grep -q "<<<<<<" "$REPO/docs/RECURRING-FINDINGS.md"
 chk "$?" "merge=union RECURRING-FINDINGS.md: no conflict markers"
-# Both sides edited the same **Occurrences:** field — union keeps both lines.
+# Both sides edited the same **Occurrences:** field — union keeps both lines (no markers).
+# Two count lines for the same finding is expected: counts are a human-read lower bound,
+# not an exact value. Do NOT replicate this pattern for fields that drive automated logic.
 grep -q "Occurrences.*2" "$REPO/docs/RECURRING-FINDINGS.md" \
   && grep -q "Occurrences.*3" "$REPO/docs/RECURRING-FINDINGS.md"
 chk "$?" "merge=union RECURRING-FINDINGS.md: both occurrence counts present"
