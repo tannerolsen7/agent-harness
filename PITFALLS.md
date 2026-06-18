@@ -138,3 +138,26 @@ Use `-Fx` (fixed-string, full-line) — branch names with dots or brackets in th
 
 **Source:** Caught by `/cr` on PR #42, not by the first test pass. Fix: make `meta_field` fence-aware (awk) so it reads the same block `has_real_meta` counts.
 **Regression gate:** `tests/scan-context.test.sh` case H ("fenced example above real block → reads the REAL block").
+
+---
+
+## Feature work in the main worktree races against background processes
+
+**Area:** Git operations during feature development
+
+**Rule:** Never do feature work directly in the main worktree (`/Users/tanner/Dev/agent-harness`). Always create a dedicated worktree at `.claude/worktrees/<slug>` first — either via `scripts/worktree-add.sh` or by running `git worktree add .claude/worktrees/<slug> feat/<slug>` directly — and do all commits, pushes, and sentinel writes from there.
+
+**Why:** The harness runs several worktrees concurrently — workflow agents (`wf_*`), active feature worktrees, and session-start hooks — all of which can call `git checkout` on the main worktree. When two processes touch `HEAD` at the same time, git logs `cannot lock ref 'HEAD': is at X but expected Y` and the commit fails. The branch pointer is left unchanged, so the commit object exists in the object store but is not attached to any branch. The same race causes commits to land on whichever branch was last checked out, which is often wrong.
+
+**Symptoms:** `cannot lock ref 'HEAD': is at X but expected Y` during a commit; commits that appear to succeed but don't show up in `git log`; code from one branch appearing in a diff on a different branch; sentinel-mismatch errors on push (`expected branch:sha, got branch:other-sha`) after what looked like a clean commit sequence.
+
+**The fix:** Check `git worktree list` before starting work. If no worktree exists for your branch, create one. Then `cd` into it and stay there for the duration of the session.
+
+```sh
+git worktree add .claude/worktrees/<slug> feat/<slug>
+cd .claude/worktrees/<slug>
+# all git operations from here
+```
+
+**Source:** Session 2026-06-17 (feat/progress-in-progress-view); root cause identified after repeated ref-lock failures and sentinel mismatches caused by concurrent `wf_*` workflow agents.
+**Regression gate:** Human-process rule — no automated check yet.
