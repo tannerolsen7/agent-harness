@@ -2,7 +2,7 @@
 # husky runs hooks under sh; v10 removed the shebang + auto-sourced shim. Plain POSIX sh.
 # (The directive replaces the shebang as shellcheck's shell hint — without it shellcheck errors SC2148.)
 set -e
-npm run lint
+bash scripts/lint.sh
 # Token lint: check only the files changed in this commit for hardcoded colors/spacing
 # and absolute design bans. Inert when docs/design/DESIGN.md does not exist yet.
 bash scripts/token-lint.sh --diff

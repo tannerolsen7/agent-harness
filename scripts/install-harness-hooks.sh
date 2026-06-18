@@ -53,6 +53,7 @@ else
   fi
   echo "Adding prepare + test scripts to package.json."
   tmp=$(mktemp)
+  trap 'rm -f "${tmp:-}"' EXIT   # never leak the temp package.json if the jq edit aborts
   jq --arg prep "$PREPARE_CMD" --arg test "$TEST_CMD" '
     .scripts = (.scripts // {})
     | .scripts.prepare = $prep

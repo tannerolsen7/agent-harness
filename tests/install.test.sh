@@ -149,8 +149,17 @@ _HARNESS_SKIP_NPM=1 bash "$HOOKS" "$TGT10" >/dev/null 2>&1; rc=$?
   || { echo "  MISS: must not overwrite an existing prepare script"; fail=$((fail+1)); }
 grep -q "echo mine" "$TGT10/package.json"; ck "$?" "existing prepare script left intact"
 
+echo "── sync: leaves a user-only edit alone (upstream unchanged) ──"
+SRC11=$(mktemp -d); TGT11=$(mktemp -d); make_src "$SRC11"; make_target "$TGT11"
+HARNESS_SRC="$SRC11" bash "$INSTALL" "$TGT11" >/dev/null 2>&1
+printf 'LOCAL EDIT ONLY\n' > "$TGT11/$CLDIR/skills/example.md"
+HARNESS_SRC="$SRC11" bash "$SYNC" "$TGT11" >/dev/null 2>&1; rc=$?
+ck "$rc" "sync exits 0 when the user edited a copy file but upstream did not change"
+[ "$(cat "$TGT11/$CLDIR/skills/example.md")" = "LOCAL EDIT ONLY" ]; ck "$?" "user-only edit is preserved, not clobbered"
+
 cleanup "$SRC" "$TGT" "$SRC2" "$TGT2" "$TGT3" "$SRC4" "$TGT4" "$SRC5" "$TGT5" \
-        "$SRC6" "$TGT6" "$SRC7" "$TGT7" "$SRC8" "$TGT8" "$TGT9" "$TGT10"
+        "$SRC6" "$TGT6" "$SRC7" "$TGT7" "$SRC8" "$TGT8" "$TGT9" "$TGT10" \
+        "$SRC11" "$TGT11"
 
 echo ""
 echo "install: $pass passed, $fail failed"
