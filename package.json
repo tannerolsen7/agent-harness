@@ -7,7 +7,7 @@
     "lint": "bash scripts/lint.sh",
     "test": "bash scripts/run-tests.sh",
     "test:unit": "bash scripts/run-tests.sh",
-    "prepare": "husky"
+    "prepare": "husky && bash scripts/register-merge-drivers.sh"
   },
   "devDependencies": {
     "husky": "^9.1.7"
