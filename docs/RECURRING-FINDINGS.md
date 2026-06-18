@@ -27,6 +27,13 @@ file and you reset the loop's memory.
 
 ## Active
 
+### spec-behavior-missing-from-test
+**Signature:** A confirmed behavior in the spec shard has no corresponding test assertion; a regression would pass all tests.
+**Occurrences:** 1
+**Last seen:** 2026-06-18
+**Locations:** tests/worktree-add.test.sh (Test 6 had no TASKS.md marking check despite spec requiring it in Behavior 4)
+**Detail:** The spec shard confirmed "TASKS.md in-progress marking still runs after worktree creation regardless of whether $3 was supplied" but no test verified it. Fixed by adding Test 7 with a TASKS.md fixture and the matching grep assertion.
+
 ### missing-protected-branch-in-test
 **Signature:** A regression gate for a hook that protects N branches only covers N-1 of them.
 **Occurrences:** 1
@@ -127,10 +134,10 @@ file and you reset the loop's memory.
 
 ### documented-edge-case-not-guarded
 **Signature:** A guard condition documents a fallback for an edge case (e.g. "falls back to X if Y") but the code only checks the most obvious form — a related but distinct form of Y slips through.
-**Occurrences:** 1
-**Last seen:** 2026-06-17
-**Locations:** scripts/pr.sh (line 85 — `[ -z "$MERGE_CHECK_BASE" ]` caught empty string but not `"(unknown)"` from git); .claude/skills/cr/SKILL.md (same guard)
-**Detail:** `git remote show origin` outputs the literal string `(unknown)` when the remote HEAD symref is unset. TESTING.md documented "falls back to main if the remote HEAD cannot be determined" — but `(unknown)` is non-empty, so the guard didn't fire. Fixed by adding `|| [ "$X" = "(unknown)" ]`.
+**Occurrences:** 2
+**Last seen:** 2026-06-18
+**Locations:** scripts/pr.sh (line 85 — `[ -z "$MERGE_CHECK_BASE" ]` caught empty string but not `"(unknown)"` from git); scripts/worktree-add.sh (BASE_REF had no flag-injection guard matching the existing BRANCH guard)
+**Detail:** (1) `git remote show origin` outputs the literal string `(unknown)` when the remote HEAD symref is unset. Fixed by adding `|| [ "$X" = "(unknown)" ]`. (2) `worktree-add.sh` rejected `-*` for BRANCH but not for the new BASE_REF parameter added in this PR. Fixed by adding a second `case "$BASE_REF" in -*)` guard.
 
 ### doc-drift-generated-file-references
 **Signature:** Multiple skill or agent files still reference a file as the write target after it becomes a generated artifact; agents follow stale instructions and write to the wrong path.

@@ -134,9 +134,8 @@ chk $? "task already [x] is not changed to [~]"
 
 # ── Test 6: optional $3 base-ref — new branch starts from that ref ───────────
 TMP6=$(mktemp -d)
-TMP6_BASE_WT=$(mktemp -d)
 TMP6_CHILD_WT=$(mktemp -d)
-trap 'rm -rf "$TMP1" "$TMP1_WT" "$TMP2" "$TMP2_WT" "$TMP3" "$TMP3_WT" "$TMP4" "$TMP4_WT" "$TMP5" "$TMP5_WT" "$TMP6" "$TMP6_BASE_WT" "$TMP6_CHILD_WT"' EXIT
+trap 'rm -rf "$TMP1" "$TMP1_WT" "$TMP2" "$TMP2_WT" "$TMP3" "$TMP3_WT" "$TMP4" "$TMP4_WT" "$TMP5" "$TMP5_WT" "$TMP6" "$TMP6_CHILD_WT"' EXIT
 (
   cd "$TMP6"
   git init -q
@@ -155,6 +154,36 @@ chk $? "script exits 0 when a base-ref is provided"
 # The child branch should include the base-task commit in its ancestry
 (cd "$TMP6" && git log feat/child-task --oneline 2>/dev/null | grep -q "base-task work")
 chk $? "feat/child-task ancestry includes the base-ref commit"
+
+# ── Test 7: TASKS.md in-progress marking works when base-ref is provided ─────
+TMP7=$(mktemp -d)
+TMP7_CHILD_WT=$(mktemp -d)
+trap 'rm -rf "$TMP1" "$TMP1_WT" "$TMP2" "$TMP2_WT" "$TMP3" "$TMP3_WT" "$TMP4" "$TMP4_WT" "$TMP5" "$TMP5_WT" "$TMP6" "$TMP6_CHILD_WT" "$TMP7" "$TMP7_CHILD_WT"' EXIT
+(
+  cd "$TMP7"
+  git init -q
+  git config user.email t@example.com
+  git config user.name tester
+  git commit -q --allow-empty --no-verify -m "init"
+  git branch -M main 2>/dev/null || git checkout -q -b main 2>/dev/null || true
+  git checkout -q -b feat/base-task
+  git commit -q --allow-empty --no-verify -m "base-task work"
+  git checkout -q main
+) >/dev/null 2>&1
+cat > "$TMP7/TASKS.md" << 'TASKSEOF'
+# TASKS.md
+
+## P1 — Ready to Queue
+
+- [ ] Child task
+  Size: SMALL
+  Slug: child-task
+  Notes: Testing base-ref with TASKS.md.
+TASKSEOF
+(cd "$TMP7" && unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE && bash "$SCRIPT" "$TMP7_CHILD_WT" "feat/child-task" "feat/base-task") >/dev/null 2>&1
+chk $? "script exits 0 when base-ref provided with TASKS.md"
+grep -q '^- \[~\] Child task' "$TMP7/TASKS.md"
+chk $? "TASKS.md in-progress marking works when base-ref is provided"
 
 [ "$fail" = 0 ] && echo "worktree-add: OK ($pass passed)"
 exit "$fail"
