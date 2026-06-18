@@ -22,6 +22,9 @@ if [ ! -f "$HTML" ]; then
   exit 1
 fi
 
+# Read old PR count before updating so the status line can show what changed.
+OLD_PR=$(grep -oE '[0-9]+ PRs merged' "$HTML" | head -1 | grep -oE '^[0-9]+' || echo "?")
+
 # Count merged PRs from main. Uses GitHub's "Merge pull request" merge-commit
 # format — squash-merges and rebase-merges are not counted. grep -c exits 1
 # when count is zero; handle that separately from a git failure so a broken
@@ -40,10 +43,23 @@ PCT=$(( PR_COUNT * 100 / TOTAL ))
 [ "$PCT" -gt 99 ] && PCT=99
 
 DATE=$(date +"%B %-d, %Y")
+TIME=$(date +"%-I:%M %p")
 
-# Write all three substitutions in one pass, atomically: sed into a temp file,
+# Build what-changed summary for the status line.
+if [ "$OLD_PR" = "$PR_COUNT" ]; then
+  PR_CHANGE="${PR_COUNT} PRs (no change)"
+elif [ "$OLD_PR" = "?" ]; then
+  PR_CHANGE="${PR_COUNT} PRs (first run)"
+else
+  PR_CHANGE="${OLD_PR}→${PR_COUNT} PRs"
+fi
+STATUS="Last auto-updated: ${DATE} at ${TIME} · ${PR_CHANGE}"
+
+# Write all substitutions in one pass, atomically: sed into a temp file,
 # then mv. This prevents a partial update if the process dies mid-way.
 # Single sed with multiple -e expressions is portable (BSD + GNU).
+# The auto-update-status substitution is a no-op when the element is absent,
+# so old HTML files without the element are safely skipped.
 TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT
 
@@ -51,6 +67,7 @@ sed \
   -e "s|<div class=\"date\">[^<]*</div>|<div class=\"date\">${DATE}</div>|" \
   -e "s|<div class=\"progress-label\">[0-9]* PRs merged</div>|<div class=\"progress-label\">${PR_COUNT} PRs merged</div>|" \
   -e "s|style=\"width:[0-9]*%\"|style=\"width:${PCT}%\"|" \
+  -e "s|<div class=\"auto-update-status\">[^<]*</div>|<div class=\"auto-update-status\">${STATUS}</div>|" \
   "$HTML" > "$TMP"
 mv "$TMP" "$HTML"
 
