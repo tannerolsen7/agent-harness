@@ -31,10 +31,11 @@ if $_ALL_DELETIONS; then
   exit 0
 fi
 
-# Fall back to HEAD when stdin had no push refs (e.g. manual hook invocation).
+# Fail closed if stdin parsing produced no branch (unexpected input format).
+# In a real git push, BRANCH is always populated by the loop above.
 if [ -z "$BRANCH" ]; then
-  BRANCH=$(git rev-parse --abbrev-ref HEAD)
-  PUSH_SHA=$(git rev-parse HEAD)
+  echo "Push blocked: could not read branch from push refs — unexpected stdin format." >&2
+  exit 1
 fi
 
 # Block pushes to branches whose PR is already merged — new commits need a new branch.
