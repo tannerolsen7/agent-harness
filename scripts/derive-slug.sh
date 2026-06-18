@@ -6,7 +6,8 @@
 set -e
 
 branch=${1:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD")}
-printf '%s' "$branch" \
+slug=$(printf '%s' "$branch" \
   | sed 's|^feat/||; s|[^a-zA-Z0-9]|-|g; s|-\+|-|g; s|^-||; s|-$||' \
-  | tr '[:upper:]' '[:lower:]'
-printf '\n'
+  | tr '[:upper:]' '[:lower:]')
+[ -z "$slug" ] && slug="unknown"
+printf '%s\n' "$slug"

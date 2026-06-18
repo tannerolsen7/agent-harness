@@ -233,6 +233,16 @@ shards are staged.
   runs, it executes `bash scripts/assemble-testing.sh` and stages `docs/TESTING.md`
   automatically. The commit completes without any manual step from the developer.
 
+- **Bare `feat/` branch produces slug `unknown`:** Given a branch name of exactly
+  `feat/` (no suffix), `scripts/derive-slug.sh` returns `unknown` rather than an
+  empty string. An empty slug would create a hidden file (`docs/testing/.md`), so
+  the fallback prevents that.
+
+- **Assembly creates `docs/TESTING.md` even when `docs/testing/` is absent:** Given
+  a custom `TESTING_ROOT` with a `docs/` directory but no `docs/testing/` subdirectory,
+  when `scripts/assemble-testing.sh` runs, it creates `docs/TESTING.md` with the
+  generated header (and no shard sections). The script does not exit non-zero.
+
 ---
 
 ## Context slicer (`scripts/slice-context.sh`)

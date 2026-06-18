@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Tests for scripts/assemble-testing.sh and the slug-derivation algorithm.
 #
-# Three test paths:
+# Test paths:
 #   1. Assembly: produces docs/TESTING.md with generated header + shards in alphabetical order
 #   2. Idempotency: running the script twice produces the same output
-#   3. Slug derivation: feat/ stripped, non-word chars become hyphens, lowercased
+#   3. Slug derivation: feat/ stripped, non-word chars become hyphens, lowercased; bare feat/ → "unknown"
+#   3b. Assembly with no docs/testing/ dir: mkdir -p guard keeps the script from crashing
+#   4. Pre-commit hook: detects staged shard, runs assembly, stages docs/TESTING.md
 #
 # GIT_DIR guard: unset inherited git state so temp-repo tests don't touch the real repo.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
@@ -97,6 +99,26 @@ slug=$(derive_slug "feat/auth/login-v2")
 [ "$slug" = "auth-login-v2" ] \
   && ok || no "feat/auth/login-v2 should produce auth-login-v2 (got $slug)"
 
+echo "── slug: bare feat/ with no suffix falls back to 'unknown' ──"
+slug=$(derive_slug "feat/")
+[ "$slug" = "unknown" ] \
+  && ok || no "feat/ with no suffix should produce 'unknown' (got $slug)"
+
+# ── Path 3b: assembly with no docs/testing/ directory ────────────────────────
+
+echo "── assembly: missing docs/testing/ dir does not crash (mkdir -p guard) ──"
+T2=$(mktemp -d /tmp/assemble-testing-empty-XXXX)
+mkdir -p "$T2/docs"
+
+TESTING_ROOT="$T2" bash "$SCRIPT" 2>/dev/null
+[ -f "$T2/docs/TESTING.md" ] \
+  && ok || no "assemble-testing.sh should create docs/TESTING.md even when docs/testing/ is absent"
+
+grep -q "generated" "$T2/docs/TESTING.md" 2>/dev/null \
+  && ok || no "output should still have the generated header when no shards exist"
+
+rm -rf "$T2"
+
 # ── Path 4: pre-commit hook auto-stages assembled file ───────────────────────
 
 echo "── pre-commit hook: runs assemble-testing.sh and stages docs/TESTING.md ──"
@@ -122,7 +144,7 @@ SHARD
   git add docs/testing/my-feature.md
 
   # Run just the shard-detection logic from the pre-commit hook.
-  STAGED_SHARDS=$(git diff --cached --name-only --diff-filter=ACM | grep "^docs/testing/" || true)
+  STAGED_SHARDS=$(git diff --cached --name-only --diff-filter=ACDM | grep -E "^docs/testing/[^/]+\.md$" || true)
   if [ -n "$STAGED_SHARDS" ]; then
     bash scripts/assemble-testing.sh
     git add docs/TESTING.md

@@ -8,6 +8,7 @@ ROOT=${TESTING_ROOT:-$(git rev-parse --show-toplevel)}
 OUTPUT="$ROOT/docs/TESTING.md"
 SHARDS_DIR="$ROOT/docs/testing"
 
+mkdir -p "$(dirname "$OUTPUT")"
 {
   printf '<!-- generated — do not edit directly. Run scripts/assemble-testing.sh to regenerate. -->\n\n'
   printf '# TESTING — confirmed behaviors\n\n'
