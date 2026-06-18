@@ -110,7 +110,7 @@ Riskiest assumption: [one sentence]
 Test: [file:line — what it asserts]
 Result: [Passes | Fails | Blocked]
 [if Passes]
-Traceable to: docs/TESTING.md — tracer bullets
+Traceable to: docs/testing/<slug>.md — tracer bullets
 Filled TASK-TEMPLATE.md:
 [content]
 [if Fails]
