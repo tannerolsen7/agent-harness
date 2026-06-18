@@ -84,6 +84,44 @@ received a commit after `/cr` ran.
 
 ---
 
+## Performance budget (`scripts/perf-budget.sh`)
+
+Measures Core Web Vitals (LCP, CLS, INP) against per-project targets. Exits 1 when any metric
+exceeds its budget so `ci-verify.sh` can catch the breach with `||`; exits 0 when all metrics
+pass. Never blocks the build — advisory only.
+
+### Confirmed behaviors
+
+- **Pass path:** When all three metrics are within budget, exits 0, prints a `pass` line for each metric, and prints the `OK` summary. No `WARN` lines appear in the output.
+- **Warn path:** When a metric exceeds its budget, exits 1, prints a `WARN` line naming the metric and showing the measured value vs the budget, and prints the `WARNING` summary.
+- **Config override:** A `perf-budget.config.sh` file at the project root overrides the default budgets. A metric that passes the default but fails the tighter config triggers a `WARN` line.
+- **Curl fallback:** When `lighthouse` is not available, the script measures LCP via `curl` response time and sets CLS and INP to 0 (they cannot be measured without a browser). CLS and INP always pass in curl mode.
+
+---
+
+## Worktree setup (`scripts/worktree-add.sh`)
+
+`worktree-add.sh` creates a git worktree for a given branch. When the branch
+name follows the `feat/<slug>` pattern and `TASKS.md` exists at the repo root,
+the script also marks the matching task as in-progress in `TASKS.md`.
+
+### Confirmed behaviors
+
+- **In-progress marker written on worktree create:** Given `TASKS.md` contains
+  `- [ ] Some task` followed (within the same task block) by `  Slug: <slug>`,
+  when `worktree-add.sh <path> feat/<slug>` runs, `TASKS.md` is updated so the
+  task header reads `- [~] Some task`. Other tasks in the file are not changed.
+
+- **Non-feat branches leave TASKS.md unchanged:** Given a branch name that does
+  not start with `feat/`, when `worktree-add.sh` runs, `TASKS.md` is not
+  modified and the script exits 0.
+
+- **Missing TASKS.md is not an error:** Given `TASKS.md` does not exist at the
+  repo root, when `worktree-add.sh` runs, the script exits 0 and no TASKS.md
+  update attempt is made.
+
+---
+
 ## Context slicer (`scripts/slice-context.sh`)
 
 The slicer turns a source file into a compact outline: the lines that declare
@@ -113,3 +151,49 @@ signatures relevant to its task instead of the full file.
 - **Unknown file type falls back safely:** For a file type the slicer has no rules
   for, it prints the whole file rather than silently dropping content. A safe
   fallback never hides code from the agent.
+
+## AI activity dashboard
+
+Records one entry per top-level session stop and shows the full history in a
+browsable HTML page committed to the repo.
+
+### Confirmed behaviors
+
+- **Session start writes temp file:** When `session-start.sh` runs and hook stdin
+  JSON contains a `session_id` and `model`, it writes
+  `/tmp/claude-activity-{session_id}` with a single line of the form
+  `{start_unix_ts} {model}` — a Unix timestamp and the model string,
+  space-separated.
+
+- **Subagent stop writes no record:** When `session-stop.sh` runs and hook stdin
+  JSON contains a non-empty `agent_type`, the hook exits without writing anything
+  to `.claude/activity/`. Only top-level session stops produce records.
+
+- **Top-level stop writes a valid JSONL record:** When `session-stop.sh` runs with
+  no `agent_type` in hook stdin, it appends one valid JSON object to
+  `.claude/activity/{branch-slug}.jsonl`. The object contains `ts` (ISO-8601 UTC),
+  `branch`, `sha`, `model`, `skills` (array), and `duration_s` (integer or null).
+
+- **Missing temp file yields null duration:** When the session temp file
+  `/tmp/claude-activity-{session_id}` does not exist at stop time, the written
+  record has `duration_s` set to `null` — not `0` and not omitted — and `model`
+  set to `"unknown"`.
+
+- **Skills are extracted and deduplicated:** The written record's `skills` array
+  holds only the names of Skill calls found in the session permission log,
+  deduplicated, with no duplicates. When the log is empty or absent, `skills`
+  is `[]`.
+
+- **activity-report.sh writes harness-activity.html:** Running
+  `scripts/activity-report.sh` reads all `.claude/activity/*.jsonl` files and
+  writes `harness-activity.html` with a summary bar (total sessions, top-3 skills,
+  average duration excluding nulls) and a sessions table ordered newest-first
+  (columns: Date, Branch, SHA, Model, Skills, Duration).
+
+- **Bad JSONL line is skipped, not fatal:** A malformed line in any
+  `.claude/activity/*.jsonl` file does not stop the report from completing. Valid
+  records before and after the bad line still appear in the output.
+
+- **update-progress.sh calls activity-report.sh:** Running
+  `scripts/update-progress.sh` also regenerates `harness-activity.html` so the
+  dashboard stays fresh at every session start.
