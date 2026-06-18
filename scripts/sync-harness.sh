@@ -16,6 +16,11 @@
 #   HARNESS_SRC=/path/to/harness bash scripts/sync-harness.sh /path/to/target
 set -euo pipefail
 
+# Declared up front so the trap is safe even when mktemp is never reached (dry-run, or an early exit
+# before the manifest rewrite). The trap fires on any exit and removes the temp manifest if one exists.
+tmp_manifest=""
+trap 'rm -f "${tmp_manifest:-}"' EXIT
+
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 HARNESS_SRC="${HARNESS_SRC:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
@@ -29,7 +34,15 @@ for a in "$@"; do
 done
 TARGET_DIR="${args[0]:-.}"
 
-file_sha() { sha256sum "$1" 2>/dev/null | awk '{print $1}' || shasum -a 256 "$1" | awk '{print $1}'; }
+# Fail loudly if neither sha tool produces a hash — an empty sha would compare equal to another
+# empty sha and silently mark two broken files as "up to date."
+file_sha() {
+  local h
+  h=$(sha256sum "$1" 2>/dev/null | awk '{print $1}')
+  [ -z "$h" ] && h=$(shasum -a 256 "$1" 2>/dev/null | awk '{print $1}')
+  [ -n "$h" ] || { echo "file_sha: cannot compute sha256 for $1" >&2; return 1; }
+  printf '%s\n' "$h"
+}
 json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
 TARGET_DIR=$(cd "$TARGET_DIR" 2>/dev/null && pwd) || { echo "sync: target dir does not exist: ${args[0]:-.}" >&2; exit 1; }
@@ -39,6 +52,14 @@ command -v jq >/dev/null 2>&1 || { echo "sync: jq is required to read the manife
 command -v sha256sum >/dev/null 2>&1 || command -v shasum >/dev/null 2>&1 \
   || { echo "sync: sha256sum or shasum is required." >&2; exit 1; }
 [ -d "$HARNESS_SRC" ] || { echo "sync: HARNESS_SRC not found: $HARNESS_SRC" >&2; exit 1; }
+
+# Reject a corrupt manifest up front. Without this, jq fails inside the read loop's process
+# substitution, the loop sees zero entries, and sync exits 0 having changed nothing.
+jq -e . "$manifest" >/dev/null 2>&1 || { echo "sync: manifest is corrupt — re-run install.sh." >&2; exit 1; }
+
+# Refuse a manifest written by a future/older format. Schema 1 is the only one this script reads.
+_schema=$(jq -r '.schema' "$manifest")
+[ "$_schema" = "1" ] || { echo "sync: unsupported manifest schema '$_schema' — upgrade sync-harness.sh." >&2; exit 1; }
 
 # Map each create-once dest back to its source template (same table install.sh uses).
 template_for() {
@@ -62,6 +83,8 @@ conflicts=""
 # Read manifest entries as "relpath<TAB>sha<TAB>policy".
 while IFS=$'\t' read -r rel old_sha policy; do
   [ -z "$rel" ] && continue
+  # A manifest path with .. could write outside the target tree. Refuse it.
+  case "$rel" in *../*|../*) echo "sync: manifest contains unsafe path: $rel — aborting." >&2; exit 1 ;; esac
   dstf="$TARGET_DIR/$rel"
 
   if [ "$policy" = "create-once" ]; then

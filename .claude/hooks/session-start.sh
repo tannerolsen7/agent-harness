@@ -6,10 +6,15 @@ HASH=$(echo "${CLAUDE_PROJECT_DIR:-/}" | md5 | cut -c1-8)
 > "/tmp/claude-perm-log-${HASH}.jsonl" 2>/dev/null || true
 
 # Auto-clean merged worktrees + branches at session start (best-effort).
-# Must sit BEFORE the remote-only early-exit below, or it never runs locally —
-# which is where worktrees actually accumulate. gc.sh is safe: it only removes
-# [gone], merge-verified branches and prints a recovery SHA for each.
-( cd "${CLAUDE_PROJECT_DIR:-$(pwd)}" && bash scripts/gc.sh ) || true
+# Gated behind .claude/.gc-enabled so installed repos don't auto-delete branches
+# without the team opting in. The harness repo has this file; installed targets don't
+# (install.sh does not copy it). A team can create it themselves to enable cleanup.
+_GC_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+if [ -f "$_GC_DIR/.claude/.gc-enabled" ]; then
+  ( cd "$_GC_DIR" && bash scripts/gc.sh ) || true
+fi
+unset _GC_DIR
+
 
 # Report how far the current branch is behind main so the gap is visible
 # before any feature work starts, not at PR time.

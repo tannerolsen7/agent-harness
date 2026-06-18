@@ -22,7 +22,15 @@ HARNESS_SRC="${HARNESS_SRC:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 TARGET_DIR="${1:-.}"
 
 # Portable sha256 of a file: GNU coreutils (sha256sum) first, macOS (shasum -a 256) as fallback.
-file_sha() { sha256sum "$1" 2>/dev/null | awk '{print $1}' || shasum -a 256 "$1" | awk '{print $1}'; }
+# Fail loudly if neither tool produces a hash — an empty sha would compare equal to another
+# empty sha and silently mark two broken files as "up to date."
+file_sha() {
+  local h
+  h=$(sha256sum "$1" 2>/dev/null | awk '{print $1}')
+  [ -z "$h" ] && h=$(shasum -a 256 "$1" 2>/dev/null | awk '{print $1}')
+  [ -n "$h" ] || { echo "file_sha: cannot compute sha256 for $1" >&2; return 1; }
+  printf '%s\n' "$h"
+}
 
 # JSON string escape: backslash and double-quote are the only chars our paths/shas can contain.
 json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
@@ -121,6 +129,7 @@ now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 mkdir -p "$TARGET_DIR/.claude"
 manifest="$TARGET_DIR/.claude/.harness-manifest.json"
 _manifest_tmp=$(mktemp "$TARGET_DIR/.claude/.harness-manifest.XXXXXX")
+trap 'rm -f "${_manifest_tmp:-}"' EXIT   # never leak the temp manifest if the write aborts
 {
   printf '{\n'
   printf '  "schema": 1,\n'
