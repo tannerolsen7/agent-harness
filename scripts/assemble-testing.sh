@@ -14,10 +14,9 @@ SHARDS_DIR="$ROOT/docs/testing"
   printf 'Confirmed behaviors for the harness'"'"'s own tooling. Each entry is a behavior a test\n'
   printf 'checks, not an invented requirement. Per-project work adds its own entries.\n'
 
-  first=1
-  for f in $(ls "$SHARDS_DIR"/*.md 2>/dev/null | sort); do
+  for f in "$SHARDS_DIR"/*.md; do
+    [ -e "$f" ] || continue
     printf '\n---\n\n'
     cat "$f"
-    first=0
   done
 } > "$OUTPUT"

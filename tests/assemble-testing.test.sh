@@ -19,12 +19,10 @@ pass=0; fail=0
 ok()  { pass=$((pass+1)); }
 no()  { printf '  MISS: %s\n' "$1"; fail=$((fail+1)); }
 
-# Derive a slug from a branch name: same algorithm as spec-writer instructions.
-derive_slug() {
-  printf '%s' "$1" \
-    | sed 's|^feat/||; s|[^a-zA-Z0-9]|-|g; s|-\+|-|g; s|^-||; s|-$||' \
-    | tr '[:upper:]' '[:lower:]'
-}
+DERIVE_SLUG="$ROOT/scripts/derive-slug.sh"
+[ -f "$DERIVE_SLUG" ] || { echo "assemble-testing.test: $DERIVE_SLUG not found"; exit 1; }
+
+derive_slug() { bash "$DERIVE_SLUG" "$1"; }
 
 # ── Path 1: assembly produces canonical file ──────────────────────────────────
 
