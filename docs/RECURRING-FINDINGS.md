@@ -62,6 +62,13 @@ file and you reset the loop's memory.
 **Locations:** scripts/check-integrity.sh (header), .claude/agents/doc-updater.md (section headings), docs/patterns-registry.md (Established by line)
 **Detail:** "CMP4", "CMP1", "CMP2" appear without explanation. CLAUDE.md rule: do not drop internal codes without explaining them first. Partially fixed in this PR (CMP labels removed from doc-updater.md headings; CMP4 explained in check-integrity.sh header).
 
+### sed-i-macos-only-linux-noop
+**Signature:** `sed -i ''` (BSD form) silently no-ops on Linux — GNU sed treats the empty string as a backup suffix, creates `file.bak`, and leaves the original unchanged. Exits 0.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** scripts/update-progress.sh (initial version, all three sed calls)
+**Detail:** Fix: write substitutions to a temp file and mv atomically. Reference: project memory reference-ci-linux-vs-macos-parity.md.
+
 ### new-detection-path-missing-branch-exclusions
 **Signature:** A new code path that collects branch candidates doesn't apply the same exclusion rules as the existing path for the same script.
 **Occurrences:** 2
