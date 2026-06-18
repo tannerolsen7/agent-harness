@@ -91,6 +91,37 @@ printf '#!/bin/sh\nexit 7\n' > "$STUB_BIN/gh"; chmod +x "$STUB_BIN/gh"
 if [ -f "$RFAIL/.claude/.cr-ok" ]; then pass=$((pass+1)); else echo "  MISS: sentinel not restored on create failure (not retryable)"; fail=$((fail+1)); fi
 rm -rf "$TRAP_TMP"
 
+echo "── merge conflict aborts before sentinel consumption ──"
+# A branch whose shared file diverged from origin/main (same line changed differently) must be
+# rejected BEFORE the sentinel is consumed, so the user can rebase and retry without re-running /cr.
+CONFLICT_TMP=$(mktemp -d); CONFLICT_BIN="$CONFLICT_TMP/bin"; mkdir -p "$CONFLICT_BIN"
+printf '#!/bin/sh\nexit 0\n' > "$CONFLICT_BIN/gh"; chmod +x "$CONFLICT_BIN/gh"
+CONFLICT_REPO="$CONFLICT_TMP/repo"; mkdir -p "$CONFLICT_REPO"
+(
+  cd "$CONFLICT_REPO" || exit 1
+  git init -q; git config user.email t@example.com; git config user.name tester
+  printf 'shared line\n' > shared.txt; git add shared.txt
+  git commit -q --no-verify -m "init"
+  _BASE=$(git rev-parse --abbrev-ref HEAD)   # capture actual default (main or master)
+  git init -q --bare "$CONFLICT_TMP/origin.git"; git remote add origin "$CONFLICT_TMP/origin.git"
+  git push -q origin "$_BASE"
+  git checkout -q -b feat/conflict
+  printf 'our change\n' > shared.txt; git add shared.txt
+  git commit -q --no-verify -m "our change"
+  git push -q origin feat/conflict
+  git checkout -q "$_BASE"
+  printf 'their change\n' > shared.txt; git add shared.txt
+  git commit -q --no-verify -m "conflicting change on base"
+  git push -q origin "$_BASE"
+  git checkout -q feat/conflict
+  mkdir -p .claude
+  printf 'feat/conflict:%s' "$(git rev-parse HEAD)" > .claude/.cr-ok
+) >/dev/null 2>&1
+( cd "$CONFLICT_REPO" && PATH="$CONFLICT_BIN:$PATH" PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1 ); conflict_rc=$?
+if [ "$conflict_rc" -ne 0 ]; then pass=$((pass+1)); else echo "  MISS (conflict abort): pr.sh exited 0, expected non-zero on conflicting branch"; fail=$((fail+1)); fi
+if [ -f "$CONFLICT_REPO/.claude/.cr-ok" ]; then pass=$((pass+1)); else echo "  MISS (conflict sentinel): .cr-ok was consumed before conflict check aborted"; fail=$((fail+1)); fi
+rm -rf "$CONFLICT_TMP"
+
 echo ""
 echo "pr-host-agnostic: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
