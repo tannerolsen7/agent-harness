@@ -6,7 +6,7 @@
 #
 # Run this after any PR merges, or wire it to SessionStart in settings.json.
 # Content cards (Done / Steps to finish) still need a human or Claude to
-# update when new work lands.
+# any new-work entries here need a human or Claude to maintain.
 
 set -euo pipefail
 
@@ -26,7 +26,7 @@ fi
 OLD_PR=$(grep -oE '[0-9]+ PRs merged' "$HTML" | head -1 | grep -oE '^[0-9]+' || echo "?")
 
 # Count merged PRs from main. Uses GitHub's "Merge pull request" merge-commit
-# format — squash-merges and rebase-merges are not counted. grep -c exits 1
+# only "Merge pull request" commits count — squash and rebase merges are excluded. grep -c exits 1
 # when count is zero; handle that separately from a git failure so a broken
 # repo surfaces an error instead of silently resetting the bar to 0%.
 if ! GIT_LOG=$(git log main --oneline 2>&1); then
