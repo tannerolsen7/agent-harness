@@ -158,20 +158,12 @@ BRANCH: feat/${task.slug}
 STOP AND SURFACE: per .claude/agent-contract.md`
 }
 
-const allResults = await parallel([
-  // Independent tasks: create worktree then run task-runner
-  ...independent.map(task => async () => {
-    await agent(createWorktreePrompt(task, null), { label: `worktree:${task.slug}`, phase: 'Setup' })
-    return agent(executeTaskPrompt(task), {
-      agentType: 'task-runner',
-      label: `task:${task.slug}`,
-      schema: TASK_RESULT_SCHEMA,
-      phase: 'Execute',
-    })
-  }),
+// Treat every task as a group: independent tasks become single-element groups.
+// This unifies the execution path — the same serial loop handles both cases.
+const allGroups = [...independent.map(t => [t]), ...stacks]
 
-  // Stacked groups: serial loop within each group
-  ...stacks.map(group => async () => {
+const allResults = await parallel(
+  allGroups.map(group => async () => {
     const results = []
     for (let i = 0; i < group.length; i++) {
       const task = group[i]
@@ -188,17 +180,19 @@ const allResults = await parallel([
 
       if (!result || result.status !== 'done') {
         const reason = result ? result.status : 'agent returned null'
-        log(`Stack group aborted at "${task.slug}" (status: ${reason}). Skipping: ${group.slice(i + 1).map(t => t.slug).join(', ')}`)
+        const remaining = group.slice(i + 1).map(t => t.slug)
+        if (remaining.length > 0) {
+          log(`Stack group aborted at "${task.slug}" (status: ${reason}). Skipping: ${remaining.join(', ')}`)
+        }
         if (result) results.push(result)
         break
       }
       results.push(result)
     }
     return results
-  }),
-])
+  })
+)
 
-// Flatten results: independent tasks return a single result; stacked groups return an array.
 const taskResults = allResults.filter(Boolean).flat()
 
 // ── Phase 3: Push ────────────────────────────────────────────────────────────
@@ -210,9 +204,10 @@ phase('Push')
 const doneResults = taskResults.filter(r => r && r.status === 'done')
 log(`${doneResults.length} of ${tasks.length} tasks done — pushing and opening PRs`)
 
+const taskBySlug = new Map(tasks.map(t => [t.slug, t]))
 const prResults = []
 for (const result of doneResults) {
-  const task = tasks.find(t => t.slug === result.taskSlug) || { title: result.taskSlug }
+  const task = taskBySlug.get(result.taskSlug) ?? { title: result.taskSlug }
   const prevSlug = prevSlugMap[result.taskSlug]
   const baseArg = prevSlug ? ` \\\n     --base feat/${prevSlug}` : ''
 
