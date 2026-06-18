@@ -11,10 +11,6 @@ Phase 3 (Quality Systems) tasks are ready to queue. Phase 4 tasks are noted with
 
 ## P0 — Blocked / Needs Design First
 
-- [ ] One-command install for new projects
-  Size: LARGE
-  Notes: Needs design doc before queuing. Covers `/init` skill + `scripts/sync-harness.sh`. The install must be self-contained: one command clones the harness as an add-on into any repo with no manual steps. Design must answer: what files get copied, how drift is detected on re-sync, and how project-specific config survives updates.
-
 - [ ] AI activity dashboard
   Size: LARGE
   Notes: Needs design doc before queuing. Per-task record of every AI action: commit SHA, model used, skills fired, duration. Must be auditable without a database — flat-file or git-native storage. Design must answer: where records are written, what schema they follow, and how the dashboard is read.
@@ -22,6 +18,12 @@ Phase 3 (Quality Systems) tasks are ready to queue. Phase 4 tasks are noted with
 ---
 
 ## P1 — Ready to Queue
+
+- [ ] One-command install for new projects
+  Size: LARGE
+  Slug: one-command-install
+  design: docs/features/one-command-install.md
+  Notes: Self-contained installer for any repo. Delivers: `scripts/install.sh` (copies harness files, writes manifest), `scripts/sync-harness.sh` (drift detection and update), `scripts/install-harness-hooks.sh` (husky/npm wiring, separate from install.sh), `/init` skill (interactive CLAUDE.md setup), and `docs/templates/` (CLAUDE.md + PITFALLS.md + AGENTS.md + CONTEXT.md starters with setup checklist at top). Three file categories: copy (harness always updates), create-once (template on first install, never touched again), never-installed (project knowledge — solutions, memory, TESTING.md). settings.json split: env block removed, project context moves to CLAUDE.md. See design doc for manifest format, drift algorithm, and full interface contract.
 
 - [ ] Design system synthesizer
   Size: MEDIUM
