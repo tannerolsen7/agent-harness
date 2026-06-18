@@ -63,5 +63,39 @@ chk $? "script exits 0 with zero PR count"
 grep -q 'style="width:0%"' "$TMP3/harness-progress.html"
 chk $? "progress bar shows 0% when no PRs found"
 
+# ── Test 4: auto-update-status element shows time + what changed ────────────
+TMP4=$(mktemp -d)
+trap 'rm -rf "$TMP" "$TMP2" "$TMP3" "$TMP4"' EXIT
+STUB_WITH_STATUS='<!DOCTYPE html><html><body>
+<div class="date">January 1, 2000</div>
+<div class="progress-label">2 PRs merged</div>
+<div class="progress-fill" style="width:0%"></div>
+<div class="auto-update-status">Auto-update not yet run</div>
+</body></html>'
+scaffold_repo "$TMP4" 5
+printf '%s\n' "$STUB_WITH_STATUS" > "$TMP4/harness-progress.html"
+(cd "$TMP4" && unset GIT_DIR GIT_WORK_TREE && bash "$SCRIPT") >/dev/null 2>&1
+chk $? "script exits 0 with auto-update-status element present"
+grep -q 'Last auto-updated:' "$TMP4/harness-progress.html"
+chk $? "status element contains 'Last auto-updated:' prefix"
+grep -qE '2.*5.*PRs|5.*PRs.*2' "$TMP4/harness-progress.html"
+chk $? "status shows old→new PR count (2→5)"
+
+# ── Test 5: no-change case shows current count + '(no change)' ──────────────
+TMP5=$(mktemp -d)
+trap 'rm -rf "$TMP" "$TMP2" "$TMP3" "$TMP4" "$TMP5"' EXIT
+scaffold_repo "$TMP5" 3
+STUB_CURRENT='<!DOCTYPE html><html><body>
+<div class="date">January 1, 2000</div>
+<div class="progress-label">3 PRs merged</div>
+<div class="progress-fill" style="width:0%"></div>
+<div class="auto-update-status">Auto-update not yet run</div>
+</body></html>'
+printf '%s\n' "$STUB_CURRENT" > "$TMP5/harness-progress.html"
+(cd "$TMP5" && unset GIT_DIR GIT_WORK_TREE && bash "$SCRIPT") >/dev/null 2>&1
+chk $? "script exits 0 when PR count unchanged"
+grep -q 'no change' "$TMP5/harness-progress.html"
+chk $? "status shows 'no change' when count was already current"
+
 [ "$fail" = 0 ] && echo "update-progress: OK ($pass passed)"
 exit "$fail"
