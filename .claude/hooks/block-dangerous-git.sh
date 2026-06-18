@@ -88,7 +88,6 @@ while IFS= read -r seg; do
   case "$sub" in
     reset)  for a in "$@"; do [ "$a" = "--hard" ] && block "git reset --hard (destructive)"; done ;;
     clean)  block "git clean (destructive)" ;;
-    rebase) block "git rebase (rewrites history)" ;;
     stash)  [ "$1" = "clear" ] && block "git stash clear (drops all stashes)" ;;
     branch)
       for a in "$@"; do

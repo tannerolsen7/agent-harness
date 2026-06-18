@@ -69,6 +69,7 @@ engineering advice.
 - `pipeline()` in Execute, not `parallel()` — `parallel()` is a barrier (waits for all tasks) and kills the wall-clock benefit; `pipeline()` lets each task advance as fast as it can.
 - Push must be sequential: `scripts/pr.sh` deletes `.cr-ok` on success; two pushes for the same task would race and one would fail validation.
 - The Workflow has no pause-and-ask mechanism. Human approval of the task list must happen in the skill (Steps 1–2) before the Workflow is launched.
+- **`isolation: 'worktree'` creates `agent/*` branches, not your `feat/*` branches.** If Execute uses `isolation: 'worktree'`, commits land on `agent/wf_<run-id>-<seq>` branches regardless of what the agent prompt says. Either drop isolation (pre-created worktrees are sufficient) or parse the actual branch name from the agent result and push that in Push. See [solution doc](./solutions/2026-06-17-workflow-isolation-worktree-branch-naming.md).
 
 ---
 
