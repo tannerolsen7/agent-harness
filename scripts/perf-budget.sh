@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Measure Core Web Vitals and compare them against per-project targets.
-# Prints pass/warn per metric. Exits 0 even on breach — this is an advisory check, not a blocker.
+# Prints pass/warn per metric. Exits 1 when any metric exceeds its budget; exits 0 when all pass.
+# ci-verify.sh calls this with || so a breach is visible but never blocks the build.
 #
 # Usage:
 #   bash scripts/perf-budget.sh [--config <path>] [--url <url>]
@@ -8,10 +9,10 @@
 # Config file (default: perf-budget.config.sh):
 #   LCP_BUDGET_MS=2500   # Largest Contentful Paint, in milliseconds
 #   CLS_BUDGET=0.1       # Cumulative Layout Shift, unitless score
-#   FID_BUDGET_MS=100    # First Input Delay, in milliseconds
+#   INP_BUDGET_MS=200    # Interaction to Next Paint, in milliseconds
 #
 # Measurement: uses Lighthouse CLI when available (lighthouse), falls back to curl-based
-# time-to-first-byte for LCP and sets CLS/FID to 0 (no-op pass) when headless tools are absent.
+# time-to-first-byte for LCP and sets CLS/INP to 0 (no-op pass) when headless tools are absent.
 # In CI without a browser the fallback ensures the script never crashes.
 set -euo pipefail
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
@@ -19,7 +20,7 @@ ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 # ── Defaults ─────────────────────────────────────────────────────────────────
 LCP_BUDGET_MS=2500
 CLS_BUDGET=0.1
-FID_BUDGET_MS=100
+INP_BUDGET_MS=200
 
 # ── Config override ────────────────────────────────────────────────────────
 CONFIG_PATH="$ROOT/perf-budget.config.sh"
@@ -44,7 +45,7 @@ fi
 # ── Measurement ───────────────────────────────────────────────────────────
 LCP_MS=""
 CLS=""
-FID_MS=""
+INP_MS=""
 
 measure_with_lighthouse() {
   local report
@@ -60,14 +61,14 @@ measure_with_lighthouse() {
   CLS=$(printf '%s' "$report" | \
     grep -o '"cumulative-layout-shift":{[^}]*"numericValue":[0-9.]*' | \
     grep -o '[0-9.]*$' | head -1)
-  FID_MS=$(printf '%s' "$report" | \
-    grep -o '"max-potential-fid":{[^}]*"numericValue":[0-9.]*' | \
+  INP_MS=$(printf '%s' "$report" | \
+    grep -o '"experimental_interaction-to-next-paint":{[^}]*"numericValue":[0-9.]*' | \
     grep -o '[0-9.]*$' | head -1)
 
   # Lighthouse rounds CLS to 3 decimal places; keep as-is.
   LCP_MS=${LCP_MS:-""}
   CLS=${CLS:-""}
-  FID_MS=${FID_MS:-""}
+  INP_MS=${INP_MS:-""}
 }
 
 measure_with_curl() {
@@ -80,7 +81,7 @@ measure_with_curl() {
     LCP_MS=$(printf '%.0f' "$(echo "$time_ms * 1000" | bc -l 2>/dev/null || echo 0)")
   fi
   CLS="0"
-  FID_MS="0"
+  INP_MS="0"
 }
 
 echo "perf-budget: measuring $URL"
@@ -92,7 +93,7 @@ if command -v lighthouse >/dev/null 2>&1; then
     measure_with_curl
   fi
 else
-  echo "perf-budget: tool = curl (no lighthouse; CLS and FID not measurable)"
+  echo "perf-budget: tool = curl (no lighthouse; CLS and INP not measurable)"
   measure_with_curl
 fi
 
@@ -123,7 +124,7 @@ echo ""
 echo "perf-budget: results"
 check_metric "LCP" "$LCP_MS"  "$LCP_BUDGET_MS" "ms"
 check_metric "CLS" "$CLS"     "$CLS_BUDGET"    ""
-check_metric "FID" "$FID_MS"  "$FID_BUDGET_MS" "ms"
+check_metric "INP" "$INP_MS"  "$INP_BUDGET_MS" "ms"
 echo ""
 
 if [ "$warn" = "1" ]; then
@@ -132,5 +133,4 @@ else
   echo "perf-budget: OK — all measured metrics are within budget"
 fi
 
-# Always exit 0. This is a warning-only check; CI must not block on it.
-exit 0
+exit "$warn"

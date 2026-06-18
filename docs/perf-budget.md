@@ -20,7 +20,7 @@ Core Web Vitals are the three metrics Google uses to measure how fast and stable
 |---|---|---|
 | **LCP** | Largest Contentful Paint | How long until the biggest visible piece of content appears. Users notice slow LCP as "the page just sat there." |
 | **CLS** | Cumulative Layout Shift | How much the page jumps around while loading. A high CLS means buttons and text move after the user tries to click them. |
-| **FID** | First Input Delay | How long the browser is too busy to respond to the first tap or click. A high FID makes the page feel frozen. |
+| **INP** | Interaction to Next Paint | How long until the page responds visually after a tap, click, or key press. A high INP means the page feels sluggish to interact with. Google replaced FID with INP as a Core Web Vital in March 2024. |
 
 These are the same metrics Lighthouse, PageSpeed Insights, and Chrome DevTools report, so targets here translate directly to those tools.
 
@@ -32,7 +32,7 @@ These are the values `scripts/perf-budget.sh` uses when no project config is pre
 |---|---|---|
 | LCP | 2500 ms | 2500 ms |
 | CLS | 0.1 | 0.1 |
-| FID | 100 ms | 100 ms |
+| INP | 200 ms | 200 ms |
 
 The defaults match Google's "good" thresholds. Projects that serve users on slow connections or low-end devices should tighten these.
 
@@ -48,7 +48,7 @@ LCP_BUDGET_MS=1500
 # Looser CLS allowed for a legacy page with ads that resize.
 CLS_BUDGET=0.15
 
-# FID stays at the default 100 ms.
+# INP stays at the default 200 ms.
 ```
 
 To use a config file at a non-default path:
@@ -69,9 +69,9 @@ In CI, run the app in the background first, wait for it to be ready, then call `
 
 ## How measurement works
 
-The script tries `lighthouse` first. If `lighthouse` is not installed, it falls back to `curl` and uses the total request time as a proxy for LCP. In the curl fallback, CLS and FID are not measurable and are set to 0 (safe — they pass automatically). The script never crashes on either path.
+The script tries `lighthouse` first. If `lighthouse` is not installed, it falls back to `curl` and uses the total request time as a proxy for LCP. In the curl fallback, CLS and INP are not measurable and are set to 0 (safe — they pass automatically). The script never crashes on either path.
 
-| Tool available | LCP | CLS | FID |
+| Tool available | LCP | CLS | INP |
 |---|---|---|---|
 | `lighthouse` | full measurement | full measurement | full measurement |
 | `curl` only | request time (proxy) | 0 (not measurable) | 0 (not measurable) |
@@ -92,7 +92,7 @@ perf-budget: tool = lighthouse
 perf-budget: results
   pass LCP: 1800ms <= budget 2500ms
   pass CLS: 0.05 <= budget 0.1
-  pass FID: 60ms <= budget 100ms
+  pass INP: 60ms <= budget 200ms
 
 perf-budget: OK — all measured metrics are within budget
 ```
@@ -105,12 +105,12 @@ perf-budget: tool = lighthouse
 perf-budget: results
   WARN LCP: 3100ms > budget 2500ms
   pass CLS: 0.05 <= budget 0.1
-  pass FID: 60ms <= budget 100ms
+  pass INP: 60ms <= budget 200ms
 
 perf-budget: WARNING — one or more metrics exceeded their budget (non-blocking)
 ```
 
-The exit code is always 0. CI prints the summary; a human decides whether to act on it.
+The script exits 1 when any metric breaches its budget; exits 0 when all pass. `ci-verify.sh` calls it with `||` so a breach is always visible but never blocks the build.
 
 ## Where this runs in CI
 
