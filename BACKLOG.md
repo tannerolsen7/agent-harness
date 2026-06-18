@@ -80,3 +80,26 @@ When a stacked group aborts mid-run (task A fails, tasks B and C never start), B
 **Fix:** Push skipped tasks with `status: 'skipped'` and add a `skipped` count to the return summary.
 
 Source: /cr of feat/queue-branch-stacking — [P10-cascade]
+
+## branch-stacking: pr.sh merge check should respect stacked --base
+When a stacked PR uses `--base feat/<parent>`, pr.sh still checks for conflicts
+against origin/main. For the normal stacking use case this is fine (B+A combined
+merges cleanly with main). But it means the conflict check doesn't verify B vs A
+specifically. Separate PR: parse `--base` in pr.sh and use it for MERGE_CHECK_BASE.
+
+## branch-stacking: display stack order confirmation before execution
+Stack order follows input-array order (TASKS.md order), which may not match
+intended merge order. The SKILL.md should show the computed stack plan and ask
+the operator to confirm or reorder before launching the workflow.
+
+## branch-stacking: path normalization in parseFiles
+`filesAffected` strings like `"src/auth.ts and src/db.ts"` (prose), `"./src/auth.ts"`
+vs `"src/auth.ts"` (leading ./), or mismatched case on macOS silently cancel stacking.
+Add normalization (strip ./, lowercase if case-insensitive FS) and a warning if
+entries contain spaces or glob chars.
+
+## branch-stacking: migrations/ directory should still serialize sibling files
+Removing `migrations/` from the hard-exclude list in SKILL.md Step 1 means two
+tasks touching `migrations/001.sql` and `migrations/002.sql` no longer overlap
+(exact paths don't match). They run in parallel and can collide. Add directory-prefix
+matching for known-serial directories, or restore `migrations/` to the hard-exclude.
