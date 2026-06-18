@@ -82,7 +82,7 @@ fi
 
 # --- merge-conflict pre-check: abort before sentinel consumption if branch conflicts with base ---
 MERGE_CHECK_BASE=$(git remote show origin 2>/dev/null | awk '/HEAD branch/{print $NF}')
-[ -z "$MERGE_CHECK_BASE" ] && MERGE_CHECK_BASE="main"
+[ -z "$MERGE_CHECK_BASE" ] || [ "$MERGE_CHECK_BASE" = "(unknown)" ] && MERGE_CHECK_BASE="main"
 git fetch origin "$MERGE_CHECK_BASE" --quiet 2>/dev/null || true
 MERGE_CHECK_ANCESTOR=$(git merge-base HEAD "origin/$MERGE_CHECK_BASE" 2>/dev/null || true)
 if [ -n "$MERGE_CHECK_ANCESTOR" ]; then

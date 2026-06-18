@@ -36,9 +36,14 @@ received a commit after `/cr` ran.
   non-zero and leaves the sentinel intact — the sentinel is still there once
   the conflicts are resolved and the user retries.
 
+- **Clean branch passes conflict check:** Given a branch where both HEAD and
+  the base branch have advanced independently with no overlapping file changes,
+  when `pr.sh` runs non-interactively with a valid `.cr-ok` sentinel, it exits
+  zero and the PR proceeds normally.
+
 - **Base branch detected dynamically:** The merge check reads the base branch
   from `git remote show origin`, falling back to `main` if the remote HEAD
-  cannot be determined.
+  cannot be determined (including when the remote reports `(unknown)`).
 
 ---
 

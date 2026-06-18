@@ -79,17 +79,49 @@ setup_pushed_repo() {  # $1 = repo dir; init, push feat/x to a local bare remote
     printf 'feat/x:%s' "$(git rev-parse HEAD)" > .claude/.cr-ok
   ) >/dev/null 2>&1
 }
-# create SUCCEEDS (stub gh exits 0) → sentinel consumed
+# gh exits 0 — sentinel should be permanently consumed
 ROK="$TRAP_TMP/ok"; mkdir -p "$ROK"; setup_pushed_repo "$ROK"
 printf '#!/bin/sh\nexit 0\n' > "$STUB_BIN/gh"; chmod +x "$STUB_BIN/gh"
 ( cd "$ROK" && PATH="$STUB_BIN:$PATH" PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1 )
 if [ ! -f "$ROK/.claude/.cr-ok" ]; then pass=$((pass+1)); else echo "  MISS: sentinel not consumed on create success"; fail=$((fail+1)); fi
-# create FAILS (stub gh exits 7) → sentinel restored for retry
+# gh exits 7 — sentinel should be restored so the user can retry
 RFAIL="$TRAP_TMP/fail"; mkdir -p "$RFAIL"; setup_pushed_repo "$RFAIL"
 printf '#!/bin/sh\nexit 7\n' > "$STUB_BIN/gh"; chmod +x "$STUB_BIN/gh"
 ( cd "$RFAIL" && PATH="$STUB_BIN:$PATH" PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1 )
 if [ -f "$RFAIL/.claude/.cr-ok" ]; then pass=$((pass+1)); else echo "  MISS: sentinel not restored on create failure (not retryable)"; fail=$((fail+1)); fi
 rm -rf "$TRAP_TMP"
+
+echo "── clean branch passes conflict check ──"
+# A branch with no conflicting changes must NOT be rejected by the conflict check, even when
+# the base branch has advanced. Without this test, a bug that blocks all branches (e.g. grep -c
+# always returning non-zero) would go undetected — the other tests skip the check entirely because
+# they use bare remotes where origin/<base> doesn't exist.
+CLEAN_TMP=$(mktemp -d); CLEAN_BIN="$CLEAN_TMP/bin"; mkdir -p "$CLEAN_BIN"
+printf '#!/bin/sh\nexit 0\n' > "$CLEAN_BIN/gh"; chmod +x "$CLEAN_BIN/gh"
+CLEAN_REPO="$CLEAN_TMP/repo"; mkdir -p "$CLEAN_REPO"
+(
+  cd "$CLEAN_REPO" || exit 1
+  git init -q; git config user.email t@example.com; git config user.name tester
+  printf 'base content\n' > base.txt; git add base.txt
+  git commit -q --no-verify -m "init"
+  _BASE=$(git rev-parse --abbrev-ref HEAD)
+  git init -q --bare "$CLEAN_TMP/origin.git"; git remote add origin "$CLEAN_TMP/origin.git"
+  git push -q origin "$_BASE"
+  git checkout -q -b feat/clean
+  printf 'feature only\n' > feature.txt; git add feature.txt
+  git commit -q --no-verify -m "add feature file"
+  git push -q origin feat/clean
+  git checkout -q "$_BASE"
+  printf 'base only\n' > other.txt; git add other.txt
+  git commit -q --no-verify -m "advance base"
+  git push -q origin "$_BASE"
+  git checkout -q feat/clean
+  mkdir -p .claude
+  printf 'feat/clean:%s' "$(git rev-parse HEAD)" > .claude/.cr-ok
+) >/dev/null 2>&1
+( cd "$CLEAN_REPO" && PATH="$CLEAN_BIN:$PATH" PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1 ); clean_rc=$?
+if [ "$clean_rc" -eq 0 ]; then pass=$((pass+1)); else echo "  MISS (clean pass): pr.sh rejected a clean (non-conflicting) branch"; fail=$((fail+1)); fi
+rm -rf "$CLEAN_TMP"
 
 echo "── merge conflict aborts before sentinel consumption ──"
 # A branch whose shared file diverged from origin/main (same line changed differently) must be

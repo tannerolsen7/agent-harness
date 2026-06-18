@@ -32,10 +32,10 @@ base branch. A branch with merge conflicts cannot be reviewed meaningfully — t
 conflicts must be resolved first. **If conflicts are detected, stop here. Do not run
 any passes. Do not write the sentinel.**
 
-1. **Detect the base branch** (reads local config, no network call):
+1. **Detect the base branch** (network call; `2>/dev/null` handles offline gracefully):
    ```bash
    BASE=$(git remote show origin 2>/dev/null | awk '/HEAD branch/{print $NF}')
-   [ -z "$BASE" ] && BASE="main"
+   [ -z "$BASE" ] || [ "$BASE" = "(unknown)" ] && BASE="main"
    ```
 
 2. **Fetch the latest state of the base branch** (best-effort — if offline, the check
