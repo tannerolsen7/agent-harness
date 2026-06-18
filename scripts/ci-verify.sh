@@ -49,4 +49,14 @@ bash "$ROOT/scripts/token-lint.sh" --diff
 echo "ci-verify: perf-budget"
 bash "$ROOT/scripts/perf-budget.sh" || echo "ci-verify: perf-budget advisory (see output above for details)"
 
+# TESTING.md drift check: ensure the committed assembled file matches what assemble-testing.sh
+# would produce. Catches manual edits, merge corruption, and assembly script regressions.
+echo "ci-verify: testing-md-drift"
+bash "$ROOT/scripts/assemble-testing.sh"
+git diff --exit-code docs/TESTING.md || {
+  echo "ci-verify: docs/TESTING.md is out of sync with docs/testing/*.md shards."
+  echo "           Run: bash scripts/assemble-testing.sh"
+  exit 1
+}
+
 echo "ci-verify: OK"

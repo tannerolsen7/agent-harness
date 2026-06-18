@@ -186,7 +186,7 @@ Write for a tired engineer five years from now.
 - Tests assert behavior, not implementation
 - Edge cases covered
 - No database mocks
-- New behaviors in docs/TESTING.md?
+- New behaviors in the per-feature shard (`docs/testing/<slug>.md`)?
 
 ### Pass 7 — Doc Drift & Footprint (Haiku)
 **Part A — Mechanical (MUST FIX):** console.log outside tests, TODO/FIXME/HACK, commented-out code, unused imports, @ts-ignore, any type, as without narrowing, it.only.
@@ -195,7 +195,7 @@ Write for a tired engineer five years from now.
 - Does the diff change a module's responsibility? Does AGENTS.md reflect it?
 - Does the diff add/remove a data path? Does AGENTS.md reflect it?
 - Does the diff add/change domain vocabulary? Does CONTEXT.md reflect it?
-- New confirmed behaviors in docs/TESTING.md?
+- New confirmed behaviors in docs/testing/<slug>.md (the per-feature shard)?
 - Does any sentence in CLAUDE.md, AGENTS.md, or CONTEXT.md now contradict the code?
 
 ### Pass 8 — Architectural Drift (Sonnet)

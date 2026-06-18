@@ -24,3 +24,11 @@ if [ -n "$STAGED_COMPONENTS" ]; then
   # shellcheck disable=SC2086
   bash scripts/data-state-lint.sh $STAGED_COMPONENTS
 fi
+
+# TESTING.md shard sync: when any docs/testing/*.md shard is staged, regenerate
+# the assembled docs/TESTING.md and add it to this commit automatically.
+STAGED_SHARDS=$(git diff --cached --name-only --diff-filter=ACDM | grep -E "^docs/testing/[^/]+\.md$" || true)
+if [ -n "$STAGED_SHARDS" ]; then
+  bash scripts/assemble-testing.sh
+  git add docs/TESTING.md
+fi

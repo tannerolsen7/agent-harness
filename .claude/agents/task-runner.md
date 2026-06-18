@@ -76,7 +76,7 @@ Receive: structured codebase findings.
 ### Step 2 — Spec
 Invoke @spec-writer with: task contract + @explorer findings.
 Receive: TESTING.md entries (confirmed behaviors, not invented ones).
-Write confirmed entries to docs/TESTING.md.
+The shard file is written by @spec-writer to docs/testing/<slug>.md — docs/TESTING.md is generated automatically; do not write to it directly.
 
 ### Step 3 — Implement
 For each behavior in the spec, invoke @implementer with:

@@ -1,3 +1,5 @@
+<!-- generated — do not edit directly. Run scripts/assemble-testing.sh to regenerate. -->
+
 # TESTING — confirmed behaviors
 
 Confirmed behaviors for the harness's own tooling. Each entry is a behavior a test
@@ -5,100 +7,94 @@ checks, not an invented requirement. Per-project work adds its own entries.
 
 ---
 
-## Token linter (`scripts/token-lint.sh`)
+## AI activity dashboard
 
-Enforces design-system token usage in UI files. Catches hardcoded colors and
-spacing, and flags six absolute design bans that are never acceptable regardless
-of token use. Activated the moment `docs/design/DESIGN.md` exists in the repo.
+Records one entry per top-level session stop and shows the full history in a
+browsable HTML page committed to the repo.
 
 ### Confirmed behaviors
 
-- **Token-only file passes:** A CSS file that uses only `var(--...)` references
-  for colors and spacing exits 0 with no violations.
-- **Hardcoded 6-digit hex exits non-zero:** A file containing a bare `#RRGGBB`
-  value (not inside a `var()` call) causes the linter to exit 1 and name the
-  violation in the output.
-- **Hardcoded 3-digit hex exits non-zero:** A file containing a bare `#RGB` value
-  (not inside a `var()` call) causes the linter to exit 1 and name the violation.
-- **Raw color function exits non-zero:** A file using `rgb()`, `rgba()`, or
-  `hsl()` directly causes the linter to exit 1 and mention the function name.
-- **Ban — gradient text:** A file with `background-clip: text` (the CSS gradient-text
-  pattern) causes the linter to exit 1 and mention "gradient" in the output.
-- **Ban — glassmorphism:** A file with `backdrop-filter: blur` causes the linter
-  to exit 1 and mention "glassmorphism" in the output.
-- **Ban — side-stripe border (3px+):** A file with `border-left: 4px solid` causes
-  the linter to exit 1 and mention "side-stripe" in the output.
-- **Side-stripe 1px (divider) is allowed:** A file with `border-left: 1px solid`
-  exits 0 — 1px is a functional divider, not a decorative stripe.
-- **Ban — hero-metric template:** A file containing the class name `hero-metric`
-  causes the linter to exit 1 and mention "hero-metric" in the output.
-- **Warning — identical card grid:** A file containing the class name `card-grid`
-  emits a warning and exits 0 (warning, not a hard error — human review required).
-- **Warning — eyebrow label:** A file containing an `eyebrow` class emits a warning
-  and exits 0 (one eyebrow per page may be acceptable; human review required).
-- **Missing DESIGN.md skips without blocking:** When `docs/design/DESIGN.md` does
-  not exist, the linter exits 0 and prints a message naming the missing file and
-  telling the user to run `@design-synthesizer` to create it.
+- **Session start writes temp file:** When `session-start.sh` runs and hook stdin
+  JSON contains a `session_id` and `model`, it writes
+  `/tmp/claude-activity-{session_id}` with a single line of the form
+  `{start_unix_ts} {model}` — a Unix timestamp and the model string,
+  space-separated.
+
+- **Subagent stop writes no record:** When `session-stop.sh` runs and hook stdin
+  JSON contains a non-empty `agent_type`, the hook exits without writing anything
+  to `.claude/activity/`. Only top-level session stops produce records.
+
+- **Top-level stop writes a valid JSONL record:** When `session-stop.sh` runs with
+  no `agent_type` in hook stdin, it appends one valid JSON object to
+  `.claude/activity/{branch-slug}.jsonl`. The object contains `ts` (ISO-8601 UTC),
+  `branch`, `sha`, `model`, `skills` (array), and `duration_s` (integer or null).
+
+- **Missing temp file yields null duration:** When the session temp file
+  `/tmp/claude-activity-{session_id}` does not exist at stop time, the written
+  record has `duration_s` set to `null` — not `0` and not omitted — and `model`
+  set to `"unknown"`.
+
+- **Skills are extracted and deduplicated:** The written record's `skills` array
+  holds only the names of Skill calls found in the session permission log,
+  deduplicated, with no duplicates. When the log is empty or absent, `skills`
+  is `[]`.
+
+- **activity-report.sh writes harness-activity.html:** Running
+  `scripts/activity-report.sh` reads all `.claude/activity/*.jsonl` files and
+  writes `harness-activity.html` with a summary bar (total sessions, top-3 skills,
+  average duration excluding nulls) and a sessions table ordered newest-first
+  (columns: Date, Branch, SHA, Model, Skills, Duration).
+
+- **Bad JSONL line is skipped, not fatal:** A malformed line in any
+  `.claude/activity/*.jsonl` file does not stop the report from completing. Valid
+  records before and after the bad line still appear in the output.
+
+- **update-progress.sh calls activity-report.sh:** Running
+  `scripts/update-progress.sh` also regenerates `harness-activity.html` so the
+  dashboard stays fresh at every session start.
 
 ---
 
-## Progress auto-updater (`scripts/update-progress.sh`)
+## Merge conflict prevention (`.gitattributes` + `scripts/tasks-merge-driver.sh`)
 
-The script updates the mechanical fields in `harness-progress.html` —
-the date, PR count, and progress bar — and writes a visible "last
-auto-updated" line so you can tell at a glance that it ran and what changed.
-
-### Confirmed behaviors
-
-- **Last-updated line shows time and what changed:** Given `harness-progress.html`
-  has an `auto-update-status` element, when `update-progress.sh` runs, it replaces
-  that element's text with "Last auto-updated: [date] at [time] · [old]→[new] PRs"
-  when the PR count changed, or "Last auto-updated: [date] at [time] · [N] PRs (no change)"
-  when the count was already current.
-
----
-
-## Pre-push hook (`.husky/pre-push`) — branch from push ref-list
-
-The pre-push hook validates a `.cr-ok` sentinel before any non-interactive push is
-allowed. The sentinel records `branch:sha` — the branch and commit that `/cr` ran on.
-The hook must read the branch being pushed from git's stdin ref-list, not from `HEAD`,
-so that pushing a branch from a worktree not checked out on that branch still checks
-the right sentinel.
+Four shared doc files accumulate changes from many feature branches at once.
+Without help, git produces a conflict marker every time two branches touch the
+same file. These behaviors describe how each file is handled so that concurrent
+work auto-resolves without human intervention.
 
 ### Confirmed behaviors
 
-- **Branch name comes from push ref-list, not HEAD:** When git calls the hook with
-  `refs/heads/feat/x` in stdin and `HEAD` points to a different branch, the hook
-  validates the sentinel for `feat/x`, not for the HEAD branch. A sentinel written
-  for `feat/x:SHA_feat_x` allows the push; a sentinel written for a different branch
-  blocks it.
+- **TESTING.md auto-resolves concurrent appends:** When two feature branches
+  each append a new `##` section to the end of `docs/TESTING.md` and are then
+  merged, git keeps both appended sections and produces no conflict markers. The
+  `.gitattributes` file assigns `merge=union` to `docs/TESTING.md`, which tells
+  git to take all lines added on either side rather than picking one.
 
----
+- **RECURRING-FINDINGS.md auto-resolves concurrent appends and field edits:**
+  When two feature branches each append content to `docs/RECURRING-FINDINGS.md`,
+  or when both branches update the same `**Occurrences:**` field, git keeps both
+  versions and produces no conflict markers. If both branches edited the same
+  field, the merged file contains two lines for that field — this is acceptable
+  because occurrence counts are a lower bound, not an exact count. The
+  `.gitattributes` file assigns `merge=union` to `docs/RECURRING-FINDINGS.md`.
 
-## PR opener (`scripts/pr.sh`) — merge conflict check
+- **harness-progress.html keeps the main-branch version on merge:** When a
+  feature branch that auto-updated `harness-progress.html` (via the
+  session-start hook) is merged into main, git discards the branch's version
+  and keeps main's version. The branch's auto-updated timestamp, PR count, and
+  progress bar values are all discarded. This is safe because the file is
+  regenerated fresh at the next session start. The `.gitattributes` file assigns
+  `merge=ours` to `harness-progress.html`.
 
-`pr.sh` verifies the branch merges cleanly into the remote base branch before
-consuming the `/cr` sentinel. This is a safety net: `/cr` runs the same check
-as its first step, and `pr.sh` re-runs it as a last guard in case the branch
-received a commit after `/cr` ran.
-
-### Confirmed behaviors
-
-- **Conflict detection aborts before sentinel consumption:** Given a branch
-  where the same file has conflicting changes in HEAD versus `origin/<base>`,
-  when `pr.sh` runs non-interactively with a valid `.cr-ok` sentinel, it exits
-  non-zero and leaves the sentinel intact — the sentinel is still there once
-  the conflicts are resolved and the user retries.
-
-- **Clean branch passes conflict check:** Given a branch where both HEAD and
-  the base branch have advanced independently with no overlapping file changes,
-  when `pr.sh` runs non-interactively with a valid `.cr-ok` sentinel, it exits
-  zero and the PR proceeds normally.
-
-- **Base branch detected dynamically:** The merge check reads the base branch
-  from `git remote show origin`, falling back to `main` if the remote HEAD
-  cannot be determined (including when the remote reports `(unknown)`).
+- **TASKS.md uses a custom driver that picks the higher task state on
+  conflict:** When two branches both update the same task's status field in
+  `TASKS.md` and are then merged, the custom merge driver picks the higher state
+  instead of producing a conflict marker. The state order from highest to lowest
+  is: `[x]` (done) > `[~]` (in-progress) > `[ ]` (open). For example, if one
+  branch set a task to `[~]` and the other set it to `[x]`, the merged result is
+  `[x]`. The driver is implemented in `scripts/tasks-merge-driver.sh` and is
+  registered in `.git/config` as a local driver named `tasks-higher-state`. The
+  `.gitattributes` file assigns `merge=tasks-higher-state` to `TASKS.md`.
 
 ---
 
@@ -174,26 +170,78 @@ pass. Never blocks the build — advisory only.
 
 ---
 
-## Worktree setup (`scripts/worktree-add.sh`)
+## PR opener (`scripts/pr.sh`) — merge conflict check
 
-`worktree-add.sh` creates a git worktree for a given branch. When the branch
-name follows the `feat/<slug>` pattern and `TASKS.md` exists at the repo root,
-the script also marks the matching task as in-progress in `TASKS.md`.
+`pr.sh` verifies the branch merges cleanly into the remote base branch before
+consuming the `/cr` sentinel. This is a safety net: `/cr` runs the same check
+as its first step, and `pr.sh` re-runs it as a last guard in case the branch
+received a commit after `/cr` ran.
 
 ### Confirmed behaviors
 
-- **In-progress marker written on worktree create:** Given `TASKS.md` contains
-  `- [ ] Some task` followed (within the same task block) by `  Slug: <slug>`,
-  when `worktree-add.sh <path> feat/<slug>` runs, `TASKS.md` is updated so the
-  task header reads `- [~] Some task`. Other tasks in the file are not changed.
+- **Conflict detection aborts before sentinel consumption:** Given a branch
+  where the same file has conflicting changes in HEAD versus `origin/<base>`,
+  when `pr.sh` runs non-interactively with a valid `.cr-ok` sentinel, it exits
+  non-zero and leaves the sentinel intact — the sentinel is still there once
+  the conflicts are resolved and the user retries.
 
-- **Non-feat branches leave TASKS.md unchanged:** Given a branch name that does
-  not start with `feat/`, when `worktree-add.sh` runs, `TASKS.md` is not
-  modified and the script exits 0.
+- **Clean branch passes conflict check:** Given a branch where both HEAD and
+  the base branch have advanced independently with no overlapping file changes,
+  when `pr.sh` runs non-interactively with a valid `.cr-ok` sentinel, it exits
+  zero and the PR proceeds normally.
 
-- **Missing TASKS.md is not an error:** Given `TASKS.md` does not exist at the
-  repo root, when `worktree-add.sh` runs, the script exits 0 and no TASKS.md
-  update attempt is made.
+- **Base branch detected dynamically:** The merge check reads the base branch
+  from `git remote show origin`, falling back to `main` if the remote HEAD
+  cannot be determined (including when the remote reports `(unknown)`).
+
+---
+
+## TESTING.md sharding (`scripts/assemble-testing.sh`)
+
+Splits `docs/TESTING.md` into per-feature shard files under `docs/testing/<slug>.md`.
+`assemble-testing.sh` rebuilds `docs/TESTING.md` from all shards in alphabetical
+order. A pre-commit hook keeps the assembled file in sync automatically whenever
+shards are staged.
+
+### Confirmed behaviors
+
+- **Assembly produces canonical file from shards:** Given one or more
+  `docs/testing/*.md` files exist, when `scripts/assemble-testing.sh` runs, it
+  writes `docs/TESTING.md` with a generated-file header at the top, followed by
+  each shard's content in alphabetical filename order, with `---` dividers
+  separating each shard.
+
+- **Assembly is idempotent:** Running `scripts/assemble-testing.sh` a second time
+  without changing any shard files produces a `docs/TESTING.md` that is byte-for-byte
+  identical to the one produced by the first run. No timestamp or random value is
+  injected.
+
+- **Slug strips `feat/` prefix only:** Given a branch name starting with `feat/`,
+  the slug is derived by removing that prefix before applying the remaining
+  transformations. A branch named `fix/auth-bug` retains `fix-` in the slug because
+  only the `feat/` prefix is stripped — no other prefix is removed.
+
+- **Slug lowercases, replaces non-word characters, collapses hyphens, and trims
+  edges:** After prefix stripping, the slug is lowercased, all slashes and
+  non-word characters are replaced with hyphens, consecutive hyphens are collapsed
+  to one, and leading and trailing hyphens are removed. For example,
+  `feat/auth/login-v2` produces `auth-login-v2` and `fix/auth-bug` produces
+  `fix-auth-bug`.
+
+- **Pre-commit hook regenerates assembled file when shards are staged:** Given one
+  or more `docs/testing/*.md` files are staged for commit, when the pre-commit hook
+  runs, it executes `bash scripts/assemble-testing.sh` and stages `docs/TESTING.md`
+  automatically. The commit completes without any manual step from the developer.
+
+- **Bare `feat/` branch produces slug `unknown`:** Given a branch name of exactly
+  `feat/` (no suffix), `scripts/derive-slug.sh` returns `unknown` rather than an
+  empty string. An empty slug would create a hidden file (`docs/testing/.md`), so
+  the fallback prevents that.
+
+- **Assembly creates `docs/TESTING.md` even when `docs/testing/` is absent:** Given
+  a custom `TESTING_ROOT` with a `docs/` directory but no `docs/testing/` subdirectory,
+  when `scripts/assemble-testing.sh` runs, it creates `docs/TESTING.md` with the
+  generated header (and no shard sections). The script does not exit non-zero.
 
 ---
 
@@ -227,48 +275,78 @@ signatures relevant to its task instead of the full file.
   for, it prints the whole file rather than silently dropping content. A safe
   fallback never hides code from the agent.
 
-## AI activity dashboard
+---
 
-Records one entry per top-level session stop and shows the full history in a
-browsable HTML page committed to the repo.
+## Token linter (`scripts/token-lint.sh`)
+
+Enforces design-system token usage in UI files. Catches hardcoded colors and
+spacing, and flags six absolute design bans that are never acceptable regardless
+of token use. Activated the moment `docs/design/DESIGN.md` exists in the repo.
 
 ### Confirmed behaviors
 
-- **Session start writes temp file:** When `session-start.sh` runs and hook stdin
-  JSON contains a `session_id` and `model`, it writes
-  `/tmp/claude-activity-{session_id}` with a single line of the form
-  `{start_unix_ts} {model}` — a Unix timestamp and the model string,
-  space-separated.
+- **Token-only file passes:** A CSS file that uses only `var(--...)` references
+  for colors and spacing exits 0 with no violations.
+- **Hardcoded 6-digit hex exits non-zero:** A file containing a bare `#RRGGBB`
+  value (not inside a `var()` call) causes the linter to exit 1 and name the
+  violation in the output.
+- **Hardcoded 3-digit hex exits non-zero:** A file containing a bare `#RGB` value
+  (not inside a `var()` call) causes the linter to exit 1 and name the violation.
+- **Raw color function exits non-zero:** A file using `rgb()`, `rgba()`, or
+  `hsl()` directly causes the linter to exit 1 and mention the function name.
+- **Ban — gradient text:** A file with `background-clip: text` (the CSS gradient-text
+  pattern) causes the linter to exit 1 and mention "gradient" in the output.
+- **Ban — glassmorphism:** A file with `backdrop-filter: blur` causes the linter
+  to exit 1 and mention "glassmorphism" in the output.
+- **Ban — side-stripe border (3px+):** A file with `border-left: 4px solid` causes
+  the linter to exit 1 and mention "side-stripe" in the output.
+- **Side-stripe 1px (divider) is allowed:** A file with `border-left: 1px solid`
+  exits 0 — 1px is a functional divider, not a decorative stripe.
+- **Ban — hero-metric template:** A file containing the class name `hero-metric`
+  causes the linter to exit 1 and mention "hero-metric" in the output.
+- **Warning — identical card grid:** A file containing the class name `card-grid`
+  emits a warning and exits 0 (warning, not a hard error — human review required).
+- **Warning — eyebrow label:** A file containing an `eyebrow` class emits a warning
+  and exits 0 (one eyebrow per page may be acceptable; human review required).
+- **Missing DESIGN.md skips without blocking:** When `docs/design/DESIGN.md` does
+  not exist, the linter exits 0 and prints a message naming the missing file and
+  telling the user to run `@design-synthesizer` to create it.
 
-- **Subagent stop writes no record:** When `session-stop.sh` runs and hook stdin
-  JSON contains a non-empty `agent_type`, the hook exits without writing anything
-  to `.claude/activity/`. Only top-level session stops produce records.
+---
 
-- **Top-level stop writes a valid JSONL record:** When `session-stop.sh` runs with
-  no `agent_type` in hook stdin, it appends one valid JSON object to
-  `.claude/activity/{branch-slug}.jsonl`. The object contains `ts` (ISO-8601 UTC),
-  `branch`, `sha`, `model`, `skills` (array), and `duration_s` (integer or null).
+## Progress auto-updater (`scripts/update-progress.sh`)
 
-- **Missing temp file yields null duration:** When the session temp file
-  `/tmp/claude-activity-{session_id}` does not exist at stop time, the written
-  record has `duration_s` set to `null` — not `0` and not omitted — and `model`
-  set to `"unknown"`.
+The script updates the mechanical fields in `harness-progress.html` —
+the date, PR count, and progress bar — and writes a visible "last
+auto-updated" line so you can tell at a glance that it ran and what changed.
 
-- **Skills are extracted and deduplicated:** The written record's `skills` array
-  holds only the names of Skill calls found in the session permission log,
-  deduplicated, with no duplicates. When the log is empty or absent, `skills`
-  is `[]`.
+### Confirmed behaviors
 
-- **activity-report.sh writes harness-activity.html:** Running
-  `scripts/activity-report.sh` reads all `.claude/activity/*.jsonl` files and
-  writes `harness-activity.html` with a summary bar (total sessions, top-3 skills,
-  average duration excluding nulls) and a sessions table ordered newest-first
-  (columns: Date, Branch, SHA, Model, Skills, Duration).
+- **Last-updated line shows time and what changed:** Given `harness-progress.html`
+  has an `auto-update-status` element, when `update-progress.sh` runs, it replaces
+  that element's text with "Last auto-updated: [date] at [time] · [old]→[new] PRs"
+  when the PR count changed, or "Last auto-updated: [date] at [time] · [N] PRs (no change)"
+  when the count was already current.
 
-- **Bad JSONL line is skipped, not fatal:** A malformed line in any
-  `.claude/activity/*.jsonl` file does not stop the report from completing. Valid
-  records before and after the bad line still appear in the output.
+---
 
-- **update-progress.sh calls activity-report.sh:** Running
-  `scripts/update-progress.sh` also regenerates `harness-activity.html` so the
-  dashboard stays fresh at every session start.
+## Worktree setup (`scripts/worktree-add.sh`)
+
+`worktree-add.sh` creates a git worktree for a given branch. When the branch
+name follows the `feat/<slug>` pattern and `TASKS.md` exists at the repo root,
+the script also marks the matching task as in-progress in `TASKS.md`.
+
+### Confirmed behaviors
+
+- **In-progress marker written on worktree create:** Given `TASKS.md` contains
+  `- [ ] Some task` followed (within the same task block) by `  Slug: <slug>`,
+  when `worktree-add.sh <path> feat/<slug>` runs, `TASKS.md` is updated so the
+  task header reads `- [~] Some task`. Other tasks in the file are not changed.
+
+- **Non-feat branches leave TASKS.md unchanged:** Given a branch name that does
+  not start with `feat/`, when `worktree-add.sh` runs, `TASKS.md` is not
+  modified and the script exits 0.
+
+- **Missing TASKS.md is not an error:** Given `TASKS.md` does not exist at the
+  repo root, when `worktree-add.sh` runs, the script exits 0 and no TASKS.md
+  update attempt is made.

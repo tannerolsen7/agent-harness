@@ -129,14 +129,15 @@ has signed off on the sheet, schema, and mockup.
 
 1. Confirm the expected behavior with the user
    - **If this touches the database or adds a UI screen, it is not Tiny** — escalate to Small and run the design gate. Tiny is exempt from the design-confirmed sentinel only because it has no new data shape and no new screen.
-2. Record it in `docs/TESTING.md` under confirmed behaviors before writing any code
+2. Record it in `docs/testing/<slug>.md` under confirmed behaviors before writing any code (run `bash scripts/derive-slug.sh` to get the slug from the current branch)
 3. Invoke `/tdd` for the single slice (contract required)
 4. Invoke `/simplify` on the changed code
 5. Invoke `/cr`. If the change touched auth/permissions/data boundary,
    also invoke `/cr-security`.
 6. Run `npx tsc --noEmit` — must exit zero
 7. Commit with conventional commit format
-8. Report
+8. **Checklist** — spawn a fresh agent (not the one that wrote the code) to write `tests/manual-checklist.sh`. See [Manual checklist rule](#manual-checklist-rule) below.
+9. Report
 
 ---
 
@@ -149,7 +150,7 @@ has signed off on the sheet, schema, and mockup.
 5. **Solutions check** — search `docs/solutions/` for relevant patterns before designing the interface.
 6. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
    findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
-   `@spec-writer` writes confirmed behavior entries to `docs/TESTING.md` before touching code.
+   `@spec-writer` writes confirmed behavior entries to `docs/testing/<slug>.md` before touching code.
    Do not write TESTING.md entries inline — `@spec-writer` owns the format and the "never invent
    behaviors" rule. Wait for its summary (entries written + open questions) before proceeding.
 7. **Plan** — read relevant source files and existing tests. Design the public interface. Get user approval before writing code.
@@ -163,7 +164,8 @@ has signed off on the sheet, schema, and mockup.
     - What alternatives did you reject, and why?
     - What are you least confident about?
 14. **Compound** — if non-obvious pattern introduced, invoke `/compound`
-15. **Report**
+15. **Checklist** — spawn a fresh agent (not the one that wrote the code) to write `tests/manual-checklist.sh`. See [Manual checklist rule](#manual-checklist-rule) below.
+16. **Report**
 
 ---
 
@@ -177,7 +179,7 @@ has signed off on the sheet, schema, and mockup.
 6. **Solutions check** — search `docs/solutions/` before designing anything
 7. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
    findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
-   `@spec-writer` writes confirmed behavior entries to `docs/TESTING.md`. Do not write entries
+   `@spec-writer` writes confirmed behavior entries to `docs/testing/<slug>.md`. Do not write entries
    inline. Wait for its summary before proceeding to decomposition.
 8. **Decompose** — invoke `/to-issues`. Apply decomposition checklist: tracer bullet first, label parallel vs. sequential, verify each slice independently shippable.
    **STOP. Do not proceed to Step 9 until the user has confirmed the issue list.** This is a hard gate. Implementation does not begin until /to-issues has run and the output is approved. If the user asks "did you use /to-issues?" mid-implementation, that question is the instruction — stop, run /to-issues, get confirmation, then resume.
@@ -190,7 +192,8 @@ has signed off on the sheet, schema, and mockup.
 14. **Commit**
 15. **Compound questions**
 16. **Compound** — invoke `/compound` if non-obvious pattern introduced
-17. **Report**
+17. **Checklist** — spawn a fresh agent (not the one that wrote the code) to write `tests/manual-checklist.sh`. See [Manual checklist rule](#manual-checklist-rule) below.
+18. **Report**
 
 ---
 
@@ -201,10 +204,27 @@ has signed off on the sheet, schema, and mockup.
 3. **Grill** — invoke `/grill-with-docs`
 4. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
    findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
-   `@spec-writer` writes confirmed behavior entries to `docs/TESTING.md`. Do not write entries
+   `@spec-writer` writes confirmed behavior entries to `docs/testing/<slug>.md`. Do not write entries
    inline. Wait for its summary before decomposition.
 5. **Decompose** — invoke `/to-issues`. Each issue maps to Small or Medium. The spec.md user journey is the reference for tracing issues back to user intent.
 6. **Execute** — run `/feature` on each issue in dependency order. Sub-`/feature` calls do **not** run their own per-issue Implementation gate — `.design-confirmed` is gitignored and does not propagate into sub-worktrees. The top-level design (step 3 above) covers all issues; the gate fired once there.
+
+---
+
+## Manual checklist rule
+
+After every feature (all size tiers), spawn a **fresh agent** — not the one that wrote the code — to produce the manual verification output. The implementing agent must not write the checklist itself; it hands off context and waits.
+
+**What to pass the fresh agent:**
+- The git diff for the branch (`git diff main...HEAD`)
+- The confirmed behavior entries from `docs/testing/<slug>.md`
+- The path to any existing `tests/manual-checklist.sh` (so it can see the established style)
+
+**What the fresh agent produces:**
+- `tests/manual-checklist.sh` — a runnable shell script that checks every behavior it can check automatically. Each item should be one `ok`/`no` assertion (follow the style in any existing checklist). Only include checks that genuinely require running the code or inspecting file state; do not pad with trivial checks.
+- A short bulleted list (in its reply, not in the script) for anything it cannot automate — visual confirmation, subjective UX, external service calls, etc.
+
+**Do not commit the script.** It is a one-time verification artifact for the human to run after the feature lands, not a permanent test. If the project already has a permanent test suite entry for the behavior, the checklist item should still exist as a quick sanity check, but the source of truth is the test suite.
 
 ---
 
@@ -214,11 +234,12 @@ has signed off on the sheet, schema, and mockup.
 ## /feature complete
 Built: <one sentence>
 Size: <Tiny | Small | Medium | Large>
-Behaviors: <N confirmed behaviors added to docs/TESTING.md>
+Behaviors: <N confirmed behaviors added to docs/testing/<slug>.md>
 Tests: <N tests written, what they cover>
 Review: <cr: N must-fix auto-fixed>
 Commit: <hash and short message>
 Security tier: <ran | not required>
+Checklist: tests/manual-checklist.sh (run to verify); manual-only steps: <list or "None">
 Needs human: <list or "None">
 ```
 
@@ -227,12 +248,13 @@ Needs human: <list or "None">
 ## Done criteria
 
 - (Small+) Design was confirmed before coding — `.claude/.design-confirmed` was written via `scripts/design-confirm.sh` and the Implementation gate passed
-- All confirmed behaviors in `docs/TESTING.md`
+- All confirmed behaviors in `docs/testing/<slug>.md` (assembled into `docs/TESTING.md` automatically)
 - All slices committed (test + implementation in same commit)
 - All /to-issues issues closed — via `closes #N` in commit body (auto-closed on merge) or manually if the issue was partially addressed
 - `/simplify` has run
 - `/cr` clean (and `/cr-security` if security-sensitive code touched)
 - `npx tsc --noEmit` exits zero
+- `tests/manual-checklist.sh` written by a fresh agent (not the implementation agent); not committed
 - Final report delivered
 - If non-obvious pattern introduced: `/compound` has run
 - If feature changed a documented pattern: affected solution doc updated

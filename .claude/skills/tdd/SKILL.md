@@ -42,9 +42,9 @@ to derive expected values produces tests that pass even when behavior is wrong.
 
 ## Step 1 — Confirm the behavior before touching code
 
-- Find the target behavior in `docs/TESTING.md` → confirmed behaviors
+- Find the target behavior in `docs/TESTING.md` or its shard files under `docs/testing/` → confirmed behaviors
 - If not there: **stop and ask the user** before proceeding
-- Add the confirmed behavior to `docs/TESTING.md` before writing any test
+- Add the confirmed behavior to `docs/testing/<slug>.md` (run `bash scripts/derive-slug.sh` to get the slug) before writing any test
 - If this is a bug fix: write the behavior as it SHOULD work, not as it does
 
 ---
@@ -110,9 +110,9 @@ For each slice:
 
 ---
 
-## Step 6 — Update TESTING.md after each slice
+## Step 6 — Update the shard file after each slice
 
 After the slice's test passes:
-1. Add the behavior to the "What's tested today" table
+1. Add the behavior to `docs/testing/<slug>.md` (the per-feature shard, not `docs/TESTING.md` directly — that file is generated)
 2. Remove it from "Known test gaps" if fully covered
 3. If previously unconfirmed, move from "Code-observed" to "Confirmed behaviors"

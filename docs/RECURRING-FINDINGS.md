@@ -118,6 +118,48 @@ file and you reset the loop's memory.
 **Locations:** scripts/pr.sh (line 85 — `[ -z "$MERGE_CHECK_BASE" ]` caught empty string but not `"(unknown)"` from git); .claude/skills/cr/SKILL.md (same guard)
 **Detail:** `git remote show origin` outputs the literal string `(unknown)` when the remote HEAD symref is unset. TESTING.md documented "falls back to main if the remote HEAD cannot be determined" — but `(unknown)` is non-empty, so the guard didn't fire. Fixed by adding `|| [ "$X" = "(unknown)" ]`.
 
+### doc-drift-generated-file-references
+**Signature:** Multiple skill or agent files still reference a file as the write target after it becomes a generated artifact; agents follow stale instructions and write to the wrong path.
+**Occurrences:** 2
+**Last seen:** 2026-06-18
+**Locations:** .claude/skills/feature/SKILL.md (multiple lines — "writes to docs/TESTING.md"); .claude/agents/task-runner.md (line 79); .claude/agents/spike-slice.md (line 81, 113); .claude/agents/spike-orchestrator.md (line 188); .claude/skills/tdd/SKILL.md (Step 1 and Step 6); .claude/skills/debug/SKILL.md (Step 3 and done-criteria); .claude/skills/cr/SKILL.md (Pass 6 line 189)
+**Detail:** When docs/TESTING.md became a generated file, seven instruction files still pointed to it as the direct write target. Agents following those instructions write to the generated file and corrupt it on the next assembly run. Fix: update all instruction files when a write target changes role. Search for `docs/TESTING.md` across all .md files in .claude/ after any similar promotion of a file to generated status.
+
+### hook-diff-filter-missing-deletion
+**Signature:** A pre-commit hook using `--diff-filter=ACM` misses deleted files, so side effects that depend on "did a tracked file change" fire only for adds/modifies and silently skip deletes.
+**Occurrences:** 1
+**Last seen:** 2026-06-18
+**Locations:** .husky/pre-commit (shard-detection block)
+**Detail:** The shard-detection block used ACM. Deleting a shard file didn't trigger reassembly, leaving the deleted content in the generated docs/TESTING.md. Fix: add D to the filter: `--diff-filter=ACDM`.
+
+### hook-grep-glob-pattern-mismatch
+**Signature:** A hook's detection pattern and the script it triggers use different path scopes — the hook fires on paths the script won't process.
+**Occurrences:** 1
+**Last seen:** 2026-06-18
+**Locations:** .husky/pre-commit (shard detection: grep "^docs/testing/" vs assemble-testing.sh glob *.md top-level only)
+**Detail:** The hook's grep matched any path under docs/testing/ including subdirectories. The assembly glob only picks up top-level .md files. Staging docs/testing/subdir/foo.md triggered assembly, but the file was silently excluded from output. Fix: restrict the hook grep to the same scope as the glob: `grep -E "^docs/testing/[^/]+\.md$"`.
+
+### duplicate-line-from-sed-edit
+**Signature:** A sed-based text edit leaves a duplicate instruction line when the replacement doesn't first remove the old line.
+**Occurrences:** 1
+**Last seen:** 2026-06-18
+**Locations:** .claude/agents/spec-writer.md (line 18 — stale "Derive the shard filename from the current branch name by running:")
+**Detail:** A sed substitution added the corrected instruction but didn't delete the old one, leaving both. An agent reading the file sees two conflicting "Derive the shard filename" sentences. Fix: ensure sed edits replace rather than append when the old line is no longer correct.
+
+### truncate-before-write-leaves-partial-output
+**Signature:** A script uses `{ ... } > "$OUTPUT"` to write a generated file; a failure inside the braces causes `set -e` to exit mid-write, leaving the output file empty or partial.
+**Occurrences:** 1
+**Last seen:** 2026-06-18
+**Locations:** scripts/assemble-testing.sh (pre-fix — `{ ... } > "$OUTPUT"` truncated docs/TESTING.md before the loop body ran)
+**Detail:** The shell truncates the output file at the `>` redirect before the compound block runs. Any failure inside (`cat` on a bad file, `git` error) exits via `set -e` mid-write. Fix: write to a temp file and `mv` atomically: `{ ... } > "$OUTPUT.tmp" && mv "$OUTPUT.tmp" "$OUTPUT"`.
+
+### bsd-gnu-sed-quantifier-mismatch
+**Signature:** A `sed` expression uses `\+` (one-or-more), which GNU sed accepts as an extension but BSD sed (macOS) does not, causing silent wrong output on one platform.
+**Occurrences:** 1
+**Last seen:** 2026-06-18
+**Locations:** scripts/derive-slug.sh (pre-fix — `s|-\+|-|g` failed to collapse repeated hyphens on macOS)
+**Detail:** `\+` is a GNU extension. BSD sed interprets it as a literal backslash followed by a plus sign — the substitution matches nothing and repeated hyphens pass through uncollapsed. The POSIX alternative `--*` (hyphen followed by zero-or-more hyphens) works on both. Fix: replace `s|-\+|-|g` with `s|--*|-|g`.
+
 ### three-state-conflict-missing-user-only-branch
 **Signature:** A three-way sha comparison (local vs. manifest vs. upstream) omits the "user edited, upstream unchanged" branch, causing a false-positive conflict when the user modifies a file that upstream has not touched.
 **Occurrences:** 1

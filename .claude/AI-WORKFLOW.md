@@ -151,7 +151,7 @@ vendored from Matt Pocock's repo, pinned to a reviewed SHA — see `.claude/skil
 | `CONTEXT.md` | Domain model, business rules, the why |
 | `.claude/memory.md` | Corrected mistakes — read every session |
 | `PITFALLS.md` | Codebase-specific traps — read before writing in any affected area |
-| `docs/TESTING.md` | Confirmed behaviors, test infrastructure |
+| `docs/TESTING.md` | Confirmed behaviors, test infrastructure. Generated from `docs/testing/*.md` — edit shard files, not this file. |
 | `docs/RECURRING-FINDINGS.md` | Review findings tracked toward enforcement (the learning ratchet) |
 
 **New here? Read [`docs/engineering-system/`](../docs/engineering-system/README.md)** — the universal engineering
