@@ -21,7 +21,7 @@ Phase 3 (Quality Systems) tasks are ready to queue. Phase 4 tasks are noted with
 
 ## P1 — Ready to Queue
 
-- [ ] One-command install for new projects
+- [~] One-command install for new projects (@task-runner) (see .claude/questions.md)
   Size: LARGE
   Slug: one-command-install
   design: docs/features/one-command-install.md

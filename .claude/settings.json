@@ -1,10 +1,5 @@
 {
   "autoMode": {
-    "environment": [
-      "$defaults",
-      "PROJECT-AGNOSTIC TEMPLATE — each repo customizes this block. Describe: the org, the stack, source control, the cloud/data provider, the package registry, trusted local services, and any prod/staging topology. The harness ships these as placeholders; fill them in per repo.",
-      "Source control: the gh CLI is the primary tool for PR operations."
-    ],
     "allow": [
       "$defaults",
       "Git worktree add/remove operations are allowed: each task is isolated to its own branch and worktree path"
@@ -134,18 +129,18 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-npm-install.sh"
-          }, 
-          { 
-            "type": "command", 
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-dangerous-bash.sh" 
           },
-          { 
-            "type": "command", 
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-credential-read.sh" 
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-dangerous-bash.sh"
           },
-          { 
-            "type": "command", 
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-egress.sh" 
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-credential-read.sh"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-egress.sh"
           }
         ]
       },
