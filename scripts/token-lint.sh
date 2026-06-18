@@ -2,10 +2,13 @@
 # Token linter — checks UI files for hardcoded colors/spacing and absolute design bans.
 #
 # What this does:
-#   1. Reads the active design token names from docs/design/DESIGN.md.
+#   1. Checks that docs/design/DESIGN.md exists (the project's design token file).
+#      If it does not exist, the linter exits 0 — projects without a design system are not blocked.
 #   2. Scans every UI-related file in the diff (or the whole repo when run manually)
 #      for hardcoded hex colors (#rrggbb / #rgb), raw rgb/rgba/hsl calls, and
 #      pixel values that look like spacing (4px multiples that should be tokens).
+#      Token usage is detected by the presence of var(-- in the same line — not by checking
+#      against the specific token names in DESIGN.md.
 #   3. Checks for six absolute design bans that are never OK regardless of tokens:
 #      gradient text, glassmorphism, side-stripe borders, hero-metric template,
 #      identical-card grids, eyebrow-on-every-section.
@@ -19,8 +22,7 @@
 #
 # UI file extensions covered: .css .scss .less .html .jsx .tsx .vue .svelte .styled.ts .styled.js
 #
-# Adding a new token: update docs/design/DESIGN.md — the linter re-reads it on every run.
-# Adding a new ban:   add a check_ban_* function below and call it from check_bans().
+# Adding a new ban: add a check_ban_* function below and call it from check_bans().
 set -euo pipefail
 
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
@@ -51,31 +53,9 @@ if [ ! -f "$DESIGN" ]; then
   exit 0
 fi
 
-# ── Build the known-token list from DESIGN.md ─────────────────────────────
-# Extracts backtick-quoted identifiers that start with color-, space-, text-, or font-.
-# These are the names agents and code must use instead of raw values.
-known_tokens=""
-while IFS= read -r line; do
-  # Match `color-foo`, `space-bar`, `text-baz`, `font-qux` anywhere in the line.
-  rest="$line"
-  while true; do
-    case "$rest" in
-      *\`color-*|*\`space-*|*\`text-*|*\`font-*)
-        # Strip everything before the first backtick token in this segment.
-        token="${rest#*\`}"
-        token="${token%%\`*}"
-        case "$token" in
-          color-*|space-*|text-*|font-*)
-            known_tokens="$known_tokens $token" ;;
-        esac
-        # Advance past this token to find more on the same line.
-        # Quote ${token} separately so it is treated as a literal, not a glob pattern.
-        rest="${rest#*\`"${token}"\`}"
-        ;;
-      *) break ;;
-    esac
-  done
-done < "$DESIGN"
+# DESIGN.md existence is the gate — the linter's checks use var(-- structural detection,
+# not the specific token names in DESIGN.md. The file's presence signals that the project
+# has adopted a design system and token enforcement is active.
 
 # ── Collect files to scan ─────────────────────────────────────────────────
 # Scans UI component files — CSS, SCSS, JSX, TSX, Vue, Svelte, HTML templates.
@@ -245,12 +225,35 @@ check_bans() {
   # Ban 3: Side-stripe border as the sole visual differentiator.
   # border-left with 3px+ solid is the decorative stripe pattern — banned.
   # 1px solid is a functional divider (allowed). 2px solid gets a warning.
+  #
+  # NOTE: These checks run independently rather than as a single case statement.
+  # A single case exits on the first match, so a file with both "1px solid" (allowed)
+  # and "4px solid" (banned) would only match the 1px arm and silently miss the ban.
+  # Separate checks ensure every thickness is evaluated regardless of what else is in the file.
   case "$content" in
-    *'border-left: 1px solid'*|*'border-left:1px solid'*) ;;  # allowed: thin divider
-    *'border-left: 2px solid'*|*'border-left:2px solid'*)
-      emit_warn "$f: REVIEW — side-stripe border (border-left: 2px+) — ensure this is not used as the sole visual differentiator (ban applies at 3px+)." ;;
     *'border-left:'*'px solid'*)
-      emit_error "$f: BAN — side-stripe border (border-left: 3px+ solid) used as a visual accent is not allowed." ;;
+      # Banned (3px+): flag unless the only border-left thickness present is 1px or 2px.
+      # Strip all 1px occurrences, then strip all 2px occurrences; if anything remains, it's 3px+.
+      _bl_check="${content}"
+      _bl_check="${_bl_check//border-left: 1px solid/}"
+      _bl_check="${_bl_check//border-left:1px solid/}"
+      _bl_check="${_bl_check//border-left: 2px solid/}"
+      _bl_check="${_bl_check//border-left:2px solid/}"
+      case "$_bl_check" in
+        *'border-left:'*'px solid'*)
+          emit_error "$f: BAN — side-stripe border (border-left: 3px+ solid) used as a visual accent is not allowed." ;;
+      esac
+      # Warning (2px): present only when no banned thickness was found.
+      # This runs after the error check so 2px-only files still get the advisory.
+      case "$content" in
+        *'border-left: 2px solid'*|*'border-left:2px solid'*)
+          case "$_bl_check" in
+            *'border-left:'*'px solid'*) ;;  # already flagged as error — skip warning
+            *)
+              emit_warn "$f: REVIEW — side-stripe border (border-left: 2px+) — ensure this is not used as the sole visual differentiator (ban applies at 3px+)." ;;
+          esac ;;
+      esac
+      ;;
   esac
 
   # Ban 4: Hero-metric template — giant centered number + small label as a primary content block.

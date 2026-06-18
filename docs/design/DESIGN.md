@@ -7,7 +7,8 @@ status: starter
 # Design System
 
 This file is the single source of truth for design tokens in this project.
-The token linter (`scripts/token-lint.sh`) reads the token names from this file.
+The token linter (`scripts/token-lint.sh`) checks that UI files use `var(--...)` references
+rather than hardcoded hex colors or raw spacing values. Committing this file activates enforcement.
 Run `/design` or `@design-synthesizer` to fill in a full system.
 
 ---

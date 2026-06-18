@@ -53,7 +53,7 @@ If the diff is not docs-only: proceed to Step 1.
 
 ## Step 1b — Token lint (UI diffs only)
 
-If the diff contains any `.css`, `.scss`, `.less`, `.jsx`, `.tsx`, `.vue`, `.svelte`, or `.html` file inside a component directory (`src/`, `app/`, `pages/`, `components/`, `templates/`):
+If the diff contains any `.css`, `.scss`, `.less`, `.jsx`, `.tsx`, `.vue`, or `.svelte` file, OR any `.html` file inside a component directory (`src/`, `app/`, `pages/`, `components/`, `templates/`):
 
 Run the token linter against the changed files:
 
