@@ -6,7 +6,7 @@ description: |
   compares them across 12 design axes, asks the user to resolve only the real
   conflicts (all in one batch), then synthesizes a single coherent system.
   Sources can be refero DESIGN.md files, local files, or described systems.
-  Always produces exactly one output file. Call directly or via /design-init.
+  Always produces exactly one output file.
 tools: Read,Write,Edit,Bash
 model: opus
 permissionMode: auto
@@ -26,7 +26,7 @@ If `docs/design/DESIGN.md` already exists, read it before starting. It records c
 
 Read the source. Write it to `docs/design/DESIGN.md` with this normalization only:
 - Add a frontmatter header if missing
-- Ensure all 6 required sections exist (see "Output format" below)
+- Ensure all 7 required sections exist (see "Output format" below)
 - Add an Agent Prompt Guide at the end if missing
 
 Do not restyle or add opinions. The source is authoritative. Write sources to `docs/design/sources/<slug>.md`.
@@ -105,7 +105,7 @@ Write `docs/design/DESIGN.md`. Write each source to `docs/design/sources/<slug>.
 
 ## Output format
 
-Every `docs/design/DESIGN.md` must include these 6 sections in this order:
+Every `docs/design/DESIGN.md` must include these 7 sections in this order:
 
 ### 1. Colors
 Named tokens with hex values. Semantic layer: `color-primary`, `color-surface`, `color-border`, `color-error`, `color-text-primary`, `color-text-secondary`. Neutral scale: minimum 5 steps.

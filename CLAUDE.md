@@ -20,3 +20,11 @@ Use plain, clear language everywhere — inline docs, output explanations, comme
 - One idea per sentence. If a sentence needs a second read, break it up.
 - When explaining a design decision, state the plain reason before citing the spec, contract, or gate that enforces it.
 - Skill and agent descriptions are written for agents first, humans second — but the same clarity standard applies.
+
+# Work routing
+
+These rules are mandatory — follow them before writing or moving any code.
+
+**Refactor** (moving, splitting, extracting, or renaming code without changing behavior) → invoke `/refactor` first. Don't hand-edit a structural move.
+
+**New or changed behavior** (a new feature, an update to how something works, a new function, or any step that changes what the system does) → invoke `/feature` first. `/feature` runs TDD for you — don't skip it and write the code directly.
