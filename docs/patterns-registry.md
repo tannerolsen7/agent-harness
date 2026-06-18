@@ -204,7 +204,7 @@ engineering advice.
 - `scripts/register-merge-drivers.sh` — the registration script
 - `tests/gitattributes-merge-drivers.test.sh` — 24-case regression suite
 
-**Established by:** feat/gitattributes-merge-drivers (PR #TBD). See [solution doc](./solutions/2026-06-18-gitattributes-merge-drivers-for-shared-docs.md).
+**Established by:** feat/gitattributes-merge-drivers (PR #78). See [solution doc](./solutions/2026-06-18-gitattributes-merge-drivers-for-shared-docs.md).
 
 **Gotchas:**
 - `merge=union` keeps ALL distinct lines from both sides. When two branches update the same counter field (e.g. `**Occurrences:** 2` vs. `**Occurrences:** 3`), union keeps BOTH lines — the file is not broken, but it now has two conflicting values for the same field. This is acceptable as a lower-bound approximation only if the field is human-read. If automated logic reads the field, use a custom driver instead.
