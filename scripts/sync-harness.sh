@@ -29,13 +29,15 @@ for a in "$@"; do
 done
 TARGET_DIR="${args[0]:-.}"
 
-file_sha() { sha256sum "$1" 2>/dev/null | cut -d' ' -f1 || shasum -a 256 "$1" | cut -d' ' -f1; }
+file_sha() { sha256sum "$1" 2>/dev/null | awk '{print $1}' || shasum -a 256 "$1" | awk '{print $1}'; }
 json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
 TARGET_DIR=$(cd "$TARGET_DIR" 2>/dev/null && pwd) || { echo "sync: target dir does not exist: ${args[0]:-.}" >&2; exit 1; }
 manifest="$TARGET_DIR/.claude/.harness-manifest.json"
 [ -f "$manifest" ] || { echo "sync: no manifest at $manifest — run install.sh first." >&2; exit 1; }
 command -v jq >/dev/null 2>&1 || { echo "sync: jq is required to read the manifest." >&2; exit 1; }
+command -v sha256sum >/dev/null 2>&1 || command -v shasum >/dev/null 2>&1 \
+  || { echo "sync: sha256sum or shasum is required." >&2; exit 1; }
 [ -d "$HARNESS_SRC" ] || { echo "sync: HARNESS_SRC not found: $HARNESS_SRC" >&2; exit 1; }
 
 # Map each create-once dest back to its source template (same table install.sh uses).
@@ -133,7 +135,8 @@ if [ "$DRY_RUN" = 0 ] && [ -z "$conflicts" ]; then
   source=$(jq -r '.source' "$manifest")
   sha=$(jq -r '.sha' "$manifest")
   installed_at=$(jq -r '.installed_at' "$manifest")
-  tmp_manifest=$(mktemp)
+  [ "$source" = "null" ] && { echo "sync: manifest missing 'source' field — re-run install.sh." >&2; exit 1; }
+  tmp_manifest=$(mktemp "$(dirname "$manifest")/.harness-manifest.XXXXXX")
   {
     printf '{\n'
     printf '  "schema": %s,\n' "$schema"

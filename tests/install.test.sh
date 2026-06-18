@@ -135,7 +135,7 @@ fi
 
 echo "── install-harness-hooks: creates package.json ──"
 TGT9=$(mktemp -d); make_target "$TGT9"
-SKIP_NPM=1 bash "$HOOKS" "$TGT9" >/dev/null 2>&1
+_HARNESS_SKIP_NPM=1 bash "$HOOKS" "$TGT9" >/dev/null 2>&1
 [ -f "$TGT9/package.json" ]; ck "$?" "package.json created when none exists"
 if command -v jq >/dev/null 2>&1 && [ -f "$TGT9/package.json" ]; then
   jq -e '.scripts.prepare and .scripts.test' "$TGT9/package.json" >/dev/null 2>&1; ck "$?" "prepare + test scripts added"
@@ -144,7 +144,7 @@ fi
 echo "── install-harness-hooks: protects an existing prepare ──"
 TGT10=$(mktemp -d); make_target "$TGT10"
 printf '%s\n' '{ "scripts": { "prepare": "echo mine" } }' > "$TGT10/package.json"
-SKIP_NPM=1 bash "$HOOKS" "$TGT10" >/dev/null 2>&1; rc=$?
+_HARNESS_SKIP_NPM=1 bash "$HOOKS" "$TGT10" >/dev/null 2>&1; rc=$?
 [ "$rc" -ne 0 ] && ck 0 "exits non-zero rather than overwrite an existing prepare script" \
   || { echo "  MISS: must not overwrite an existing prepare script"; fail=$((fail+1)); }
 grep -q "echo mine" "$TGT10/package.json"; ck "$?" "existing prepare script left intact"

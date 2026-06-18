@@ -10,7 +10,7 @@
 #     non-zero. We never overwrite a prepare script the project may depend on.
 #   - Run `npm install` to wire husky, then verify .husky/pre-commit is executable.
 #
-# Set SKIP_NPM=1 to skip the npm install + executable check (used by tests).
+# Set _HARNESS_SKIP_NPM=1 to skip the npm install + executable check (used by tests only).
 #
 # Usage:
 #   bash scripts/install-harness-hooks.sh [TARGET_DIR]
@@ -64,8 +64,8 @@ else
   echo "  updated package.json"
 fi
 
-if [ "${SKIP_NPM:-0}" = "1" ]; then
-  echo "SKIP_NPM=1 set — skipping npm install + executable check."
+if [ "${_HARNESS_SKIP_NPM:-0}" = "1" ]; then
+  echo "_HARNESS_SKIP_NPM=1 — skipping npm install (test/CI mode only; do not use in a real install)." >&2
   exit 0
 fi
 

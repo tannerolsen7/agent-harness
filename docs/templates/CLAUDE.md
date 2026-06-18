@@ -29,7 +29,7 @@ TODO: describe this project.
 # Before writing code
 
 - Read `.claude/memory/` notes at session start.
-- Skim `docs/solutions/README.md` — know what patterns are already solved.
+- Skim `docs/solutions/` — know what patterns are already solved (create this dir when you capture your first solution).
 - Read `PITFALLS.md` before writing in any affected area.
 - Confirm the task fits the current scope.
 - Surface open decisions rather than inventing answers.
