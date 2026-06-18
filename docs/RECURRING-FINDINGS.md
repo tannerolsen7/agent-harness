@@ -50,10 +50,10 @@ file and you reset the loop's memory.
 
 ### stale-comment-wrong-output-protocol
 **Signature:** A comment describes the behavior or output of a command/function, but the actual behavior differs, misleading anyone who reads or extends it.
-**Occurrences:** 2
-**Last seen:** 2026-06-17
-**Locations:** scripts/check-integrity.sh (lines 34–37, comment above run_one()); .claude/skills/cr/SKILL.md (Pre-flight step 1 — parenthetical said "no network call" but the command makes one)
-**Detail:** (1) Comment said awk emits `BROKEN<TAB>source<TAB>target`; it actually emits `CHECK<TAB>src<TAB>tgt<TAB>path`. (2) `git remote show origin` parenthetical claimed "reads local config, no network call" — only true with the `-n` flag, which this command does NOT use. Fixed in both PRs.
+**Occurrences:** 3 — AUTO-PROMOTE
+**Last seen:** 2026-06-18
+**Locations:** scripts/check-integrity.sh (lines 34–37); .claude/skills/cr/SKILL.md (Pre-flight step 1); tests/activity.test.sh (header — "Run after applying the hook diff" written when hook was manual; the hook is now committed alongside the test)
+**Detail:** (1) awk comment described wrong output columns. (2) `git remote show origin` parenthetical claimed no network call. (3) Test file header told readers to manually apply a hook diff that is committed as part of the same PR. Pattern: comments written at a point in time get stale when the code or process changes around them. **→ Promoted to PITFALLS.md (see below)**
 
 ### internal-code-no-explanation
 **Signature:** An internal label (CMP*, R4-D*, Fx) is used in prose or code without being explained, leaving cold readers confused.
@@ -136,4 +136,6 @@ file and you reset the loop's memory.
 
 ## Promoted
 
-*(none yet)*
+### stale-comment-wrong-output-protocol
+**Promoted:** 2026-06-18 (Occurrences: 3)
+**Entry:** PITFALLS.md → "Stale comments: describing code state that has since changed"

@@ -7,15 +7,14 @@
 #   3. activity-report.sh skips a bad JSONL line and still renders valid records
 #
 # Tests 1 and 2 call .claude/hooks/session-stop.sh directly with crafted stdin.
-# They require the session-stop.sh extension (the "activity record writer" block)
-# to be applied. Run after applying the hook diff.
+# The hook changes are committed alongside these tests — no manual setup required.
 set -u
 
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 STOP_HOOK="$ROOT/.claude/hooks/session-stop.sh"
 REPORT="$ROOT/scripts/activity-report.sh"
 
-[ -f "$STOP_HOOK" ] || { echo "activity.test: $STOP_HOOK not found"; exit 1; }
+[ -x "$STOP_HOOK" ] || { echo "activity.test: $STOP_HOOK not found or not executable"; exit 1; }
 [ -x "$REPORT"    ] || { echo "activity.test: $REPORT not found or not executable"; exit 1; }
 
 pass=0; fail=0
