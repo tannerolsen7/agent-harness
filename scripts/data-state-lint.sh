@@ -20,6 +20,10 @@
 # (components/, pages/, views/, screens/, features/) or has a component-style
 # name (PascalCase.tsx / PascalCase.jsx).
 #
+# Opt-out: add the line  # data-state-lint: skip  anywhere in the file to
+# skip it. Use this for pure display components (Badge, Avatar, Icon) that
+# do not own a data fetch and structurally cannot have all 6 states.
+#
 # Each state must have at least one recognizable handler in the file.
 # Exits non-zero when any required state handler is missing.
 set -euo pipefail
@@ -121,6 +125,8 @@ count=0
 
 for f in $files; do
   [ -f "$f" ] || continue
+  # Skip files that opt out — pure display components that cannot have all 6 states.
+  grep -q "data-state-lint: skip" "$f" 2>/dev/null && continue
   count=$((count + 1))
   missing=""
 

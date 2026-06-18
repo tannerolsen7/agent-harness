@@ -212,6 +212,18 @@ export function MyWidget({ isLoading, isError, isEmpty, noResults, items }) {
 run_tsx "$EXPLICIT_FULL"
 ok "$RC" 0 "explicit full component passes"
 
+# ---------------------------------------------------------------------------
+# Opt-out: a file with "# data-state-lint: skip" is skipped entirely.
+# ---------------------------------------------------------------------------
+echo "── skip annotation — component with missing states passes when opt-out present ──"
+SKIP_COMPONENT='# data-state-lint: skip
+export function Badge({ label }) {
+  return <span className="badge">{label}</span>;
+}
+'
+run_tsx "$SKIP_COMPONENT"
+ok "$RC" 0 "skip annotation: exits 0 even though all 6 states are missing"
+
 echo ""
 echo "data-state-lint: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

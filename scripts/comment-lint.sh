@@ -38,7 +38,9 @@ WHAT_VERBS="loop|iterate|walk|traverse|check|verify|validate|confirm|ensure|set|
 
 # WHY words — their presence anywhere on the line means the comment explains
 # a reason, not a mechanic, even if it starts with an action verb.
-WHY_WORDS="workaround|because|since|reason|note|see |avoid|prevent|guard|warn|todo|fixme|hack|bug|issue|pr #|github|https|http|so that|in order|otherwise|instead|fallback|fall.back|bypass|due to|explain|based on|refer|per |follow|context|safety|important|critical|force|need|must|should|only if|unless|v[0-9]|3\.2|macos|linux|darwin|ci |posix|bsd|gnu"
+# Common purpose connectors ("to preserve X", "to allow Y", "to maintain Z")
+# are included so comments that start with a verb but explain the goal pass through.
+WHY_WORDS="workaround|because|since|reason|note|see |avoid|prevent|preserve|maintain|allow|enable|guard|warn|todo|fixme|hack|bug|issue|pr #|github|https|http|so that|in order|otherwise|instead|fallback|fall.back|bypass|due to|explain|based on|refer|per |follow|context|safety|important|critical|force|need|must|should|only if|unless|v[0-9]|3\.2|macos|linux|darwin|ci |posix|bsd|gnu"
 
 find_what_comments() {
   local file="$1"
