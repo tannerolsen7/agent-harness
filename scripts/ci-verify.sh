@@ -36,4 +36,9 @@ else
   bash "$ROOT/scripts/check-integrity.sh" || echo "ci-verify: reference-integrity advisory (no .md files changed in this PR)"
 fi
 
+# Performance budget: measure Core Web Vitals and warn on breach. Advisory only — never blocks.
+# Runs after tests so a broken build doesn't waste time measuring perf.
+echo "ci-verify: perf-budget"
+bash "$ROOT/scripts/perf-budget.sh" || echo "ci-verify: perf-budget advisory (see output above for details)"
+
 echo "ci-verify: OK"
