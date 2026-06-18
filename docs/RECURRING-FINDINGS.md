@@ -90,6 +90,20 @@ file and you reset the loop's memory.
 **Locations:** scripts/token-lint.sh (known_tokens variable, original lines 54–78)
 **Detail:** The script header said "reads the active design token names from docs/design/DESIGN.md" and built a `known_tokens` variable. The variable was never used — checks used `var(--` structural detection, not the token name list. Fixed by removing the loop and updating the header comment to describe what the linter actually does.
 
+### section-count-mismatch-in-agent-spec
+**Signature:** An agent spec says "N required sections" in its body but the actual numbered list has a different count, causing the agent to silently skip injecting the extra sections.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** .claude/agents/design-synthesizer.md (lines 29 and 108 say "6"; list has 7 entries)
+**Detail:** Body and output-format header both say 6 required sections; the numbered list ends at 7. The commit message correctly states 7. An agent reading the text would stop injecting stubs after section 6. Fix: update both occurrences of "6" to "7" — requires human edit (guard-file path).
+
+### dangling-skill-reference-in-agent-frontmatter
+**Signature:** An agent's description frontmatter mentions a slash command or skill that does not exist in the repo.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** .claude/agents/design-synthesizer.md (line 9 — "via /design-init")
+**Detail:** No /design-init skill, command, or script exists. Any agent or human reading the spec will try to find it and fail. Either add the skill or remove the reference — requires human edit (guard-file path).
+
 ---
 
 ## Promoted
