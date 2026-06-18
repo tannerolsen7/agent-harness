@@ -69,7 +69,7 @@ function rank(s,    c) {
   return 0
 }
 
-END { exit bad }
+END { if (in_c) bad=1; exit bad }
 ' "$CURRENT" > "$TMP"
 AWK_EXIT=$?
 if [ "$AWK_EXIT" -le 1 ]; then

@@ -128,11 +128,11 @@ it is NOT acceptable if the field drives automated logic.
 
 ## Where this applies in the codebase
 
-- `.gitattributes` — four file rules: TESTING.md (union), RECURRING-FINDINGS.md (union),
-  harness-progress.html (ours), TASKS.md (custom tasks-higher-state driver)
+- `.gitattributes` — five file rules: TESTING.md (union), RECURRING-FINDINGS.md (union),
+  patterns-registry.md (union), harness-progress.html (ours), TASKS.md (custom tasks-higher-state driver)
 - `scripts/tasks-merge-driver.sh` — the custom driver for TASKS.md
 - `scripts/register-merge-drivers.sh` — wired into npm prepare
-- `tests/gitattributes-merge-drivers.test.sh` — 24-case regression suite
+- `tests/gitattributes-merge-drivers.test.sh` — 27-case regression suite
 
 ## Tags
 

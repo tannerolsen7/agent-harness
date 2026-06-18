@@ -199,10 +199,10 @@ engineering advice.
 5. **`tests/<driver-name>.test.sh`** — one test per behavior. Each test: `git init` a temp dir, copy `.gitattributes`, register both drivers with `git -C "$dir" config`, make three commits (base + two conflicting branches), run `git merge`, assert the result. Use `printf -- '- [x] ...\n'` (with `--`) in bash test scripts when the format string starts with `- `. Cover: each rank comparison, and the unresolvable-conflict path (verify both exit non-zero and markers present).
 
 **Golden exemplar:**
-- `.gitattributes` — four file rules
+- `.gitattributes` — five file rules
 - `scripts/tasks-merge-driver.sh` — the higher-state-wins custom driver
 - `scripts/register-merge-drivers.sh` — the registration script
-- `tests/gitattributes-merge-drivers.test.sh` — 24-case regression suite
+- `tests/gitattributes-merge-drivers.test.sh` — 27-case regression suite
 
 **Established by:** feat/gitattributes-merge-drivers (PR #78). See [solution doc](./solutions/2026-06-18-gitattributes-merge-drivers-for-shared-docs.md).
 

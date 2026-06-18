@@ -118,6 +118,13 @@ file and you reset the loop's memory.
 **Locations:** `.gitattributes` (merge=ours + merge=tasks-higher-state without corresponding npm prepare step)
 **Detail:** `.gitattributes` declared two drivers requiring `.git/config` registration (`merge.ours.driver`, `merge.tasks-higher-state.driver`). A fresh clone gets the attributes but not the config, so both file types silently conflict instead of auto-resolving. Fixed by adding `scripts/register-merge-drivers.sh` and wiring it into the `prepare` npm script.
 
+### hardcoded-count-drifts-when-set-grows
+**Signature:** A doc says "N items" where N is a hardcoded count of a concrete list (files, rules, cases). When the list grows, the count is wrong until someone notices and fixes it — no automated check catches it.
+**Occurrences:** 1
+**Last seen:** 2026-06-18
+**Locations:** docs/testing/gitattributes-merge-drivers.md (line 3 — "Four shared doc files"); docs/patterns-registry.md (line 202 — "four file rules"); docs/solutions/2026-06-18-gitattributes-merge-drivers-for-shared-docs.md (line 131 — "four file rules")
+**Detail:** docs/patterns-registry.md was added as a fifth union-merge target in .gitattributes, but three doc files still said "four." Fix: avoid hardcoding counts in prose when the list they count is in the same doc — either reference the list directly ("the files listed below") or keep the count adjacent to the list so it's obviously stale.
+
 ### documented-edge-case-not-guarded
 **Signature:** A guard condition documents a fallback for an edge case (e.g. "falls back to X if Y") but the code only checks the most obvious form — a related but distinct form of Y slips through.
 **Occurrences:** 1
