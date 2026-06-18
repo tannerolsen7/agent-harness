@@ -41,10 +41,30 @@ GONE=$(git branch -vv | awk '/\[[^]]*: gone\]/ && $1 != "*" { print ($1 == "+") 
 # they have no upstream, but they ARE ancestors of any feature branch — the merge-verify
 # check would pass and delete them if they weren't excluded here. Mirrors the same list
 # in block-dangerous-git.sh.
+#
+# Branches currently checked out in active worktrees are also excluded. A freshly-created
+# worktree branch (no commits yet) has its tip at the branch point, which makes
+# `git merge-base --is-ancestor` return true — it looks "merged" but was just created.
+# Those branches will be cleaned up by the GONE pass once their PR merges and GitHub
+# deletes the remote ref. Removing them here would destroy live work.
 CURRENT=$(git branch --show-current 2>/dev/null || true)
+# Branches checked out in active worktrees — excluded below from NO_UPSTREAM because a
+# freshly-created worktree branch (no commits yet) has its tip at the branch point, which
+# makes `git merge-base --is-ancestor` return true even though the branch is not merged.
+# Note: active worktree branches DO appear in GONE once their PR merges and GitHub deletes
+# the remote ref — the merge-verify + worktree-removal block at the end of this file handles
+# them there. There is no gap: GONE requires a real merge; NO_UPSTREAM does not.
+ACTIVE_WT_BRANCHES=$(git worktree list --porcelain | awk '/^branch /{sub(/^branch refs\/heads\//, ""); print}' || true)
 NO_UPSTREAM=$(git for-each-ref --format='%(refname:short) %(upstream)' refs/heads/ | \
   awk '$2 == "" { print $1 }' | \
-  grep -vE "^(main|master|develop)$" | grep -v "^${CURRENT}$" || true)
+  grep -vE "^(main|master|develop)$" | grep -vFx "${CURRENT}" || true)
+# Remove active worktree branches from NO_UPSTREAM candidates in one pass.
+# -F treats each pattern as a fixed string (not a regex) so branch names containing
+# dots, brackets, or other metacharacters match exactly. -x anchors to the full line.
+if [ -n "$ACTIVE_WT_BRANCHES" ]; then
+  NO_UPSTREAM=$(printf '%s\n' "$NO_UPSTREAM" | \
+    grep -vFxf <(printf '%s\n' "$ACTIVE_WT_BRANCHES") || true)
+fi
 
 # Combine both passes. The merge-verify gate below protects both sets — a branch is only
 # deleted if it is a confirmed merge (ancestor check or gh-confirmed merged PR).

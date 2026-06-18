@@ -58,6 +58,13 @@ TMP=$(mktemp -d)
   git checkout -q "$DEF"
   git merge -q --no-ff develop -m "merge develop" >/dev/null 2>&1
   # intentionally NOT pushing — no upstream, would be gc'd without the name exclusion guard
+
+  # FRESH WORKTREE branch: feat/queue-task — no commits yet (just provisioned by /queue).
+  # Its tip equals the branch point, so `git merge-base --is-ancestor` returns true — it
+  # looks "merged" to the NO_UPSTREAM pass. But it is live work, not a merged branch.
+  # The fix: exclude branches checked out in active worktrees from the NO_UPSTREAM pass.
+  git worktree add -q .claude/worktrees/queue-task -b feat/queue-task >/dev/null 2>&1
+  # intentionally NOT committing anything — this is the "just created" state /queue leaves
 ) >/dev/null 2>&1
 
 # Run gc.sh in the temp repo.
@@ -81,6 +88,11 @@ TMP=$(mktemp -d)
 
 # Protected-name branch must survive even with no upstream and an ancestor position.
 ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/develop >/dev/null 2>&1 ); chk "$?" "develop (no upstream, merged) must survive — protected name exclusion"
+
+# Fresh worktree branch (no commits, no upstream) must survive — it looks "merged" to the
+# ancestor check because its tip equals the branch point, but it's live work from /queue.
+[ -d "$TMP/.claude/worktrees/queue-task" ]; chk "$?" "fresh worktree .claude/worktrees/queue-task must survive (no commits yet)"
+( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/queue-task >/dev/null 2>&1 ); chk "$?" "fresh branch feat/queue-task must survive (no commits, active worktree)"
 
 rm -rf "$TMP"
 echo ""
