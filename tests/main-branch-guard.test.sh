@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Regression gate: no commits and no pushes (explicit or bare) directly on
-# main/master/develop. Covers three protections in block-dangerous-git.sh:
+# main/master/develop. Covers four protections in block-dangerous-git.sh:
 #   (a) git commit on a protected branch → exit 2 (BLOCK)
 #   (b) git push / git push origin (no explicit refspec) on protected branch → exit 2
 #   (c) a commit aimed at a worktree via `git -C <dir>` is judged by the
 #       worktree's branch, not the directory the hook runs in
+#   (d) `cd <worktree> && git commit` is judged by the cd target's branch
+#       (_tracked_cd), not the ambient branch
 #
 # Uses a stub git binary so the hook's internal "git rev-parse --abbrev-ref HEAD"
 # call returns a controlled branch name without touching the real repo state.
@@ -94,6 +96,14 @@ run 0 "git -C <feature worktree> commit while root on main → ALLOW" \
       "git -C /repo/.claude/worktrees/on-feat commit -m 'msg'"  "$STUB_WT"
 run 2 "git -C <worktree on main> commit → still BLOCK" \
       "git -C /repo/.claude/worktrees/on-main commit -m 'msg'"  "$STUB_WT"
+
+echo "── cd-then-git worktree commit guard (honors _tracked_cd) ──"
+# `cd <worktree> && git commit` — no explicit -C, but the preceding cd sets
+# _tracked_cd so the hook resolves the branch from the cd target, not ambient.
+run 0 "cd <feature worktree> && git commit while root on main → ALLOW" \
+      "cd /repo/.claude/worktrees/on-feat && git commit -m 'msg'"  "$STUB_WT"
+run 2 "cd <worktree on main> && git commit → BLOCK" \
+      "cd /repo/.claude/worktrees/on-main && git commit -m 'msg'"  "$STUB_WT"
 
 echo "── bare push guard ──"
 run 2 "git push (no args) on main → BLOCK"         "git push"            "$STUB_MAIN"

@@ -62,6 +62,13 @@ file and you reset the loop's memory.
 **Locations:** scripts/check-integrity.sh (header), .claude/agents/doc-updater.md (section headings), docs/patterns-registry.md (Established by line)
 **Detail:** "CMP4", "CMP1", "CMP2" appear without explanation. CLAUDE.md rule: do not drop internal codes without explaining them first. Partially fixed in this PR (CMP labels removed from doc-updater.md headings; CMP4 explained in check-integrity.sh header).
 
+### new-detection-path-missing-branch-exclusions
+**Signature:** A new code path that collects branch candidates doesn't apply the same exclusion rules as the existing path for the same script.
+**Occurrences:** 1
+**Last seen:** 2026-06-17
+**Locations:** scripts/gc.sh (Pass 2 NO_UPSTREAM, lines 35–41)
+**Detail:** The Pass 2 no-upstream detection in gc.sh collected branches with no upstream but did not exclude main/master/develop. When gc runs from a feature branch worktree (normal during /queue), those protected branches are ancestors of HEAD, pass the merge-verify check, and would be deleted. Fixed by adding `grep -vE "^(main|master|develop)$"` to the NO_UPSTREAM pipeline, mirroring the same exclusion list already in block-dangerous-git.sh.
+
 ---
 
 ## Promoted
