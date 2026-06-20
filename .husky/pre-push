@@ -11,7 +11,8 @@ PUSH_INPUT=$(cat)
 _ALL_DELETIONS=true
 BRANCH=""
 PUSH_SHA=""
-# Empty stdin means the branch is already up-to-date — nothing being pushed, nothing to gate.
+# Git only calls pre-push when there are refs to push. Empty stdin means the branch is
+# already up-to-date at the remote — nothing is being delivered, so nothing needs gating.
 [ -z "$PUSH_INPUT" ] && exit 0
 while IFS=' ' read -r _lref _lsha _rref _rsha; do
   [ -z "$_lsha" ] && continue
@@ -57,7 +58,6 @@ case "$BRANCH" in
     _MAIN="${_MAIN:-main}"
     if GIT_TERMINAL_PROMPT=0 timeout 15 git fetch origin "$_MAIN" --quiet 2>/dev/null; then
       _BEHIND=$(git rev-list --count "$PUSH_SHA..origin/$_MAIN" 2>/dev/null || echo 0)
-      _BEHIND="${_BEHIND:-0}"
       if [ "$_BEHIND" -gt 0 ]; then
         printf "Push blocked: '%s' is %s commit(s) behind origin/%s.\n" "$BRANCH" "$_BEHIND" "$_MAIN" >&2
         printf "Sync first:   git rebase origin/%s\n" "$_MAIN" >&2

@@ -56,7 +56,7 @@ not write the sentinel.**
 4. **Dry-run the three-way merge:**
    ```bash
    CONFLICTS=$(git merge-tree "$MERGE_BASE" HEAD "origin/$BASE" 2>/dev/null \
-     | grep -c '<<<<<<<' || true)
+     | grep -c '^+<<<<<<< ' || true)
    ```
 
 5. **If `$CONFLICTS` is greater than 0 — HARD BLOCK:**

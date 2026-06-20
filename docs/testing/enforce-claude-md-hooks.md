@@ -122,8 +122,8 @@ which remain agent-only guidance.
   feature is applied, the `COPY_FILES` list in `install.sh` contains an entry
   for `.husky/commit-msg` so the hook is copied into the target repo.
 
-- **install.sh runs `git remote set-head origin --auto` after npm install:**
-  After running `npm install` (to set up husky), `install.sh` executes
+- **install-harness-hooks.sh runs `git remote set-head origin --auto` after npm install:**
+  After running `npm install` (to set up husky), `install-harness-hooks.sh` executes
   `git remote set-head origin --auto` so that `refs/remotes/origin/HEAD` is
   populated and the `DEFAULT_BRANCH` detection in the pre-push gate works on
   first install.
