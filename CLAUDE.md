@@ -36,7 +36,7 @@ These rules are enforced by hooks or scripts — violations stop the action auto
 | Rule | Where enforced |
 |------|----------------|
 | Commit messages must follow conventional commit format (`type(scope)?: description`) | `.husky/commit-msg` → `scripts/commit-msg-lint.sh` |
-| Feature branches must not be behind `origin/main` at push time | `.husky/pre-push` sync gate |
+| Feature branches must not be behind the default branch at push time | `.husky/pre-push` sync gate |
 | Design must be confirmed before coding | `.claude/.design-confirmed` sentinel, checked by `/feature` |
 | Code review must pass before pushing | `.claude/.cr-ok` sentinel, checked by `.husky/pre-push` on agent (non-interactive) pushes |
 | Staged code must pass lint, comment-lint, and token-lint | `.husky/pre-commit` |

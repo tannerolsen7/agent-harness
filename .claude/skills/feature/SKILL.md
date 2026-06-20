@@ -66,6 +66,14 @@ A contract must exist before a sub-agent is invoked — never spawn without one.
 
 Tell the user your estimate and ask if the size is wrong before proceeding.
 
+After the size is confirmed, create a dedicated worktree for all implementation work:
+
+```bash
+bash scripts/worktree-add.sh .claude/worktrees/<slug> feat/<slug>
+```
+
+Replace `<slug>` with a short kebab-case name for the feature. All work from this point on runs inside that worktree — never in the main worktree. The main worktree switching branches mid-feature breaks background processes and other concurrent agents.
+
 ---
 
 ## Step 0.5 — Create a dedicated worktree

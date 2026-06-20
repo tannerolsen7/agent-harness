@@ -53,7 +53,7 @@ fi
 case "$BRANCH" in
   main|master|HEAD|"") ;;
   *)
-    _REF=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null)
+    _REF=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
     _MAIN="${_REF##*/}"
     _MAIN="${_MAIN:-main}"
     if GIT_TERMINAL_PROMPT=0 timeout 15 git fetch origin "$_MAIN" --quiet 2>/dev/null; then

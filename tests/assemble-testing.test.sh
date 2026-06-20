@@ -6,7 +6,7 @@
 #   2. Idempotency: running the script twice produces the same output
 #   3. Slug derivation: feat/ stripped, non-word chars become hyphens, lowercased; bare feat/ → "unknown"
 #   3b. Assembly with no docs/testing/ dir: mkdir -p guard keeps the script from crashing
-#   4. Pre-commit hook: detects staged shard, runs assembly, stages docs/TESTING.md
+#   4. Pre-commit hook: detects staged shard, runs assembly (docs/TESTING.md is gitignored, not staged)
 #
 # GIT_DIR guard: unset inherited git state so temp-repo tests don't touch the real repo.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
@@ -121,7 +121,7 @@ rm -rf "$T2"
 
 # ── Path 4: pre-commit hook auto-stages assembled file ───────────────────────
 
-echo "── pre-commit hook: runs assemble-testing.sh and stages docs/TESTING.md ──"
+echo "── pre-commit hook: runs assemble-testing.sh when shards are staged ──"
 D=$(mktemp -d)
 (
   cd "$D" || exit 1
@@ -143,26 +143,23 @@ SHARD
 
   git add docs/testing/my-feature.md
 
-  # Run just the shard-detection logic from the pre-commit hook.
+  # Run the shard-detection logic from the pre-commit hook.
+  # docs/TESTING.md is gitignored — the hook assembles it locally but does not stage it.
   STAGED_SHARDS=$(git diff --cached --name-only --diff-filter=ACDM | grep -E "^docs/testing/[^/]+\.md$" || true)
   if [ -n "$STAGED_SHARDS" ]; then
-    bash scripts/assemble-testing.sh
-    git add docs/TESTING.md
+    bash scripts/assemble-testing.sh && echo "assembled" || echo "failed"
   fi
-
-  git diff --cached --name-only | grep -q "^docs/TESTING.md$" && echo "staged" || echo "not-staged"
 ) > "$D/result.txt" 2>/dev/null
 
-result=$(cat "$D/result.txt" 2>/dev/null || echo "not-staged")
-[ "$result" = "staged" ] \
-  && ok || no "docs/TESTING.md should be auto-staged when a shard file is staged (got: $result)"
-rm -rf "$D"
+result=$(cat "$D/result.txt" 2>/dev/null || echo "failed")
+[ "$result" = "assembled" ] \
+  && ok || no "pre-commit hook must assemble docs/TESTING.md when a shard is staged (got: $result)"
 
-# Structural guard: the pre-commit hook must call assemble-testing.sh and git add docs/TESTING.md.
+# Structural guards: hook calls assemble-testing.sh but must NOT git-add TESTING.md (it's gitignored).
 grep -q "assemble-testing.sh" "$ROOT/.husky/pre-commit" 2>/dev/null \
   && ok || no "pre-commit hook must call assemble-testing.sh"
 grep -q "git add docs/TESTING.md" "$ROOT/.husky/pre-commit" 2>/dev/null \
-  && ok || no "pre-commit hook must stage docs/TESTING.md after assembling"
+  && no "pre-commit hook must NOT stage docs/TESTING.md (it is gitignored)" || ok
 
 echo ""
 printf 'assemble-testing: %d passed, %d failed\n' "$pass" "$fail"

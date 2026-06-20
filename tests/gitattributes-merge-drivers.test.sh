@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Verifies that .gitattributes merge strategies prevent conflict markers on five shared doc files:
-#   - docs/TESTING.md             merge=union  (EOF-append conflicts auto-resolve)
-#   - docs/RECURRING-FINDINGS.md  merge=union  (same)
+# Verifies that .gitattributes merge strategies prevent conflict markers on four shared doc files:
+#   - docs/RECURRING-FINDINGS.md  merge=union  (EOF-append conflicts auto-resolve)
 #   - docs/patterns-registry.md   merge=union  (same)
 #   - harness-progress.html       merge=ours   (current branch always wins)
 #   - TASKS.md                    merge=tasks-higher-state (custom driver: [x]>[~]>[ ])
+# Note: docs/TESTING.md is gitignored (generated from shards) — no merge driver applies.
 
 set -u
 # Derive ROOT from the test file's location (tests/ is always one level below repo root).
@@ -43,34 +43,7 @@ setup_repo() {
   git -C "$dir" config merge.tasks-higher-state.driver "\"$DRIVER\" %O %A %B"
 }
 
-# ── Behavior 1: merge=union for docs/TESTING.md ──────────────────────────────
-echo "── merge=union: docs/TESTING.md resolves concurrent EOF appends ──"
-REPO="$TMP/union-testing"
-setup_repo "$REPO"
-(
-  cd "$REPO" || exit 1
-  mkdir -p docs
-  printf '## Base\n\nexisting content\n' > docs/TESTING.md
-  git add . && git commit -q --no-verify -m base
-
-  git checkout -q -b branchA
-  printf '## Base\n\nexisting content\n\n## Section A\n\nfrom branch A\n' > docs/TESTING.md
-  git add docs/TESTING.md && git commit -q --no-verify -m "append section A"
-
-  git checkout -q -b branchB "$(git rev-parse branchA^)"
-  printf '## Base\n\nexisting content\n\n## Section B\n\nfrom branch B\n' > docs/TESTING.md
-  git add docs/TESTING.md && git commit -q --no-verify -m "append section B"
-
-  git merge -q branchA --no-edit --no-verify 2>/dev/null
-) 2>/dev/null
-MERGE_EXIT=$?
-chk "$MERGE_EXIT" "merge=union TESTING.md: merge exits 0"
-grep -q "Section A" "$REPO/docs/TESTING.md" && grep -q "Section B" "$REPO/docs/TESTING.md"
-chk "$?" "merge=union TESTING.md: both appended sections present"
-! grep -q "<<<<<<" "$REPO/docs/TESTING.md"
-chk "$?" "merge=union TESTING.md: no conflict markers"
-
-# ── Behavior 2: merge=union for docs/RECURRING-FINDINGS.md ───────────────────
+# ── Behavior 1: merge=union for docs/RECURRING-FINDINGS.md ───────────────────
 echo "── merge=union: docs/RECURRING-FINDINGS.md resolves concurrent appends ──"
 REPO="$TMP/union-findings"
 setup_repo "$REPO"

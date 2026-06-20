@@ -134,7 +134,7 @@ engineering advice.
 1. **Hook file (`.husky/<hook-name>`)** — Thin POSIX sh file, 3–5 lines. First line: `# shellcheck shell=sh`. Set `set -e`. Delegate immediately: `bash scripts/<name>-lint.sh "$@"`. Never put logic here — logic belongs in the script.
 2. **Lint script (`scripts/<name>-lint.sh`)** — Full bash (`#!/usr/bin/env bash`, `set -euo pipefail`). Reads input, validates, writes actionable errors to stderr, exits 1 on violation. Exit 0 on skip (auto-generated commits, etc).
 3. **Test file (`tests/<name>.test.sh`)** — Hermetic: `unset GIT_DIR GIT_WORK_TREE ...` at top. Uses `mktemp` for fixtures; cleans up with `trap`. Tests every case from the spec shard. Structure: `run()` helper invokes the script; `ok()` checks exit code.
-4. **Spec shard (`docs/testing/<feature-slug>.md`)** — List confirmed behaviors before writing the test. Each behavior is "Given X, exits N and [writes/does not write] to stderr." The shard is assembled into `docs/TESTING.md` by the pre-commit hook.
+4. **Spec shard (`docs/testing/<feature-slug>.md`)** — List confirmed behaviors before writing the test. Each behavior is "Given X, exits N and [writes/does not write] to stderr." The shard is assembled into `docs/TESTING.md` locally by the pre-commit hook; `docs/TESTING.md` is gitignored and does not appear in commits or PR diffs.
 5. **install.sh (`scripts/install.sh` `COPY_FILES`)** — Add `.husky/<hook-name>` to the `COPY_FILES` string so `install.sh` propagates the new hook to target repos.
 
 **Golden exemplar:** `.husky/commit-msg` + `scripts/commit-msg-lint.sh` + `tests/commit-msg-lint.test.sh` + `docs/testing/enforce-claude-md-hooks.md`.

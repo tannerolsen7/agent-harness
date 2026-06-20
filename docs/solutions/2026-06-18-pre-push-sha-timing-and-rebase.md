@@ -121,5 +121,5 @@ If this used `HEAD` instead of `PUSH_SHA`, it would pass a stale `.cr-ok` check 
 
 ## Files involved
 
-- `/Users/tanner/Dev/agent-harness/.husky/pre-push` — sync gate block at lines 51–68; stdin parsing at lines 10–29
-- `/Users/tanner/Dev/agent-harness/tests/pre-push-sync-gate.test.sh` — 8 tests covering the gate, including the worktree/SHA case
+- `.husky/pre-push` — sync gate block at lines 51–68; stdin parsing at lines 10–29
+- `tests/pre-push-sync-gate.test.sh` — tests covering the skip patterns, up-to-date path, blocked path, fetch-failure fail-open, and default-branch detection

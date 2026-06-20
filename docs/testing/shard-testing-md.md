@@ -2,8 +2,8 @@
 
 Splits `docs/TESTING.md` into per-feature shard files under `docs/testing/<slug>.md`.
 `assemble-testing.sh` rebuilds `docs/TESTING.md` from all shards in alphabetical
-order. A pre-commit hook keeps the assembled file in sync automatically whenever
-shards are staged.
+order. A pre-commit hook rebuilds the assembled file locally whenever shards are
+staged. `docs/TESTING.md` is gitignored — it is local-only and never committed.
 
 ### Confirmed behaviors
 
