@@ -195,7 +195,7 @@ const allResults = await parallel(
 
 const taskResults = allResults.filter(Boolean).flat()
 
-// ── Phase 3: Push ────────────────────────────────────────────────────────────
+// ── Phase 2: Push ────────────────────────────────────────────────────────────
 // Open PRs for tasks that completed successfully. Sequential — scripts/pr.sh
 // reads and deletes .cr-ok; concurrent calls on the same worktree would race.
 // Stacked tasks (non-first in their group) target feat/<prevSlug> as PR base

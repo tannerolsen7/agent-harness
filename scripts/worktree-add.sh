@@ -1,6 +1,6 @@
 #!/bin/sh
 # Create a git worktree, provision its env files, and assert the gate machinery is
-# live (worktree G1 — fail-closed). Usage: scripts/worktree-add.sh <path> <branch>
+# live (worktree G1 — fail-closed). Usage: scripts/worktree-add.sh <path> <branch> [base-ref]
 #
 # UNATTENDED=1 + a per-project local-env adapter (scripts/gen-local-env.sh):
 #   write local/ephemeral backend credentials, fail-closed (no prod fallback).
@@ -17,6 +17,8 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 
 # Reject a branch name git would read as a flag (e.g. "-f", "--detach").
 case "$BRANCH" in -*) echo "worktree-add: refusing unsafe branch name '$BRANCH'" >&2; exit 1 ;; esac
+# Same guard for the optional base-ref — git would also interpret a leading dash as a flag.
+case "$BASE_REF" in -*) echo "worktree-add: refusing unsafe base-ref '$BASE_REF'" >&2; exit 1 ;; esac
 
 # Idempotent: if the worktree directory already exists, skip creation.
 # On resume, the Workflow re-enters Setup and may call this script again —
