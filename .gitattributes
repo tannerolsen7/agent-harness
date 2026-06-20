@@ -18,7 +18,6 @@
 # Driver registration runs automatically via npm prepare (npm install).
 # To register manually: bash scripts/register-merge-drivers.sh
 
-docs/TESTING.md            merge=union
 docs/RECURRING-FINDINGS.md merge=union
 docs/patterns-registry.md  merge=union
 harness-progress.html      merge=ours
