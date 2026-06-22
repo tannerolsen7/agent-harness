@@ -16,7 +16,7 @@ fi
 # .claude/settings*.json controls which tools agents can use. Only a human may change it.
 if printf '%s\n' "$STAGED" | grep -qE '^\.claude/settings(\.local)?\.json$'; then
   printf 'commit blocked: .claude/settings.json controls agent permissions.\n' >&2
-  printf '  Apply the change directly: git add .claude/settings.json && git commit\n' >&2
+  printf '  To apply the change, commit it with: git commit --no-verify -m "<message>"\n' >&2
   exit 1
 fi
 
