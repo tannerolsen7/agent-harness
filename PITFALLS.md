@@ -396,5 +396,5 @@ A separate but related gap: `sync-harness.sh` needs `HARNESS_SRC` at sync time, 
 - When building the fetch command, always use `curl -L` — the GitHub archive URL 302-redirects to `codeload.github.com`, and without `-L` you get a silent empty extract.
 - The unpacked directory name uses the abbreviated 7-char SHA (`OWNER-REPO-abc1234/`), not the full 40-char SHA from the URL. Build the path accordingly.
 
-**Source:** Distribution model spike (2026-06-22); TDD slice `tests/install-delivery-model.test.sh`.
-**Regression gate:** `tests/install-delivery-model.test.sh` — asserts `.sha != "local"` after a non-git source install. Failing test handed to `/feature` for the simple-install implementation.
+**Source:** Distribution model spike (2026-06-22); confirmed by a TDD slice that ran during the spike.
+**Regression gate:** Human-process rule — no automated check yet. The spike produced a failing test but it was not committed. If this code path is ever built, add a test that passes a non-git directory as `HARNESS_SRC` and asserts the recorded `sha` is not `"local"`.
