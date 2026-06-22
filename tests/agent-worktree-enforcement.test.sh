@@ -88,6 +88,22 @@ else
 fi
 rm -rf "$MAIN"
 
+echo "── exempt branch (master) skips worktree check ──"
+MAIN=$(mk_main "feat/x")
+(cd "$MAIN" && git checkout -q -b master 2>/dev/null || git checkout -q master) >/dev/null 2>&1
+SHA=$(cd "$MAIN" && git rev-parse HEAD)
+mkdir -p "$MAIN/.claude"
+printf 'master:%s' "$SHA" > "$MAIN/.claude/.cr-ok"
+PUSH="refs/heads/master $SHA refs/heads/master 0000000000000000000000000000000000000000"
+err=$(cd "$MAIN" && printf '%s\n' "$PUSH" | PATH="$STUB:$PATH" run_hook "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "from the main worktree\|worktree-add"; then
+  fail=$((fail+1))
+  echo "  MISS (master exempt): worktree check fired for master branch"
+else
+  pass=$((pass+1))
+fi
+rm -rf "$MAIN"
+
 rm -rf "$STUB"
 
 echo ""

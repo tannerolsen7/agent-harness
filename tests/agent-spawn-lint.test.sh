@@ -107,6 +107,13 @@ else
 fi
 rm -rf "$D"
 
+echo "── Task + permissionMode: plan is blocked (plan mode prevents spawning) ──"
+D=$(mk)
+write_agent "$D" "plan-agent" "Task,Read" "plan" >/dev/null
+rc=$(cd "$D" && git add .claude/agents/plan-agent.md && run_hook)
+ok "$rc" 1 "Task + permissionMode: plan blocked"
+rm -rf "$D"
+
 echo "── error message names both fields and explains what breaks ──"
 D=$(mk)
 write_agent "$D" "bad-agent" "Task,Read" "" >/dev/null

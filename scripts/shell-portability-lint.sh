@@ -3,6 +3,8 @@
 # Checks .sh files for three patterns that fail on BSD/macOS or bash 3.2.
 # Usage: bash scripts/shell-portability-lint.sh <file1.sh> [file2.sh ...]
 # Exit 0 = no violations. Exit 1 = violations found, details on stderr.
+# Suppress whole file:   add '# portability-lint: skip-file' in first 5 lines.
+# Suppress one line:     add '# portability-lint: skip' at end of the line.
 set -euo pipefail
 
 found=0

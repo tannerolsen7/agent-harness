@@ -80,6 +80,16 @@ else
   echo "  MISS (worktree error): error should mention .git alternative. got: $err"
 fi
 
+echo "── per-line skip pragma suppresses a violation ──"
+ok "$(run 'mktemp -p /tmp # portability-lint: skip')"                 0 "per-line skip passes"
+
+echo "── skip-file pragma skips the whole file ──"
+tmp=$(mktemp /tmp/portability-lint-test-XXXXXX.sh)
+printf '# portability-lint: skip-file\nmktemp -p /tmp\n' > "$tmp"
+rc=$(bash "$SCRIPT" "$tmp" 2>/dev/null; echo $?)
+rm -f "$tmp"
+ok "$rc" 0 "skip-file pragma: whole file skipped"
+
 echo "── clean file exits 0 ──"
 ok "$(run 'mktemp /tmp/x.XXXXXX'$'\n''printf -- "hello"')"            0 "clean file passes"
 
