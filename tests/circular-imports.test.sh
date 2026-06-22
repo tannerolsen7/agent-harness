@@ -33,8 +33,8 @@ rm -rf "$tmp"
 # ── Behavior 2: skip when npx is unavailable ──
 # Build a PATH that includes bash and git but not npx.
 BASH_DIR=$(dirname "$(command -v bash)")
-GIT_DIR=$(dirname "$(command -v git)")
-SAFE_PATH="$BASH_DIR:$GIT_DIR:/usr/bin:/bin"
+GIT_BIN_DIR=$(dirname "$(command -v git)")
+SAFE_PATH="$BASH_DIR:$GIT_BIN_DIR:/usr/bin:/bin"
 tmp=$(mktemp -d /tmp/ci-test-XXXXXX)
 git -C "$tmp" init -q
 echo '{}' > "$tmp/package.json"
@@ -61,8 +61,10 @@ else
   mkdir -p "$tmp/src"
   printf 'export const a = 1;\n' > "$tmp/src/a.js"
   printf 'import { a } from "./a.js";\nexport const b = a + 1;\n' > "$tmp/src/b.js"
-  rc=0; (cd "$tmp" && bash "$SCRIPT") >/dev/null 2>&1 || rc=$?
+  rc=0; out=""
+  out=$(cd "$tmp" && bash "$SCRIPT" 2>&1) || rc=$?
   ok "$rc" "0" "pass: no cycles"
+  [ "$rc" != "0" ] && printf '  output: %s\n' "$out"
   rm -rf "$tmp"
 
   # Behavior 4: fail when cycles exist.
@@ -73,8 +75,10 @@ else
   # a imports b, b imports a — a cycle.
   printf 'import { b } from "./b.js";\nexport const a = b;\n' > "$tmp/src/a.js"
   printf 'import { a } from "./a.js";\nexport const b = a;\n' > "$tmp/src/b.js"
-  rc=0; (cd "$tmp" && bash "$SCRIPT") >/dev/null 2>&1 || rc=$?
+  rc=0; out=""
+  out=$(cd "$tmp" && bash "$SCRIPT" 2>&1) || rc=$?
   ok "$rc" "1" "fail: cycles found"
+  [ "$rc" != "1" ] && printf '  output: %s\n' "$out"
   rm -rf "$tmp"
 
 fi

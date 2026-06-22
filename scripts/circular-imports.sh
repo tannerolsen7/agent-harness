@@ -27,10 +27,11 @@ fi
 MADGE_ARGS="--circular"
 [ -f tsconfig.json ] && MADGE_ARGS="$MADGE_ARGS --ts-config tsconfig.json"
 
+echo "circular-imports: scanning $SRC_DIR (this may download madge on first run)..."
 # shellcheck disable=SC2086
 if npx --yes madge $MADGE_ARGS "$SRC_DIR"; then
   echo "circular-imports: OK (no cycles in $SRC_DIR)"
 else
-  echo "circular-imports: cycles found — fix the imports listed above." >&2
+  echo "circular-imports: check failed — cycles or a parse error (see madge output above)." >&2
   exit 1
 fi
