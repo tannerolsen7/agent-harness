@@ -25,10 +25,12 @@ from `feat/<slug>` instead.
   and task B has `stacksOn: "task-a"`, when the workflow runs, it throws before
   any worktree is created. The error message identifies the cycle.
 
-- **All three preflight failures throw before `computeStacks()` runs:** Given
+- **All three preflight failures throw before any worktree is created:** Given
   any of the three invalid `stacksOn` cases above, the workflow throws before
-  `computeStacks()` is called. No worktree directory is created for any task in
-  the batch.
+  any `agent()` call for worktree creation (before `phase('Setup')`). No
+  worktree directory is created for any task in the batch. Note:
+  `computeStacks()` runs first to produce the group data that `validateStacksOn`
+  needs — the throw happens after that but before any external work begins.
 
 - **Multiple `stacksOn` errors in one batch produce a single throw listing all
   problems:** Given two tasks that each have an invalid `stacksOn` value, the

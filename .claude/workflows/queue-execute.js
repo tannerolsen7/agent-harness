@@ -48,6 +48,17 @@ function validateSlugs(taskList) {
       `(lowercase letters, digits, hyphens only): ${bad.join(', ')}`
     )
   }
+  // Duplicate slugs would silently make stacksOn resolve to the wrong task,
+  // since Maps keyed by slug keep only the last entry.
+  const seen = new Set()
+  const dupes = []
+  taskList.forEach(t => {
+    if (seen.has(t.slug)) dupes.push(t.slug)
+    seen.add(t.slug)
+  })
+  if (dupes.length > 0) {
+    throw new Error(`Duplicate task slug(s) — each slug must be unique: ${dupes.join(', ')}`)
+  }
 }
 validateSlugs(tasks)
 
@@ -98,9 +109,9 @@ if (gatedTasks.length > 0) {
   }
 }
 
-// ── Stacking helpers ─────────────────────────────────────────────────────────
+// ── Serial group helpers ──────────────────────────────────────────────────────
 // Parse a filesAffected string into a Set of trimmed, non-empty paths.
-// "N/A", "", or whitespace-only returns an empty Set (task is never stacked).
+// "N/A", "", or whitespace-only returns an empty Set (task belongs to no serial group).
 function parseFiles(filesAffected) {
   const s = (filesAffected || '').trim()
   if (!s || s.toUpperCase() === 'N/A') return new Set()
@@ -108,7 +119,7 @@ function parseFiles(filesAffected) {
 }
 
 // Group tasks into connected components by shared file paths, then split into
-// multi-task stacks (groups with 2+ tasks) and single independent tasks.
+// serial groups (2+ tasks) and single independent tasks.
 // Order within each component follows input array order.
 function computeStacks(taskList) {
   const parent = taskList.map((_, i) => i)
@@ -166,6 +177,10 @@ function validateStacksOn(taskList, stacks, independent) {
   const stacksOnMap = new Map() // slug → stacksOn target, for cycle detection
 
   for (const task of taskList) {
+    if (task.stacksOn !== undefined && typeof task.stacksOn !== 'string') {
+      errors.push(`task "${task.slug}" stacksOn: expected a string, got ${typeof task.stacksOn}`)
+      continue
+    }
     const s = (task.stacksOn || '').trim()
     if (!s) continue
 
@@ -242,11 +257,11 @@ function resolvePrBase(prevSlug, pushedSlugs) {
 }
 
 // ── Stacked-worktree ancestry guard ──────────────────────────────────────────
-// A stacked task is built by asking a sub-agent to run worktree-add.sh with
-// feat/<prevSlug> as the base ref. The agent could paraphrase or garble that
+// When a task has stacksOn set, a sub-agent creates its worktree with
+// feat/<baseSlug> as the base ref. The agent could paraphrase or garble that
 // command and create the worktree on the wrong base, which silently breaks the
 // stack's git ancestry. Because the agent's report is not trustworthy, the
-// workflow itself confirms feat/<prevSlug> is an ancestor of the new worktree's
+// workflow itself confirms feat/<baseSlug> is an ancestor of the new worktree's
 // HEAD after the agent returns.
 //
 // verifyAncestry is pure so it can be unit-tested without a real repo. It takes
@@ -254,8 +269,8 @@ function resolvePrBase(prevSlug, pushedSlugs) {
 //   { ok: true }                       when the base ref is an ancestor
 //   { ok: false, error: <message> }    when it is not (message names the branch
 //                                       and worktree path so a human can see it)
-function verifyAncestry(worktreePath, prevSlug, isAncestorFn) {
-  const baseRef = `feat/${prevSlug}`
+function verifyAncestry(worktreePath, baseSlug, isAncestorFn) {
+  const baseRef = `feat/${baseSlug}`
   if (isAncestorFn(worktreePath, baseRef)) return { ok: true }
   return {
     ok: false,
@@ -314,6 +329,9 @@ const PR_RESULT_SCHEMA = {
 // computeStacks groups tasks that share filesAffected paths. Tasks in the same
 // group run serially (one at a time) to avoid concurrent edits to the same file.
 // Branch base is determined by each task's stacksOn field, not group position.
+// validateStacksOn runs after computeStacks because it needs the group data to
+// check cross-group stacksOn references; unlike validateSlugs and
+// validateDesignGate, it cannot run on the raw task list alone.
 const { stacks, independent } = computeStacks(tasks)
 validateStacksOn(tasks, stacks, independent)
 
@@ -370,7 +388,7 @@ const allResults = await parallel(
     const results = []
     for (let i = 0; i < group.length; i++) {
       const task = group[i]
-      const baseRef = task.stacksOn || null
+      const baseRef = (task.stacksOn || '').trim() || null
 
       await agent(createWorktreePrompt(task, baseRef), { label: `worktree:${task.slug}`, phase: 'Setup' })
 
@@ -430,7 +448,7 @@ const prResults = []
 const pushedSlugs = new Set()
 for (const result of doneResults) {
   const task = taskBySlug.get(result.taskSlug) ?? { title: result.taskSlug }
-  const prevSlug = task.stacksOn || null
+  const prevSlug = (task.stacksOn || '').trim() || null
   const { base, retargeted } = resolvePrBase(prevSlug, pushedSlugs)
   const baseArg = base ? ` \\\n     --base ${base}` : ''
 
