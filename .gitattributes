@@ -20,5 +20,6 @@
 
 docs/RECURRING-FINDINGS.md merge=union
 docs/patterns-registry.md  merge=union
+PITFALLS.md                merge=union
 harness-progress.html      merge=ours
 TASKS.md                   merge=tasks-higher-state
