@@ -211,5 +211,61 @@ chk $? "idempotency guard exits 0 even when \$3 base-ref is passed to existing w
 ! (cd "$TMP8" && unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE && git log feat/idempotent-task --oneline 2>/dev/null | grep -q "some-base work")
 chk $? "existing worktree branch not rebased onto base-ref after idempotent call with \$3"
 
+# ── Test 9: base-ref ancestry holds — script verifies and exits 0 ────────────
+# When $3 is a real ancestor of the new branch, the post-create ancestry check
+# passes and the worktree survives.
+TMP9=$(mktemp -d)
+TMP9_CHILD_WT=$(mktemp -d)
+trap 'rm -rf "$TMP1" "$TMP1_WT" "$TMP2" "$TMP2_WT" "$TMP3" "$TMP3_WT" "$TMP4" "$TMP4_WT" "$TMP5" "$TMP5_WT" "$TMP6" "$TMP6_BASE_WT" "$TMP6_CHILD_WT" "$TMP7" "$TMP7_BASE_WT" "$TMP7_CHILD_WT" "$TMP8" "$TMP8_WT" "$TMP9" "$TMP9_CHILD_WT"' EXIT
+(
+  cd "$TMP9"
+  git init -q
+  git config user.email t@example.com
+  git config user.name tester
+  git commit -q --allow-empty --no-verify -m "init"
+  git branch -M main 2>/dev/null || git checkout -q -b main 2>/dev/null || true
+  git checkout -q -b feat/anc-base
+  git commit -q --allow-empty --no-verify -m "anc-base work"
+  git checkout -q main
+) >/dev/null 2>&1
+(cd "$TMP9" && unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE && bash "$SCRIPT" "$TMP9_CHILD_WT" "feat/anc-child" "feat/anc-base") >/dev/null 2>&1
+chk $? "script exits 0 when base-ref ancestry holds"
+[ -f "$TMP9_CHILD_WT/.git" ]
+chk $? "worktree survives when base-ref ancestry holds"
+
+# ── Test 10: base-ref ancestry broken — script aborts and removes worktree ───
+# Simulate a garbled base: the branch already exists at a SHA that does NOT
+# contain the base-ref. Since the branch exists, worktree-add checks it out
+# as-is (it does not rebase), so the requested base-ref is not in its ancestry.
+# The post-create check must catch this, print an error, remove the worktree,
+# and exit non-zero.
+TMP10=$(mktemp -d)
+TMP10_CHILD_WT=$(mktemp -d)
+trap 'rm -rf "$TMP1" "$TMP1_WT" "$TMP2" "$TMP2_WT" "$TMP3" "$TMP3_WT" "$TMP4" "$TMP4_WT" "$TMP5" "$TMP5_WT" "$TMP6" "$TMP6_BASE_WT" "$TMP6_CHILD_WT" "$TMP7" "$TMP7_BASE_WT" "$TMP7_CHILD_WT" "$TMP8" "$TMP8_WT" "$TMP9" "$TMP9_CHILD_WT" "$TMP10" "$TMP10_CHILD_WT"' EXIT
+(
+  cd "$TMP10"
+  git init -q
+  git config user.email t@example.com
+  git config user.name tester
+  git commit -q --allow-empty --no-verify -m "init"
+  git branch -M main 2>/dev/null || git checkout -q -b main 2>/dev/null || true
+  # An unrelated base branch with a commit not on the child's branch.
+  git checkout -q -b feat/wrong-base
+  git commit -q --allow-empty --no-verify -m "wrong-base work"
+  git checkout -q main
+  # Pre-create the child branch pointing at main (does NOT contain wrong-base work).
+  git branch feat/stray-child main
+) >/dev/null 2>&1
+# Remove the empty worktree dir so the script does its create/checkout path.
+rmdir "$TMP10_CHILD_WT" 2>/dev/null || true
+out10=$( (cd "$TMP10" && unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE && bash "$SCRIPT" "$TMP10_CHILD_WT" "feat/stray-child" "feat/wrong-base") 2>&1 )
+rc10=$?
+[ "$rc10" != 0 ]
+chk $? "script exits non-zero when base-ref is not an ancestor of the new branch"
+[ ! -e "$TMP10_CHILD_WT/.git" ]
+chk $? "worktree is removed when base-ref ancestry is broken"
+printf '%s' "$out10" | grep -q "feat/wrong-base"
+chk $? "error message names the base-ref that was not an ancestor"
+
 [ "$fail" = 0 ] && echo "worktree-add: OK ($pass passed)"
 exit "$fail"
