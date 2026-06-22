@@ -24,7 +24,8 @@ if ! printf '%s\n' "$first" | grep -qE '^(feat|fix|chore|docs|refactor|test|perf
   exit 1
 fi
 
-# Advisory only — warn if subject line exceeds 72 chars, but do not block.
+# Hard block — reject commits whose subject exceeds 72 chars.
 if [ "${#first}" -gt 72 ]; then
-  printf "commit-msg: warning: subject is %d chars (recommended max: 72)\n" "${#first}" >&2
+  printf "commit-msg: subject is %d chars (max: 72)\n" "${#first}" >&2
+  exit 1
 fi

@@ -75,9 +75,18 @@ ok "$(run "feat(Auth): add login")"      1 "scope uppercase"
 ok "$(run "feat(my_scope): add")"        1 "scope underscore"
 ok "$(run "feat(my scope): add")"        1 "scope space"
 
-echo "── Advisory 72-char warning (must PASS, exit 0) ──"
+echo "── 72-char subject hard block ──"
+# "feat: " = 6 chars + 66 x's = 72 chars exactly → must pass
+exact72="feat: $(printf 'x%.0s' {1..66})"
+ok "$(run "$exact72")"                   0 "exactly 72 chars passes"
+
+# "feat: " = 6 chars + 70 x's = 76 chars → must block
 long="feat: $(printf 'x%.0s' {1..70})"
-ok "$(run "$long")"                      0 "over-72 chars is advisory only"
+ok "$(run "$long")"                      1 "over 72 chars is blocked"
+
+# Auto-generated commits are exempt even when very long
+long_merge="Merge branch 'feat/$(printf 'x%.0s' {1..80})'"
+ok "$(run "$long_merge")"               0 "auto-generated (Merge) over 72 chars is exempt"
 
 echo ""
 echo "pass=$pass fail=$fail"
