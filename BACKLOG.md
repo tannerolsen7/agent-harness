@@ -62,3 +62,10 @@ The shard slug is derived from the branch name at the time `@spec-writer` runs. 
 **Possible fix:** Use a hand-chosen slug stored in the shard filename itself, or a task ID from TASKS.md, rather than deriving it from the live branch name.
 
 Source: /cr of feat/shard-testing-md — [P9] devil's advocate pass
+
+## safety-file-guard follow-ups (LOW priority, separate PRs)
+
+- **`^` anchor on `_GATE_SCRIPTS` regex** — `.husky/pre-commit` line 24 uses `scripts/(cr-ok|...)\.sh$` without a leading `^`. Low risk (git returns root-relative paths) but explicit anchoring is defensive. Requires `--no-verify` commit.
+- **Gate-script error message recovery hint** — the guard for staged gate scripts says "only the operator can modify it" but gives no recovery command. Other guards say `git commit --no-verify`. Consistency fix. Requires `--no-verify` commit.
+- **4 more gate script tests** — `commit-msg-lint.sh`, `shell-portability-lint.sh`, `comment-lint.sh`, `data-state-lint.sh` all use the same `_GATE_SCRIPTS` regex but have no test case. The existing 4 tests validate the pattern; these add coverage breadth.
+- **Fail-open audit for safety-file guard** — `git diff --cached ... 2>/dev/null || true` silently makes STAGED empty on git error; all guards pass. Consistent with the whole hook but worth auditing all guards together in one pass.
