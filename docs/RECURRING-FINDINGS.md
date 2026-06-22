@@ -285,6 +285,13 @@ file and you reset the loop's memory.
 **Locations:** tests/safety-file-guard.test.sh (.claude/hooks/* guard — only Add tested; .husky/* guard correctly has all three)
 **Detail:** The `.husky/*` guard has three test cases (new, modify, delete), covering all arms of the ACMRDT filter. The `.claude/hooks/*` guard in the same file has only one test (new file). A regression that removes the Modify or Delete arm from the guard would go undetected. Pattern: for every category a hook protects, test each operation type (Add, Modify, Delete) that the diff-filter covers — not just Add.
 
+### parallel-lookup-tables-diverge-silently
+**Signature:** Two lookup tables or lists in different files must stay in sync, but there is no automated check — adding an entry to one without updating the other produces a silent no-op instead of an error.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** `scripts/install.sh` (`CREATE_ONCE`) vs `scripts/sync-harness.sh` (`template_for()`) — `deploy-targets.yml` was in `CREATE_ONCE` but missing from `template_for`; sync silently skipped restoring it after deletion.
+**Detail:** `template_for` is a `case` statement that maps create-once filenames to their source template paths — the same mapping already encoded in `install.sh`'s `CREATE_ONCE` variable. When a new entry is added to `CREATE_ONCE`, `template_for` must be updated in the same commit, or sync will hit the `*)` arm and print "skipped (create-once, no template)" with no error. Fixed by adding the missing case arm. Pattern: any time two structures must mirror each other without an automated check (a lint script, a test that reads both, or a shared constant), the PITFALLS or RECURRING-FINDINGS entry should recommend converting the human-process rule into an automated check.
+
 ---
 
 ## Promoted

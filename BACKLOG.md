@@ -11,6 +11,7 @@
 
 | Item | Severity | Status | Notes |
 |---|---|---|---|
+| **`queue-stacking-redesign`: topological sort for stacksOn execution order** — if task B has `stacksOn: "task-a"` but appears before task A in the input array, the worktree is built on `feat/task-a` before it has commits; the ancestry guard catches it but the error message is confusing. Fix: topologically sort each serial group so a stacksOn target always runs before the task that stacks on it. Companion fix: do the same sort in the Push phase so a dependent PR's `pushedSlugs` check finds its base before opening the PR. Both require ~20 lines of sort logic. Surfaced by /cr Pass 10 (adversarial). | HIGH | Backlog | Surfaced by feat/queue-stacking-redesign /cr — NEEDS HUMAN for topo-sort implementation. |
 | **`task-runner` queue triage gap** (non-must-fix review findings surfaced raw to human) | MEDIUM | ✅ Done | `task-runner.md` lacked a triage step after `@reviewer` ran. MUST FIX items had a fix loop, but IMPORTANT / NITS findings were passed back to `/queue` with no disposition — leaving the human to decide fix-now, backlog, or drop. Added Step 4b triage: per finding, the agent decides fix-now (cheap + safe + in scope), backlog (records in BACKLOG.md), or drop, using the same criteria and guard-file escape hatch as `/cr` Step 5. Only items that genuinely need a human decision (guard-file fix required, ambiguous intent, >~15 new lines) surface to the human. `task-runner.md` is a guard file — human must apply the diff. |
 | **Branch protection on `main`** (require the `verify` check so F6 *blocks* merges) | LOW | Blocked (cost) | Requires a paid GitHub plan (~$4/user/mo); Tanner deferred the spend. F6 CI already runs + reports on every PR — this only flips it from advisory to merge-blocking. Revisit when on a paid plan, or if the repo moves to an org that has it. |
 | **`@implementer` never-touch list for regression tests + guard files** | LOW | Backlog | Surfaced by /cr adversarial review on the spawn-wiring PR. The automated fix loop (`task-runner` → `@implementer`) can Edit `tests/agent-spawn-tools.test.sh` to force the spawn-wiring gate green, or inadvertently mutate agent guard files. Fix: add a hard rule to `.claude/agents/implementer.md` that prohibits editing `tests/` regression gate files and `.claude/agents/**`. Guard file — human edit only. |
@@ -63,9 +64,20 @@ The shard slug is derived from the branch name at the time `@spec-writer` runs. 
 
 Source: /cr of feat/shard-testing-md — [P9] devil's advocate pass
 
+## sync-harness: automate CREATE_ONCE vs template_for parity check (LOW)
+
+**Problem:** `install.sh`'s `CREATE_ONCE` variable and `sync-harness.sh`'s `template_for()` case statement must list the same filenames, but there is no automated check. Adding to one without the other causes sync to silently skip restoring the file. Fixed manually for `deploy-targets.yml` in fix/sync-deploy-targets-restore; the structural fix (a lint script or pre-commit check that diffs the two lists) was backlogged.
+
+**Possible fix:** A ~5-line script that extracts filenames from both and diffs them. Run from `.husky/pre-commit` when either source file is staged. Alternatively, make `template_for` read from a shared list variable instead of a separate case statement.
+
+**Source:** fix/sync-deploy-targets-restore — [P8] architectural drift, [Pgov] PITFALLS.md regression gate currently says "human review."
+
+---
+
 ## safety-file-guard follow-ups (LOW priority, separate PRs)
 
 - **`^` anchor on `_GATE_SCRIPTS` regex** — `.husky/pre-commit` line 24 uses `scripts/(cr-ok|...)\.sh$` without a leading `^`. Low risk (git returns root-relative paths) but explicit anchoring is defensive. Requires `--no-verify` commit.
 - **Gate-script error message recovery hint** — the guard for staged gate scripts says "only the operator can modify it" but gives no recovery command. Other guards say `git commit --no-verify`. Consistency fix. Requires `--no-verify` commit.
 - **4 more gate script tests** — `commit-msg-lint.sh`, `shell-portability-lint.sh`, `comment-lint.sh`, `data-state-lint.sh` all use the same `_GATE_SCRIPTS` regex but have no test case. The existing 4 tests validate the pattern; these add coverage breadth.
 - **Fail-open audit for safety-file guard** — `git diff --cached ... 2>/dev/null || true` silently makes STAGED empty on git error; all guards pass. Consistent with the whole hook but worth auditing all guards together in one pass.
+- **`.env/` directory bypass** — The `.env` guard regex `(^|/)\.env($|\.)` requires `.env` to be followed by end-of-string or a dot. A file at `.env/API_KEY` (a directory named `.env`) has a trailing `/` and does not match, so it slips through. Realistic only if an agent explicitly creates a directory named `.env/`. Possible fix: change the regex to `(^|/)\.env($|\.|/)`. Source: /cr of feat/safety-file-guard — [P10-abuse] adversarial pass.

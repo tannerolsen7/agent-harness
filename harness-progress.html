@@ -61,8 +61,23 @@
       color: #aaa;
       margin: 20px 0 8px 0;
       padding-left: 36px;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
     }
     .phase-label:first-of-type { margin-top: 0; }
+    .phase-label::before {
+      content: '▶';
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 7px;
+      color: #ccc;
+      transition: transform 0.15s ease;
+    }
+    .phase-label.open::before { transform: translateY(-50%) rotate(90deg); }
+    .phase-cards.collapsed { display: none; }
 
     /* ── Cards ── */
     .card {
@@ -118,8 +133,23 @@
       font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
       text-transform: uppercase; color: #4b5563;
       padding: 18px 0 6px 42px;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
     }
     .steps-phase-label:first-of-type { padding-top: 14px; }
+    .steps-phase-label::before {
+      content: '▶';
+      position: absolute;
+      left: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 7px;
+      color: #6b7280;
+      transition: transform 0.15s ease;
+    }
+    .steps-phase-label.open::before { transform: translateY(-50%) rotate(90deg); }
+    .step-group.collapsed { display: none; }
 
     .step-row { display: flex; gap: 14px; padding: 12px 0; border-top: 1px solid #1f2937; }
     .step-row:first-of-type { border-top: none; }
@@ -164,16 +194,14 @@
       <h1>Agent Harness V2 — Standup</h1>
       <div class="subtitle">Building a standalone, project-agnostic AI engineering harness</div>
     </div>
-    <div class="date">June 20, 2026</div>
+    <div class="date">June 22, 2026</div>
   </div>
 
   <!-- Progress banner -->
   <div class="progress-banner">
-    <div class="progress-label">53 PRs merged</div>
-    <div class="progress-track"><div class="progress-fill" style="width:69%"></div></div>
-    <div class="progress-note">Step 0 + Phases 0&ndash;3 done &middot; Phase 4 in progress</div>
+    <div class="progress-note">Step 0 + Phases 0&ndash;4 done &middot; <span style="background:#fef9c3;color:#92400e;font-weight:600;padding:2px 10px;border-radius:99px;">Phase 5a in progress</span></div>
   </div>
-  <div class="auto-update-status">Last auto-updated: June 20, 2026 at 8:04 AM · 53 PRs (no change)</div>
+  <div class="auto-update-status">Last auto-updated: June 22, 2026 at 3:09 PM · 53 PRs (first run)</div>
 
   <!-- ── DONE ── -->
   <div class="section-label">Done</div>
@@ -648,6 +676,162 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Enforce conventional commits + pre-push sync gate</div>
+        <div class="card-desc">A pre-commit hook now validates every commit message against the conventional commits format (type(scope): description). A pre-push gate checks that the branch is up to date with main before allowing a push, blocking the "forgot to pull" class of push failures.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">/queue: automatic branch stacking for overlapping tasks</div>
+        <div class="card-desc">When two queued tasks touch the same file, /queue automatically cuts the second branch from the first instead of both branching off main. Parallel tasks that would previously conflict now stack cleanly. Also unified the independent and stacked execution paths into one code path with O(1) slug lookup.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Post-merge /cr fixes for conventional commits hook</div>
+        <div class="card-desc">A /cr pass after PR #84 merged surfaced issues in the commit-msg hook and pre-push gate. Both fixed before the next queue run.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">/queue hardening: slug validation + stacked-PR guard</div>
+        <div class="card-desc">Two /cr backlog items from feat/queue-bs-clean shipped together. Slug validation rejects any task slug that doesn't match <code>[a-z0-9-]+</code> before shell interpolation, closing a command-injection path. The stacked-PR guard checks that the previous task in a stack was actually pushed before opening a PR against its branch — prevents PRs that target a branch that will never merge.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Three-tier research routing guidance</div>
+        <div class="card-desc">Documented the three levels of research that the harness supports: (1) inline — quick factual lookups that fit in context; (2) /deep-research — background knowledge and landscape surveys; (3) /spike — gates a build decision and requires a go/no-go plus a test that confirms the approach works. The rule of thumb: if the answer determines what you build next, use /spike.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">/queue enforces design doc before accepting medium/large tasks</div>
+        <div class="card-desc">Medium and large tasks now require a linked design doc in the task object before /queue starts work. Bug fixes and small tasks proceed without one. Prevents the spec-writer agent from guessing wrong and blocking an overnight run.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">/queue verifies stacked-worktree ancestry by direct git check</div>
+        <div class="card-desc">After a stacked worktree is created, the queue now runs a direct <code>git merge-base --is-ancestor</code> check instead of trusting agent output. If the worktree was created off the wrong base, the queue aborts that stack group before any work starts.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Deploy-drift gate: manifest-presence check</div>
+        <div class="card-desc">First slice of the deploy-drift gate. A deploy-targets manifest lists every out-of-band step (migrations, env vars, feature flags) required for a release. CI now checks that the manifest file exists and is non-empty before merge — the cheapest possible gate against a forgotten manual step.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Harness domain glossary and deploy-drift context</div>
+        <div class="card-desc">Added a domain glossary to CONTEXT.md covering the key terms introduced by the deploy-drift work — manifest, drift gate, deterministic check, live-drift check. Gives new contributors a shared vocabulary before they read the code.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">/queue stacking redesign: explicit stacksOn field</div>
+        <div class="card-desc">Replaced the file-overlap auto-stacking heuristic with an explicit <code>stacksOn</code> field on task objects. Tasks no longer stack automatically when they touch the same file — they stack only when the author declares a dependency. Eliminates the squash-merge divergence problem where auto-stacked branches lost their base after the previous task was squash-merged.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">CLAUDE.md rules → deterministic hooks (Phase 4 Step 1)</div>
+        <div class="card-desc">Audited every rule in CLAUDE.md and converted the mechanically-enforceable ones into pre-commit and pre-push hook scripts. Rules that require judgment stay as prose. The harness now enforces its own standards on commit — not just documents them.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Harness synced to all 5 target repos (Phase 4 Step 2)</div>
+        <div class="card-desc">Rolled out the one-command installer to the full fleet — all 5 target repos on both GitHub and GitLab. Each got its own CLAUDE.md, PITFALLS.md, AGENTS.md, and CONTEXT.md on first install. Phase 4 complete.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">prune-branches: rename gc.sh and close three cleanup gaps</div>
+        <div class="card-desc">Renamed <code>scripts/gc.sh</code> to <code>scripts/prune-branches.sh</code> — the old name borrowed git's internal term for object compaction; this script removes stale branches and worktrees. Added three new passes: (A) orphaned worktree directories left on disk after git deregisters them, (B) remote agent/workflow branches under <code>agent/*</code> and <code>claude/*</code> prefixes that GitHub won't auto-delete, (C) a closed-PR detection path that prints the exact <code>git branch -D</code> command to run instead of a generic skip message.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label">Phase 5a — Agent-first workflow stack</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">sync-open-prs: auto-rebase conflicting PRs when main advances</div>
+        <div class="card-desc">Adds <code>scripts/sync-open-prs.sh</code> — runs at session start and on PR merge. Finds any open PR whose <code>mergeable</code> field is CONFLICTING, then calls <code>gh pr update-branch --rebase</code>. Draft PRs and stacked PRs (targeting a non-default base) are skipped. The script always exits 0 so it never blocks the triggers that call it.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">safety-file-guard: block agent commits of safety-critical files</div>
+        <div class="card-desc">Pre-commit hook now blocks the agent from staging files that could silently break the harness — <code>.husky/*</code> hooks, <code>settings.json</code>, and other files that control how the agent itself runs. These files require a human to review before they change, not an automated commit pass.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
   <div class="spacer"></div>
 
   <!-- ── IN PROGRESS ── -->
@@ -657,39 +841,8 @@
     <div class="card-header">
       <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="2"/></svg></div>
       <div class="card-body">
-        <div class="card-title">Enforce conventional commits + pre-push sync gate</div>
-        <div class="card-desc">A new pre-commit hook validates that commit messages follow the conventional commits format. A pre-push gate checks that the branch is in sync before pushing, preventing "forgot to pull" push failures.</div>
-        <span class="tag tag-purple">Hooks</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="2"/></svg></div>
-      <div class="card-body">
-        <div class="card-title">Perf budget: FID → INP, exit code fix, TESTING.md entries</div>
-        <div class="card-desc">The initial perf-budget merge used the deprecated FID metric instead of INP. This pass updates the metric, fixes an exit-code bug, and adds the missing TESTING.md behavior entries.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="2"/></svg></div>
-      <div class="card-body">
-        <div class="card-title">Queue branch stacking: unified execution path + O(1) slug lookup</div>
-        <div class="card-desc">Refactoring the /queue-execute skill to unify the independent and stacked task execution paths into one. Also replaces the linear slug lookup with an O(1) map. Separate clean branch from the main stacking work so each can be reviewed independently.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="2"/></svg></div>
-      <div class="card-body">
-        <div class="card-title">Queue branch stacking: automatic stacking for overlapping tasks</div>
-        <div class="card-desc">When two /queue tasks touch the same file, the second branch is automatically cut from the first instead of both branching off main. Prevents merge conflicts between parallel tasks that would otherwise write to the same file.</div>
+        <div class="card-title">simple-install: starting</div>
+        <div class="card-desc">Worktree set up on <code>feat/simple-install</code>. Work not yet committed.</div>
       </div>
     </div>
   </div>
@@ -701,30 +854,59 @@
 
   <div class="steps-block">
     <div class="steps-block-header">
-      <div class="count">8 remaining — 2 steps + 6 backlog</div>
-      <div class="note">Phase 4, then fleet</div>
+      <div class="count">7 remaining — 5 steps + 2 backlog</div>
+      <div class="note">Phase 5a → fleet</div>
     </div>
 
-    <div class="steps-phase-label">Phase 4 — Fleet &amp; distribution</div>
+    <div class="steps-phase-label">Phase 5a — Agent-first workflow stack</div>
 
     <div class="step-row">
       <div class="step-num">1</div>
       <div class="step-content">
-        <div class="step-title">Audit CLAUDE.md rules → move to deterministic hooks</div>
-        <div class="step-desc">Every rule that can be enforced mechanically (via a hook or lint script) should be — not just documented and hoped for. This pass converts as many CLAUDE.md rules as possible into actual enforcement.</div>
+        <div class="step-title">Linear as task source of truth</div>
+        <div class="step-desc">Create Linear teams for each project — event-vendor (GitHub), Laurel (GitLab), agent-harness (GitHub). Each team maps to one repo; the mapping is stored in the server config in Step 6 so the agent knows which git provider and credentials to use per task. Build an issue template that enforces all TASK-TEMPLATE.md fields: task slug, branch name, acceptance criteria, affected files, and the two gate fields. Gate fields use Linear custom fields (not labels) so they are queryable via GraphQL. Create a Linear automation rule that blocks delegation to the agent until both gate fields are set — without this, the gate is advisory and will be bypassed. Create the agent app user (Linear OAuth app) in this step, not Step 6 — it is needed to receive delegations and write session state back to Linear. Set up a queue view filtered to agent-cleared = true AND checkpoints-complete = true as the agent's work queue. Humans and agents pull from the same Linear backlog and work in parallel — each task gets its own branch and worktree, so there is no filesystem collision. The only coordination point is merge order.</div>
+        <div class="step-tags"><span class="step-tag gate">Unblocked</span><span class="step-tag">2–3 hrs</span></div>
       </div>
     </div>
 
     <div class="step-row">
       <div class="step-num">2</div>
       <div class="step-content">
-        <div class="step-title">Sync harness to all 5 target repos</div>
-        <div class="step-desc">Once the one-command installer works, roll the harness out to the full fleet of project repos.</div>
+        <div class="step-title">First Routine — nightly maintenance, Slack notification path</div>
+        <div class="step-desc">Ship one cloud Routine before any feature work runs unattended. Target: nightly RECURRING-FINDINGS digest — reads RECURRING-FINDINGS.md, checks for findings at 3+ occurrences, opens a draft PR promoting them to PITFALLS.md if found, posts a one-line summary to #agent-status whether or not a PR was opened. The real purpose of this step is proving the Slack notification path works end-to-end before anything more consequential runs. Max plan allows 15 Routines/day across all projects. Budget: 1 nightly maintenance Routine per project = 3/day, leaving 12 for headroom. Routines are reserved for scheduled maintenance only — feature work runs via Claude Code CLI on the server in Step 6, not via Routines, to avoid the daily cap. Routine prompts must be self-contained and explicit: state the goal, state what success looks like, state what to do when something unexpected happens, name which connectors to use, and state scope boundaries explicitly. If the Routine fails to post to Slack, that is itself a silent failure — wire a fallback notification via the Routine's built-in error handling.</div>
+        <div class="step-tags"><span class="step-tag gate">After Step 1</span><span class="step-tag">3–4 hrs</span></div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">Slack as escalation surface</div>
+        <div class="step-desc">Two channels, two purposes only. #agent-status: one post per completed task — PR link, task slug, pass/fail summary. No threads, no progress updates, silence until done. #agent-blocking: one thread per BLOCKING question. The agent posts the question with full context (task slug, what it was doing, what it needs to know, what it will assume if no reply comes). The human replies in the thread. A Slack event listener on the Railway server (Step 6) watches #agent-blocking for replies, matches them to the waiting CLI process by task slug, and resumes the process with the human's answer. Agents never post to any other channel. Two failure modes must be handled explicitly: (1) timeout — if no reply arrives within 4 hours, the task moves to error state in Linear, the worktree is preserved, and a follow-up message in the same thread tells the human the task timed out and what command to run to resume manually; (2) missed reply — if the Slack listener is down when the human replies, the task stays blocked. The listener must log all incoming messages to durable storage so missed replies can be replayed on restart. Create the Slack app and get the bot token before Step 6 begins — the server needs it on day one.</div>
+        <div class="step-tags"><span class="step-tag gate">After Step 2</span><span class="step-tag">2–3 hrs</span></div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">Linear delegation → Claude Code CLI on Railway (the front door)</div>
+        <div class="step-desc">A lightweight always-on server (Railway) receives Linear AgentSessionEvents, verifies the Linear-Signature header, checks that the issue is agent-cleared and checkpoints-complete, and spawns a Claude Code CLI process to run the task. Feature work runs here — not via Routines — so there is no daily cap. Pure API token cost. Works identically for GitHub and GitLab repos; the server maps each Linear team to its git provider and credential set. Task state machine: pending → claimed → running → blocked | complete | failed. State is persisted to a SQLite file on a Railway volume — not in memory — so a server restart does not lose in-flight task state. A watchdog process detects CLI processes that have died without updating state and moves them to error with a Slack notification. Idempotency: the Linear-Delivery header is used as a deduplication key, stored in the same SQLite file. Linear may retry webhook delivery; the server must reject duplicates. Repo strategy for v1: fresh clone per task — slower but no stale-state risk. Kill switch: a single AGENT_ENABLED=false environment variable on Railway stops all webhook processing immediately without taking down the server. Set this before diagnosing any misbehavior. v1 runs one task at a time. The queue interface is designed for parallel upgrade from day one: tasks enter a queue, a worker pool (size=1 in v1) claims and runs them. Upgrading to parallel means increasing pool size and adding per-worktree port isolation — no queue redesign needed. The CLI receives the Linear issue serialized into TASK-TEMPLATE.md field format as the prompt context. The ticket must specify which skill to invoke (feature, queue, hotfix) as a required template field — the server does not infer it. On task start: set Linear session externalUrl to the Claude Code session URL. On BLOCKING question: post to #agent-blocking, set Linear session to awaitingInput, pause the CLI process. On completion: post PR link to #agent-status, close Linear session, update task state to complete.</div>
+        <div class="step-tags"><span class="step-tag gate">After Step 3 — stable for 1 week</span><span class="step-tag warn">1–2 days</span><span class="step-tag">New infra</span></div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <div class="step-title">Review screen — world-class PR review UI</div>
+        <div class="step-desc">Two sub-phases. 7a: build a live Claude artifact first — the artifact calls the Anthropic API with Linear and GitHub MCPs attached, Claude fetches and structures the PR data server-side, the artifact renders it. This is the design sprint. No infrastructure, no deployment, answers the UX question before a line of production code is written. 7b: rebuild as a Next.js web app once the design is validated. The screen replaces GitHub's native PR review for AI-generated diffs. It surfaces: the original Linear ticket and acceptance criteria alongside the diff so the why is always visible; tests mapped to confirmed behaviors in plain English with pass/fail per behavior; agent decisions (what was implemented, why, what was explicitly deferred and why); lens review findings (MUST FIX vs. suggestions) with fix/defer status per finding; diff grouped by layer (API → service → store → component → test) not by file, each layer collapsible; and a persistent deferred-findings backlog showing occurrence count and age across all PRs — a finding that has appeared unfixed in 5 PRs is visually alarming. Every section is written in plain English, no jargon. The reviewer's job is judgment, not archaeology. Approve button opens the GitHub PR URL for manual merge — no automation in v1. Designed for multi-user from the start even though v1 is single-user. Auth is punted in v1 but the architecture must not make it hard to add.</div>
+        <div class="step-tags"><span class="step-tag gate">After Step 4</span><span class="step-tag warn">Separate build</span></div>
       </div>
     </div>
 
     <div class="deferred-note">
-      <strong>Deferred until after launch:</strong> GitHub-label / Slack summons to trigger the AI &middot; scheduled recurring runs &middot; risk-based auto-approval once catch-rate clears a floor &middot; real-time access-control UI &middot; fleet circuit breaker. These require launch + a paid GitHub plan.
+      <strong>Deferred — Phase 5b (after Phase 5a is stable):</strong> Parallel server workers — upgrade pool size from 1 to N, add per-worktree port isolation, no queue redesign needed &middot; Mobile review from phone — Phase 5a review screen is desktop-first; mobile is a later pass &middot; Slack summon — natural language task creation via Slack mention, bypasses Linear template discipline until ticket quality is proven &middot; Risk-based auto-approval — low-risk changes auto-merge once catch-rate clears a floor; requires &ge;80 real defects in the bug-catch corpus first &middot; Fleet circuit breaker — detects harness misbehavior across all repos simultaneously and pauses the server &middot; Scheduled clock-based tasks — agent-initiated work with no human starting it; requires Phase 5a trust baseline first.
     </div>
   </div>
 
@@ -751,42 +933,47 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-header">
-      <div class="card-body">
-        <div class="card-title">Require a design doc before /queue accepts large tasks <span style="font-size:11px;font-weight:600;background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:99px;margin-left:6px;">Medium</span></div>
-        <div class="card-desc">New behavior / UX / architecture tasks must have a linked design doc in TASKS.md before the queue starts working on them. Bug fixes and small changes proceed without one. Without this, the spec-writer agent makes wrong assumptions and blocks overnight — wasted run.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <div class="card-body">
-        <div class="card-title">/feature should use the @spec-writer agent, not write specs inline <span style="font-size:11px;font-weight:600;background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:99px;margin-left:6px;">Medium</span></div>
-        <div class="card-desc">The /feature skill writes spec entries inline; task-runner uses @spec-writer for the same job. Two separate processes, no shared rules. Fix: replace inline spec steps in /feature with an @spec-writer call, passing the design contract and grill output as context. Tiny tasks (1 behavior) stay inline.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <div class="card-body">
-        <div class="card-title">Gate out-of-band deploy steps (deploy-drift gate) <span style="font-size:11px;font-weight:600;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:99px;margin-left:6px;">Explore</span></div>
-        <div class="card-desc">The harness gates code at PR → CI → merge, but manual deploy steps (database migrations, environment variable changes, feature flags) happen after that boundary with no gate. A sibling project's ungated manual migration broke production. Proposed: a deploy-targets manifest + two checks — one deterministic (free, runs in CI) and one live-drift check (credentialed, separate job). ADR-0002 is written; first slice is the free deterministic check.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <div class="card-body">
-        <div class="card-title">Research routing: three tiers instead of two <span style="font-size:11px;font-weight:600;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:99px;margin-left:6px;">Low</span></div>
-        <div class="card-desc">No lightweight path exists between a quick inline search and the full 5-agent /spike pipeline. Add routing guidance: (1) inline — quick factual, fits in context; (2) /deep-research — background knowledge, landscape survey; (3) /spike — gates a build decision, needs a go/no-go and a test that confirms the approach works. Rule of thumb: does the answer determine what you build next? If yes → spike.</div>
-      </div>
-    </div>
-  </div>
 
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  function makeCollapsible(labels, wrapperClass, stopClass, isActiveFn) {
+    labels.forEach(function(label) {
+      var items = [];
+      var el = label.nextElementSibling;
+      while (el && !el.classList.contains(stopClass) && !el.classList.contains('spacer')) {
+        items.push(el);
+        el = el.nextElementSibling;
+      }
+      if (!items.length) return;
+      var wrapper = document.createElement('div');
+      wrapper.className = wrapperClass;
+      items[0].parentNode.insertBefore(wrapper, items[0]);
+      items.forEach(function(c) { wrapper.appendChild(c); });
+      if (isActiveFn(label)) {
+        label.classList.add('open');
+      } else {
+        wrapper.classList.add('collapsed');
+      }
+      label.addEventListener('click', function() {
+        wrapper.classList.toggle('collapsed');
+        label.classList.toggle('open');
+      });
+    });
+  }
+
+  makeCollapsible(
+    document.querySelectorAll('.phase-label'),
+    'phase-cards', 'phase-label',
+    function(l) { return l.textContent.trim().startsWith('Phase 5'); }
+  );
+
+  makeCollapsible(
+    document.querySelectorAll('.steps-phase-label'),
+    'step-group', 'steps-phase-label',
+    function(l) { return l.textContent.trim().startsWith('Phase 5'); }
+  );
+});
+</script>
 </body>
 </html>

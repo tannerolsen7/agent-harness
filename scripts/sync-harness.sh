@@ -64,11 +64,12 @@ _schema=$(jq -r '.schema' "$manifest")
 # Map each create-once dest back to its source template (same table install.sh uses).
 template_for() {
   case "$1" in
-    CLAUDE.md)   echo "docs/templates/CLAUDE.md" ;;
-    PITFALLS.md) echo "docs/templates/PITFALLS.md" ;;
-    AGENTS.md)   echo "docs/templates/AGENTS.md" ;;
-    CONTEXT.md)  echo "docs/templates/CONTEXT.md" ;;
-    *)           echo "" ;;
+    CLAUDE.md)            echo "docs/templates/CLAUDE.md" ;;
+    PITFALLS.md)          echo "docs/templates/PITFALLS.md" ;;
+    AGENTS.md)            echo "docs/templates/AGENTS.md" ;;
+    CONTEXT.md)           echo "docs/templates/CONTEXT.md" ;;
+    deploy-targets.yml)   echo "docs/templates/deploy-targets.yml" ;;
+    *)                    echo "" ;;
   esac
 }
 

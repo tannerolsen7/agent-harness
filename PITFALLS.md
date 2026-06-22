@@ -358,3 +358,20 @@ cd .claude/worktrees/<slug>
 
 **Source:** feat/gitattributes-merge-drivers — identified in /cr Pass Pgov/P8 and added to `docs/RECURRING-FINDINGS.md` entry `driver-missing-install-registration`.
 **Regression gate:** Human review — confirm `scripts/register-merge-drivers.sh` exists and `package.json` `prepare` includes it whenever a new merge driver is added to `.gitattributes`.
+
+---
+
+## sync-harness template table must mirror install's create-once list
+
+**Area:** `scripts/sync-harness.sh` (`template_for` function) and `scripts/install.sh` (`CREATE_ONCE` variable)
+
+**Rule:** Every file in `install.sh`'s `CREATE_ONCE` variable must have a matching case arm in `sync-harness.sh`'s `template_for` function. When you add a new create-once file to install.sh, add the corresponding `filename) echo "template/path"` line to `template_for` in the same commit.
+
+**Why:** `template_for` is a manual lookup table. There is no automated check that it stays in sync with `CREATE_ONCE`. When a file is missing from `template_for`, sync hits the `no template` branch and exits 0 — the user loses the file with no error. The `deploy-targets.yml` file was listed in `CREATE_ONCE` but missing from `template_for`; sync silently skipped restoring it after deletion.
+
+**Symptoms:** A user deletes a create-once file (or it goes missing). `sync-harness.sh` runs, prints `skipped (create-once, no template): <file>`, and exits 0. The file stays missing.
+
+**The check:** When editing `CREATE_ONCE` in `install.sh`, immediately grep `template_for` in `sync-harness.sh` for each filename in the list. Every `dest:template` pair in `CREATE_ONCE` must appear as `dest) echo "template"` in `template_for`.
+
+**Source:** Distribution model spike (2026-06-22) — `deploy-targets.yml` was the gap.
+**Regression gate:** `tests/install.test.sh` — "sync: re-creates a deleted create-once deploy-targets.yml" covers this file. Add a parallel case for any new create-once file added to the list.
