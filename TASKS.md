@@ -7,7 +7,7 @@ Task status: `[ ]` not started · `[~]` in progress (open worktree) · `[x]` don
 
 ## Current State
 
-Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install hardening, AI activity dashboard, and pre-push fix all merged. Remaining: CLAUDE.md→hooks audit (P2) and fleet rollout.
+Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install hardening, AI activity dashboard, pre-push fix, conventional commits hook (#84), queue branch stacking (#86), /cr follow-up fix (#87), and 3 queue hardening items (#89, #90, #101) all merged. Remaining: queue stacking redesign (file-overlap → explicit stacksOn), CLAUDE.md→hooks audit (P2), and fleet rollout.
 
 ---
 
@@ -62,6 +62,12 @@ Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install h
 ---
 
 ## P2 — Serialize After P1
+
+- [x] queue-execute: replace file-overlap stacking with explicit stacksOn field
+  Size: SMALL
+  Slug: queue-stacking-redesign
+  filesAffected: .claude/workflows/queue-execute.js, .claude/skills/queue/SKILL.md
+  Notes: Current stacking groups tasks by shared filesAffected paths and branches each task off the previous one's tip. This causes conflicts when tasks are squash-merged sequentially — squash creates new commit SHAs, so the stacked branch diverges from main. Fix: separate the two concerns. (1) Serialization (execution order) — tasks that share a file still run serially, not in parallel. (2) Branch base — every task branches from origin/main by default. Add an optional stacksOn: "<slug>" field to task objects; when present, the task branches from feat/<slug> instead of main. A task without stacksOn never gets stacked, even if it shares files with another task. Update queue/SKILL.md to document when to add stacksOn (only when task B calls or imports code written by task A) vs. when not to (two tasks that happen to edit different parts of the same file). Done when: tasks with shared files but no stacksOn branch from main and open PRs targeting main; tasks with stacksOn still branch from feat/<prevSlug>; tests cover both paths.
 
 - [ ] Audit CLAUDE.md rules and move to deterministic hooks
   Size: MEDIUM

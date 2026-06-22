@@ -162,9 +162,16 @@ HARNESS_SRC="$SRC11" bash "$SYNC" "$TGT11" >/dev/null 2>&1; rc=$?
 ck "$rc" "sync exits 0 when the user edited a copy file but upstream did not change"
 [ "$(cat "$TGT11/$CLDIR/skills/example.md")" = "LOCAL EDIT ONLY" ]; ck "$?" "user-only edit is preserved, not clobbered"
 
+echo "── sync: re-creates a deleted create-once deploy-targets.yml ──"
+SRC12=$(mktemp -d); TGT12=$(mktemp -d); make_src "$SRC12"; make_target "$TGT12"
+HARNESS_SRC="$SRC12" bash "$INSTALL" "$TGT12" >/dev/null 2>&1
+rm "$TGT12/deploy-targets.yml"
+HARNESS_SRC="$SRC12" bash "$SYNC" "$TGT12" >/dev/null 2>&1
+[ -f "$TGT12/deploy-targets.yml" ]; ck "$?" "deleted create-once deploy-targets.yml re-created from template on sync"
+
 cleanup "$SRC" "$TGT" "$SRC2" "$TGT2" "$TGT3" "$SRC4" "$TGT4" "$SRC5" "$TGT5" \
         "$SRC6" "$TGT6" "$SRC7" "$TGT7" "$SRC8" "$TGT8" "$TGT9" "$TGT10" \
-        "$SRC11" "$TGT11"
+        "$SRC11" "$TGT11" "$SRC12" "$TGT12"
 
 echo ""
 echo "install: $pass passed, $fail failed"
