@@ -48,7 +48,7 @@ un-removable orphans.
 
 `delete_branch_on_merge=true` removes only the **remote** ref. The **local** branch and the
 **remote-tracking** ref persist on disk until explicitly removed — steps 6–7 are not optional.
-`scripts/gc.sh` does steps 5–7 in bulk for every `[gone]` branch.
+`scripts/prune-branches.sh` does steps 5–7 in bulk for every `[gone]` branch.
 
 `scripts/worktree-add.sh` symlinks any root env files into the new worktree so integration tests
 have their credentials. Bare `git worktree add` skips this — tests that need env will fail.
@@ -59,7 +59,7 @@ There is no auto-delete. Worktree directories persist until explicitly removed (
 
 - One agent window per worktree directory (one session, one branch, one worktree).
 - Never run `git checkout` in a shared directory — use worktrees instead.
-- Remove the worktree after the PR merges (not before — review fixes may need it). `scripts/gc.sh`
+- Remove the worktree after the PR merges (not before — review fixes may need it). `scripts/prune-branches.sh`
   is the mechanism: it removes each merged branch's worktree and then deletes the branch. Run it
   after a merge (or in a batch / via the stale-branch ritual); unmerged and WIP worktrees are never touched.
 - If a new session starts in the repo root and the branch has uncommitted work from a prior session,

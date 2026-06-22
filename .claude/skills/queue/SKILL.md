@@ -75,7 +75,7 @@ For each confirmed task, read its TASKS.md entry and check its size/type field:
 
 - `scripts/worktree-add.sh` exists and is executable
 - `scripts/pr.sh` exists and is executable
-- `scripts/gc.sh` exists and is executable (Step 5 post-merge cleanup uses it)
+- `scripts/prune-branches.sh` exists and is executable (Step 5 post-merge cleanup uses it)
 - `gh` is installed (`command -v gh`)
 - Any env/credential files this project's tests require exist in the repo root
   (e.g. `.env.local`) — skip this check for projects that need none
@@ -165,7 +165,7 @@ tasks unchecked with a note appended to their **Notes** field.
 ## Step 5 — Worktree cleanup (after merge)
 
 Task worktrees persist until their PRs **merge** — you may still need them for review fixes, so do
-**not** remove a worktree while its PR is open. Once the PRs merge, run `scripts/gc.sh`: it removes
+**not** remove a worktree while its PR is open. Once the PRs merge, run `scripts/prune-branches.sh`: it removes
 each merged branch's `.claude/worktrees/<slug>` worktree and then deletes the branch (the worktree
 must go first — git refuses to delete a branch that is still checked out in a worktree). Run it after
 a merge batch, or rely on the session-start hook (`.claude/hooks/session-start.sh`), which runs it
