@@ -23,7 +23,7 @@ so future agents don't repeat the same investigation.
 - Not a prototype (delete throwaway code — `/prototype-interface` owns that)
 - Not a design (the decision feeds `/design contract`)
 - Not a feature (/feature owns implementation)
-- Not open-ended research with no output contract
+- Not background research — if you're building knowledge without a specific build decision to gate, use `/deep-research` instead. Spike is for questions where the answer determines what you build next.
 
 ## Anti-rationalization
 
