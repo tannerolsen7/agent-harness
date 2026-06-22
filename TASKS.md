@@ -67,3 +67,21 @@ Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install h
   Size: MEDIUM
   Slug: claudemd-to-hooks
   Notes: SERIALIZE — primary change touches CLAUDE.md (a shared, high-conflict file). Every rule in CLAUDE.md that can be enforced mechanically must become a hook or lint script, not a documented hope. This task audits every line of CLAUDE.md, creates hook scripts for the mechanically-enforceable rules, removes those lines from CLAUDE.md, and leaves only judgment-only guidance behind. Done when: each converted rule has a working hook script and test; CLAUDE.md is shorter by those rules; the harness enforces them on commit.
+
+- [ ] queue-execute: skip stacked PR when previous task was not pushed
+  Size: SMALL
+  Slug: queue-stacked-pr-guard
+  filesAffected: .claude/workflows/queue-execute.js
+  Notes: /cr backlog from feat/queue-bs-clean. If task A in a stack lands commits but its /cr fails, A won't be pushed. Task B's PR would still open with --base feat/A, targeting a branch that never merges. GitHub only auto-retargets a stacked PR on merge — not on rejection. Fix: in the Push phase, track which task slugs were actually pushed (status: "pushed"). Before opening a stacked PR (--base feat/prevSlug), check that prevSlug is in the pushed set. If not, either open the PR targeting main with a warning comment, or skip with a clear message.
+
+- [ ] queue-execute: validate slug format before shell interpolation
+  Size: TINY
+  Slug: queue-slug-validation
+  filesAffected: .claude/workflows/queue-execute.js
+  Notes: /cr backlog from feat/queue-bs-clean. Task slugs from user-supplied task objects are interpolated into shell commands inside createWorktreePrompt() — e.g. "bash scripts/worktree-add.sh .claude/worktrees/${task.slug} feat/${task.slug}". A slug like "my-task --force" would inject extra arguments. Fix: at the top of queue-execute.js, validate each task's slug against /^[a-z0-9-]+$/ before any work starts. If any slug is invalid, throw immediately with a clear message naming the offending slug.
+
+- [ ] worktree-add: verify ancestry after agent creates stacked worktree
+  Size: SMALL
+  Slug: queue-ancestry-verify
+  filesAffected: .claude/workflows/queue-execute.js, scripts/worktree-add.sh
+  Notes: /cr backlog from feat/queue-bs-clean. The queue-execute workflow trusts that the agent ran the exact worktree-add.sh command with the right $3 base-ref. An agent that paraphrases or garbles the command could create a worktree on the wrong base, silently breaking git ancestry. Fix: after the worktree-create agent returns for a stacked task (baseRef !== null), run a direct bash check — `git -C .claude/worktrees/<slug> merge-base --is-ancestor feat/<prevSlug> HEAD` — not via an agent prompt. If the check fails, log an error and abort that stack group.
