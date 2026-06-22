@@ -102,6 +102,20 @@ each transition.
 
 ---
 
+## Choosing the right research tool
+
+Not all research needs the same depth. Use the tier that matches the question — not the one that feels safest.
+
+| Tier | When to use | Tool | Cost |
+|---|---|---|---|
+| **Inline** | Quick factual question — an API signature, a version number, a definition. The answer fits in the current context and doesn't gate a build decision. | WebSearch + model reasoning, inline | Near-zero |
+| **/deep-research** | Background knowledge or landscape survey — "what exists", "how is X typically done", "what are the tradeoffs between A and B". Building knowledge, not gating a build decision. | Web fan-out + cited report, runs in background | Moderate |
+| **/spike** | Feasibility or approach that gates a build decision — "can we build this on X", "should we use Y for Z", "is this approach viable". The answer determines what you build next. | Full spike pipeline: research → synthesis → adversarial verify → TDD slice | High |
+
+**Decision rule:** Does the answer determine what you build next? If yes → `/spike`. Building knowledge without a specific build decision? → `/deep-research`. Quick and factual? → inline.
+
+---
+
 ## Choosing the right orchestration tool
 
 Once you know the work state and entry point, choose how to structure the AI work itself.
