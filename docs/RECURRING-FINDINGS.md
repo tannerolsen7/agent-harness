@@ -96,8 +96,8 @@ file and you reset the loop's memory.
 **Signature:** A new code path that collects branch candidates doesn't apply the same exclusion rules as the existing path for the same script.
 **Occurrences:** 2
 **Last seen:** 2026-06-17
-**Locations:** scripts/gc.sh (Pass 2 NO_UPSTREAM, lines 35–41; active-worktree exclusion, lines 51–62)
-**Detail:** Two instances of the same class. (1) The Pass 2 no-upstream detection did not exclude main/master/develop — fixed by adding `grep -vE "^(main|master|develop)$"`. (2) It also did not exclude branches checked out in active worktrees — a freshly-created worktree branch (no commits yet) has its tip at the branch point, so `git merge-base --is-ancestor` returns true and it looks merged. Fixed by collecting `ACTIVE_WT_BRANCHES` from `git worktree list --porcelain` and filtering them from the NO_UPSTREAM candidate list with `grep -vFxf`. Both fixes use `-F` (fixed-string) and `-x` (full-line) to avoid regex metacharacter issues in branch names. Pattern: every new candidate-collection pass in gc.sh must explicitly enumerate and apply all exclusions from the existing pass.
+**Locations:** scripts/prune-branches.sh (Pass 2 NO_UPSTREAM; active-worktree exclusion)
+**Detail:** Two instances of the same class. (1) The Pass 2 no-upstream detection did not exclude main/master/develop — fixed by adding `grep -vE "^(main|master|develop)$"`. (2) It also did not exclude branches checked out in active worktrees — a freshly-created worktree branch (no commits yet) has its tip at the branch point, so `git merge-base --is-ancestor` returns true and it looks merged. Fixed by collecting `ACTIVE_WT_BRANCHES` from `git worktree list --porcelain` and filtering them from the NO_UPSTREAM candidate list with `grep -vFxf`. Both fixes use `-F` (fixed-string) and `-x` (full-line) to avoid regex metacharacter issues in branch names. Pattern: every new candidate-collection pass in prune-branches.sh must explicitly enumerate and apply all exclusions from the existing pass.
 
 ### no-signal-trap-in-mutation-runner
 **Signature:** A script that temporarily replaces a file (mutant swap) has no signal trap, leaving the original file in a mutated state if the script is interrupted mid-run.
@@ -263,6 +263,20 @@ file and you reset the loop's memory.
 **Last seen:** 2026-06-22
 **Locations:** docs/testing/claudemd-to-hooks.md (lines 198–201 — "human push from main worktree warns but does not block" with no matching code in .husky/pre-push)
 **Detail:** The worktree check lives entirely inside the non-interactive `else` branch. A human push via TTY does not trigger the worktree check at all — no warning fires. The confirmed behavior was written against an earlier design that was not implemented. Fix: update the spec entry to describe actual behavior. Pattern: testing shard entries must be cross-checked against the live code before merging — a confirmed behavior with no implementation and no test is a spec that can't fail.
+
+### hook-error-message-misleading-recovery
+**Signature:** A hook's error message gives a command to run that is blocked by the same hook, creating a recovery loop with no exit.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** .husky/pre-commit (settings.json guard — error message says "git add .claude/settings.json && git commit" but `git commit` goes through the same hook and is blocked by the same guard)
+**Detail:** The settings.json guard fires during `git commit` and tells the user "Apply the change directly: git add .claude/settings.json && git commit." Running that command will hit the same guard and fail again. The correct recovery instruction is `git commit --no-verify` since the hook itself is the barrier. Pattern: any error message in a guard hook must verify that the suggested recovery command does not itself pass through the same guard.
+
+### hook-guard-op-coverage-gap
+**Signature:** A hook guard that fires on multiple git operations (Add, Modify, Delete) has tests for only one operation type, leaving Modify and Delete regressions undetected.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** tests/safety-file-guard.test.sh (.claude/hooks/* guard — only Add tested; .husky/* guard correctly has all three)
+**Detail:** The `.husky/*` guard has three test cases (new, modify, delete), covering all arms of the ACMRDT filter. The `.claude/hooks/*` guard in the same file has only one test (new file). A regression that removes the Modify or Delete arm from the guard would go undetected. Pattern: for every category a hook protects, test each operation type (Add, Modify, Delete) that the diff-filter covers — not just Add.
 
 ---
 
