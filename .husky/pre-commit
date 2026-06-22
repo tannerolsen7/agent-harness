@@ -3,6 +3,16 @@
 # (The directive replaces the shebang as shellcheck's shell hint — without it shellcheck errors SC2148.)
 set -e
 
+STAGED=$(git diff --cached --name-only --diff-filter=ACMRDT 2>/dev/null || true)
+
+# Agents must not commit changes to hook files — these scripts enforce the rules
+# that constrain what agents can do. An agent weakening them defeats the safety floor.
+if printf '%s\n' "$STAGED" | grep -qE '^\.husky/'; then
+  printf 'commit blocked: hook files are protected — they enforce the safety floor.\n' >&2
+  printf '  Changes to .husky/* require a direct human commit.\n' >&2
+  exit 1
+fi
+
 # Sentinel direct-write guard: block staging .cr-ok or .design-confirmed directly.
 # These files are gitignored and can only be staged with git add -f.
 # Writing them directly bypasses scripts/cr-ok.sh and scripts/design-confirm.sh,
