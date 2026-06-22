@@ -65,9 +65,24 @@ file and you reset the loop's memory.
 ### stale-comment-wrong-output-protocol
 **Signature:** A comment describes the behavior or output of a command/function, but the actual behavior differs, misleading anyone who reads or extends it.
 **Occurrences:** 3 — AUTO-PROMOTE
-**Last seen:** 2026-06-18
+**Last seen:** 2026-06-22
 **Locations:** scripts/check-integrity.sh (lines 34–37); .claude/skills/cr/SKILL.md (Pre-flight step 1); tests/activity.test.sh (header — "Run after applying the hook diff" written when hook was manual; the hook is now committed alongside the test)
 **Detail:** (1) awk comment described wrong output columns. (2) `git remote show origin` parenthetical claimed no network call. (3) Test file header told readers to manually apply a hook diff that is committed as part of the same PR. Pattern: comments written at a point in time get stale when the code or process changes around them. **→ Promoted to PITFALLS.md (see below)**
+**Post-promotion sightings:** 2026-06-22 — `queue-execute.js`: section header "Stacking helpers," `parseFiles` comment "task is never stacked," `verifyAncestry` parameter `prevSlug` and block comment "feat/<prevSlug>" — all stale after renaming stacking to serialization. `docs/testing/queue-stacking-redesign.md`: claimed `validateStacksOn` throws "before `computeStacks()` runs" — it runs after. Fixed in PR feat/queue-stacking-redesign.
+
+### validate-trim-use-site-mismatch
+**Signature:** A validator normalizes input (e.g., trims whitespace) before checking it, but downstream code reads the raw field — so padded input passes validation and then causes a different failure at the use site.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** `.claude/workflows/queue-execute.js` — `validateStacksOn` trims `task.stacksOn` via `(task.stacksOn || '').trim()`, but the Execute and Push phases used `task.stacksOn || null` (raw), so `"  task-a  "` passes validation as `"task-a"` but reaches `worktree-add.sh` with spaces in the branch name.
+**Detail:** Fix: normalize at the point of use (`(task.stacksOn || '').trim() || null`), not just at the validation call site. The rule of thumb: if a validator trims or coerces, also trim/coerce at every downstream use of the same field. One normalize-once location (at parse time, before any code sees the value) is cleaner than normalizing at both validate and use.
+
+### doc-shard-not-deleted-on-redesign
+**Signature:** A testing-shard file describes how a feature works, then the feature is redesigned, but the old shard is not deleted — leaving the assembled doc with two contradictory descriptions of the same behavior.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** `docs/testing/branch-stacking-queue.md` — described automatic file-overlap branch stacking; still present when the redesign replaced it with explicit `stacksOn`. After merging, `docs/TESTING.md` would have assembled both the old and new behavior descriptions for the same workflow, directly contradicting each other.
+**Detail:** Fix: when redesigning a feature whose confirmed behaviors live in a doc shard, add the old shard to the PR's git rm list. Search `docs/testing/` for any file that names the feature being replaced before closing the PR.
 
 ### internal-code-no-explanation
 **Signature:** An internal label (CMP*, R4-D*, Fx) is used in prose or code without being explained, leaving cold readers confused.

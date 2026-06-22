@@ -175,6 +175,32 @@ const { stacks, independent } = groups(tasks)
 validateStacksOn(tasks, stacks, independent)
 " >/dev/null
 
+echo "── whitespace-only stacksOn → treated as absent, passes ──"
+check "whitespace stacksOn" 0 "
+$SETUP
+const tasks = [
+  { slug: 'a', filesAffected: 'src/x.ts', stacksOn: '  ' },
+  { slug: 'b', filesAffected: 'src/y.ts' }
+]
+const { stacks, independent } = groups(tasks)
+validateStacksOn(tasks, stacks, independent)
+" >/dev/null
+
+echo "── non-string stacksOn → throws with clear type error ──"
+out=$(check "non-string stacksOn" 1 "
+$SETUP
+const tasks = [
+  { slug: 'a', filesAffected: 'src/x.ts' },
+  { slug: 'b', filesAffected: 'src/y.ts', stacksOn: 5 }
+]
+const { stacks, independent } = groups(tasks)
+validateStacksOn(tasks, stacks, independent)
+" 2>&1) || true
+case "$out" in
+  *number*|*string*) : ;;
+  *) echo "  FAIL: error should describe type mismatch; got: $out" >&2; fail=1 ;;
+esac
+
 echo "── source: validateStacksOn defined before computeStacks call ──"
 validate_line=$(grep -n 'function validateStacksOn' "$SRC" 2>/dev/null | head -1 | cut -d: -f1)
 stacks_call_line=$(grep -n 'computeStacks(tasks)' "$SRC" 2>/dev/null | head -1 | cut -d: -f1)
@@ -204,6 +230,14 @@ fi
 echo "── source: baseRef comes from task.stacksOn, not group position ──"
 if grep -q 'group\[i - 1\]' "$SRC" 2>/dev/null; then
   echo "  FAIL: group[i-1] still used for baseRef in $SRC — replace with task.stacksOn" >&2
+  fail=1
+fi
+
+echo "── source: baseRef uses trim normalization at use site ──"
+if grep -q '(task\.stacksOn || .*)\.trim() || null' "$SRC" 2>/dev/null; then
+  : # pass
+else
+  echo "  FAIL: baseRef in Execute phase must use (task.stacksOn || '').trim() || null to normalize whitespace" >&2
   fail=1
 fi
 

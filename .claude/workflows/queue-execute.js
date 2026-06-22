@@ -274,7 +274,7 @@ function verifyAncestry(worktreePath, baseSlug, isAncestorFn) {
   if (isAncestorFn(worktreePath, baseRef)) return { ok: true }
   return {
     ok: false,
-    error: `Stacked-worktree ancestry check failed: ${baseRef} is not an ancestor of HEAD in ${worktreePath}. The worktree-create agent likely ran the wrong base-ref. Aborting this stack group.`,
+    error: `Stacked-worktree ancestry check failed: ${baseRef} is not an ancestor of HEAD in ${worktreePath}. Possible causes: the worktree-create agent ran the wrong base-ref, or ${baseRef} has no commits yet (wrong execution order). Aborting this stack group.`,
   }
 }
 

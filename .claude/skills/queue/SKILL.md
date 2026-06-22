@@ -22,8 +22,8 @@ Read `TASKS.md`. Extract tasks from the **P1** (and **P0** if any) sections that
   `CLAUDE.md`, `AGENTS.md` — tasks that modify these must be serialized, not parallelized
 
 Tasks whose `filesAffected` fields share a file path are allowed in the same batch.
-When two tasks share a file, the workflow runs them one at a time (serial) so they do not
-edit the same file concurrently. Each task still branches from `origin/main` by default —
+When two tasks share a file, the workflow runs them one at a time so they do not
+edit the same file at the same time. Each task still branches from `origin/main` by default —
 sharing a file does not automatically stack one branch on top of another.
 
 To opt into branch stacking, add `stacksOn: "<slug>"` to a task. That task will branch
