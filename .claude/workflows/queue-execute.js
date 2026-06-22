@@ -5,10 +5,10 @@ const REPO_ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encodi
 
 export const meta = {
   name: 'queue-execute',
-  description: 'Run a /queue task batch: create worktrees, execute task-runner pipeline per task, push and open PRs for tasks that pass /cr. Tasks whose filesAffected fields share a file are automatically stacked — each branch cut from the previous one so they merge without conflicts.',
+  description: 'Run a /queue task batch: create worktrees, execute task-runner pipeline per task, push and open PRs for tasks that pass /cr. Tasks whose filesAffected fields share a file run serially (one at a time) but each branches from origin/main by default. Add stacksOn: "<slug>" to a task to branch it from feat/<slug> instead.',
   phases: [
-    { title: 'Setup', detail: 'Plan stacking, create worktrees for independent tasks' },
-    { title: 'Execute', detail: 'Run task-runner per task; stacked groups run serially, others in parallel' },
+    { title: 'Setup', detail: 'Create worktrees; tasks in serial groups run after the previous task finishes' },
+    { title: 'Execute', detail: 'Run task-runner per task; serial groups run one at a time, others in parallel' },
     { title: 'Push', detail: 'Push branches and open PRs for tasks whose .cr-ok sentinel is present' },
   ],
 }
@@ -47,6 +47,17 @@ function validateSlugs(taskList) {
       'Invalid task slug(s) — each slug must match /^[a-z0-9-]+$/ ' +
       `(lowercase letters, digits, hyphens only): ${bad.join(', ')}`
     )
+  }
+  // Duplicate slugs would silently make stacksOn resolve to the wrong task,
+  // since Maps keyed by slug keep only the last entry.
+  const seen = new Set()
+  const dupes = []
+  taskList.forEach(t => {
+    if (seen.has(t.slug)) dupes.push(t.slug)
+    seen.add(t.slug)
+  })
+  if (dupes.length > 0) {
+    throw new Error(`Duplicate task slug(s) — each slug must be unique: ${dupes.join(', ')}`)
   }
 }
 validateSlugs(tasks)
@@ -98,9 +109,9 @@ if (gatedTasks.length > 0) {
   }
 }
 
-// ── Stacking helpers ─────────────────────────────────────────────────────────
+// ── Serial group helpers ──────────────────────────────────────────────────────
 // Parse a filesAffected string into a Set of trimmed, non-empty paths.
-// "N/A", "", or whitespace-only returns an empty Set (task is never stacked).
+// "N/A", "", or whitespace-only returns an empty Set (task belongs to no serial group).
 function parseFiles(filesAffected) {
   const s = (filesAffected || '').trim()
   if (!s || s.toUpperCase() === 'N/A') return new Set()
@@ -108,7 +119,7 @@ function parseFiles(filesAffected) {
 }
 
 // Group tasks into connected components by shared file paths, then split into
-// multi-task stacks (groups with 2+ tasks) and single independent tasks.
+// serial groups (2+ tasks) and single independent tasks.
 // Order within each component follows input array order.
 function computeStacks(taskList) {
   const parent = taskList.map((_, i) => i)
@@ -146,16 +157,76 @@ function computeStacks(taskList) {
   return { stacks, independent }
 }
 
-// Build a map from slug -> previous slug for non-first stack members.
-// Used in the Push phase to set --base on stacked PRs.
-function buildPrevSlugMap(stacks) {
-  const map = {}
-  for (const group of stacks) {
-    for (let i = 1; i < group.length; i++) {
-      map[group[i].slug] = group[i - 1].slug
+// Validate that every task's stacksOn field (if set) names a valid slug in the
+// same file-overlap group. Receives the groups already computed by computeStacks
+// so it can check group membership without duplicating the union-find logic.
+// Collects all errors in one pass and throws once with the full list.
+function validateStacksOn(taskList, stacks, independent) {
+  // Build slugSet and groupOf in one pass over the already-computed groups.
+  // Each task in a serial group shares the same key (first task's slug).
+  // Each independent task uses its own slug as the key (guaranteed unique).
+  const slugSet = new Set()
+  const groupOf = new Map()
+  stacks.forEach(group => {
+    const key = group[0].slug
+    group.forEach(t => { slugSet.add(t.slug); groupOf.set(t.slug, key) })
+  })
+  independent.forEach(t => { slugSet.add(t.slug); groupOf.set(t.slug, t.slug) })
+
+  const errors = []
+  const stacksOnMap = new Map() // slug → stacksOn target, for cycle detection
+
+  for (const task of taskList) {
+    if (task.stacksOn !== undefined && typeof task.stacksOn !== 'string') {
+      errors.push(`task "${task.slug}" stacksOn: expected a string, got ${typeof task.stacksOn}`)
+      continue
     }
+    const s = (task.stacksOn || '').trim()
+    if (!s) continue
+
+    if (!slugSet.has(s)) {
+      errors.push(`task "${task.slug}" stacksOn: "${s}" — no task with that slug is in this batch`)
+      continue
+    }
+    if (s === task.slug) {
+      errors.push(`task "${task.slug}" stacksOn itself — a task cannot stack on itself`)
+      continue
+    }
+    if (groupOf.get(task.slug) !== groupOf.get(s)) {
+      errors.push(
+        `task "${task.slug}" stacksOn: "${s}" but they share no files. ` +
+        `Add a shared filename to both tasks' filesAffected to put them in the same serial group, then add stacksOn.`
+      )
+      continue
+    }
+    stacksOnMap.set(task.slug, s)
   }
-  return map
+
+  // Cycle detection: follow each stacksOn chain; if we revisit a node in the
+  // current path, we found a cycle. A visited set prevents re-reporting cycles
+  // that were already found from an earlier starting point.
+  const visited = new Set()
+  for (const start of stacksOnMap.keys()) {
+    if (visited.has(start)) continue
+    const path = [start]
+    const pathSet = new Set([start])
+    let cur = stacksOnMap.get(start)
+    while (cur && stacksOnMap.has(cur)) {
+      visited.add(cur)
+      if (pathSet.has(cur)) {
+        errors.push(`stacksOn cycle: ${[...path, cur].join(' → ')}`)
+        break
+      }
+      pathSet.add(cur)
+      path.push(cur)
+      cur = stacksOnMap.get(cur)
+    }
+    visited.add(start)
+  }
+
+  if (errors.length > 0) {
+    throw new Error('stacksOn validation failed:\n' + errors.map(e => `  - ${e}`).join('\n'))
+  }
 }
 
 // Decide what base branch a PR should target, given the slug of the task it is
@@ -186,11 +257,11 @@ function resolvePrBase(prevSlug, pushedSlugs) {
 }
 
 // ── Stacked-worktree ancestry guard ──────────────────────────────────────────
-// A stacked task is built by asking a sub-agent to run worktree-add.sh with
-// feat/<prevSlug> as the base ref. The agent could paraphrase or garble that
+// When a task has stacksOn set, a sub-agent creates its worktree with
+// feat/<baseSlug> as the base ref. The agent could paraphrase or garble that
 // command and create the worktree on the wrong base, which silently breaks the
 // stack's git ancestry. Because the agent's report is not trustworthy, the
-// workflow itself confirms feat/<prevSlug> is an ancestor of the new worktree's
+// workflow itself confirms feat/<baseSlug> is an ancestor of the new worktree's
 // HEAD after the agent returns.
 //
 // verifyAncestry is pure so it can be unit-tested without a real repo. It takes
@@ -198,12 +269,12 @@ function resolvePrBase(prevSlug, pushedSlugs) {
 //   { ok: true }                       when the base ref is an ancestor
 //   { ok: false, error: <message> }    when it is not (message names the branch
 //                                       and worktree path so a human can see it)
-function verifyAncestry(worktreePath, prevSlug, isAncestorFn) {
-  const baseRef = `feat/${prevSlug}`
+function verifyAncestry(worktreePath, baseSlug, isAncestorFn) {
+  const baseRef = `feat/${baseSlug}`
   if (isAncestorFn(worktreePath, baseRef)) return { ok: true }
   return {
     ok: false,
-    error: `Stacked-worktree ancestry check failed: ${baseRef} is not an ancestor of HEAD in ${worktreePath}. The worktree-create agent likely ran the wrong base-ref. Aborting this stack group.`,
+    error: `Stacked-worktree ancestry check failed: ${baseRef} is not an ancestor of HEAD in ${worktreePath}. Possible causes: the worktree-create agent ran the wrong base-ref, or ${baseRef} has no commits yet (wrong execution order). Aborting this stack group.`,
   }
 }
 
@@ -254,25 +325,29 @@ const PR_RESULT_SCHEMA = {
   },
 }
 
-// ── Compute stacking plan ────────────────────────────────────────────────────
+// ── Serial group plan ────────────────────────────────────────────────────────
+// computeStacks groups tasks that share filesAffected paths. Tasks in the same
+// group run serially (one at a time) to avoid concurrent edits to the same file.
+// Branch base is determined by each task's stacksOn field, not group position.
+// validateStacksOn runs after computeStacks because it needs the group data to
+// check cross-group stacksOn references; unlike validateSlugs and
+// validateDesignGate, it cannot run on the raw task list alone.
 const { stacks, independent } = computeStacks(tasks)
-const prevSlugMap = buildPrevSlugMap(stacks)
+validateStacksOn(tasks, stacks, independent)
 
 // ── Phase 1: Setup + Execute ─────────────────────────────────────────────────
-// Independent tasks: create their worktree then run task-runner immediately.
-// Stacked groups: serial loop — create worktree A, implement A, create worktree B
-// (based on feat/A's tip), implement B, etc. A failure mid-stack aborts the group.
-// All groups (independent and stacked) run concurrently via parallel().
+// Each group runs as a serial loop: create worktree, implement, then move to the
+// next task in the group. All groups (serial and independent) run concurrently.
 phase('Setup')
 if (stacks.length > 0) {
   const planLines = stacks.map(g =>
-    `  stack: ${g.map(t => t.slug).join(' -> ')}`
+    `  serial group: ${g.map(t => t.slug).join(', ')}`
   ).join('\n')
-  log(`Stacking plan (${stacks.length} group(s) run serially within each group):\n${planLines}`)
+  log(`Serial execution groups (${stacks.length} group(s) — tasks within each group run one at a time):\n${planLines}`)
 }
 
 phase('Execute')
-log(`Running ${tasks.length} tasks (${independent.length} independent, ${stacks.reduce((n, g) => n + g.length, 0)} in ${stacks.length} stack group(s))`)
+log(`Running ${tasks.length} tasks (${independent.length} independent, ${stacks.reduce((n, g) => n + g.length, 0)} in ${stacks.length} serial group(s))`)
 
 function createWorktreePrompt(task, baseRef) {
   const baseNote = baseRef
@@ -313,15 +388,14 @@ const allResults = await parallel(
     const results = []
     for (let i = 0; i < group.length; i++) {
       const task = group[i]
-      const baseRef = i === 0 ? null : group[i - 1].slug
+      const baseRef = (task.stacksOn || '').trim() || null
 
       await agent(createWorktreePrompt(task, baseRef), { label: `worktree:${task.slug}`, phase: 'Setup' })
 
-      // For a stacked task, confirm the new worktree really sits on top of the
-      // previous branch before we let an implementer build on it. The agent's
+      // For a task with stacksOn, confirm the new worktree really sits on top of
+      // the specified branch before we let an implementer build on it. The agent's
       // report is not trusted — we run the git check ourselves. A broken base
-      // here would silently produce merge conflicts later, so we abort the rest
-      // of this stack group instead of continuing.
+      // here would silently produce wrong diffs, so we abort the group.
       if (baseRef !== null) {
         const worktreePath = `${REPO_ROOT}/.claude/worktrees/${task.slug}`
         const check = verifyAncestry(worktreePath, baseRef, isAncestorViaGit)
@@ -360,8 +434,8 @@ const taskResults = allResults.filter(Boolean).flat()
 // ── Phase 2: Push ────────────────────────────────────────────────────────────
 // Open PRs for tasks that completed successfully. Sequential — scripts/pr.sh
 // reads and deletes .cr-ok; concurrent calls on the same worktree would race.
-// Stacked tasks (non-first in their group) target feat/<prevSlug> as PR base
-// so the diff shows only that task's own changes.
+// Tasks with stacksOn set target feat/<stacksOn> as PR base so the diff shows
+// only that task's own changes. Tasks without stacksOn target main.
 phase('Push')
 const doneResults = taskResults.filter(r => r && r.status === 'done')
 log(`${doneResults.length} of ${tasks.length} tasks done — pushing and opening PRs`)
@@ -374,7 +448,7 @@ const prResults = []
 const pushedSlugs = new Set()
 for (const result of doneResults) {
   const task = taskBySlug.get(result.taskSlug) ?? { title: result.taskSlug }
-  const prevSlug = prevSlugMap[result.taskSlug]
+  const prevSlug = (task.stacksOn || '').trim() || null
   const { base, retargeted } = resolvePrBase(prevSlug, pushedSlugs)
   const baseArg = base ? ` \\\n     --base ${base}` : ''
 
