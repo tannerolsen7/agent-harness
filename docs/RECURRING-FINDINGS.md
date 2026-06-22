@@ -69,12 +69,6 @@ file and you reset the loop's memory.
 **Locations:** scripts/check-integrity.sh (lines 34–37); .claude/skills/cr/SKILL.md (Pre-flight step 1); tests/activity.test.sh (header — "Run after applying the hook diff" written when hook was manual; the hook is now committed alongside the test)
 **Detail:** (1) awk comment described wrong output columns. (2) `git remote show origin` parenthetical claimed no network call. (3) Test file header told readers to manually apply a hook diff that is committed as part of the same PR. Pattern: comments written at a point in time get stale when the code or process changes around them. **→ Promoted to PITFALLS.md (see below)**
 
-### internal-code-no-explanation
-**Signature:** An internal label (CMP*, R4-D*, Fx) is used in prose or code without being explained, leaving cold readers confused.
-**Occurrences:** 1
-**Last seen:** 2026-06-17
-**Locations:** scripts/check-integrity.sh (header), .claude/agents/doc-updater.md (section headings), docs/patterns-registry.md (Established by line)
-**Detail:** "CMP4", "CMP1", "CMP2" appear without explanation. CLAUDE.md rule: do not drop internal codes without explaining them first. Partially fixed in this PR (CMP labels removed from doc-updater.md headings; CMP4 explained in check-integrity.sh header).
 
 ### sed-i-macos-only-linux-noop
 **Signature:** `sed -i ''` (BSD form) silently no-ops on Linux — GNU sed treats the empty string as a backup suffix, creates `file.bak`, and leaves the original unchanged. Exits 0.
@@ -235,12 +229,23 @@ file and you reset the loop's memory.
 **Last seen:** 2026-06-22
 **Locations:** `.claude/workflows/queue-execute.js` — ancestry check failure branch initially used `group.slice(i)` for the downstream list.
 **Detail:** When the ancestry check fails for task `i`, the log should list which *downstream* tasks are being cancelled. Using `slice(i)` includes the failing task itself, which confuses a reader: the task appears in the "Skipping" list even though it never got to run a task-runner. The correct pattern (used in the analogous task-runner failure branch in the same loop) is `slice(i + 1)` for downstream tasks, with the failing task named separately in the primary error message.
+### file-path-guard-missing-type-check
+**Signature:** A script checks `[ -f "$PATH" ] || exit 0` for an optional config file. When the path is set to a directory, `-f` returns false and the script silently passes — treating a misconfigured path as "not present."
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** scripts/deploy-drift-check.sh (pre-fix — `[ -f "$MANIFEST" ] || exit 0` without checking whether the path exists-but-is-a-directory)
+**Detail:** `-f` is false for both "does not exist" and "exists but is a directory." An env var like `HARNESS_DEPLOY_TARGETS` pointing to a directory causes silent pass — the gate looks active but checks nothing. Fix: add `[ -e "$PATH" ] && [ ! -f "$PATH" ]` check before the absent-path early-exit, and print an error to stderr. Pattern: any optional-file guard that distinguishes "not opted in" from "opted in" needs a separate check for "path exists but is wrong type."
 
 ---
 
 ## Promoted
 
+### internal-code-no-explanation
+**Promoted:** 2026-06-22 (Occurrences: 3)
+**Entry:** PITFALLS.md → "Internal labels without explanation: 'Layer 2a', 'CMP4', 'F6', 'R4-D2'"
+
 ### stale-comment-wrong-output-protocol
 **Promoted:** 2026-06-18 (Occurrences: 3)
 **Entry:** PITFALLS.md → "Stale comments: describing code state that has since changed"
 **Post-promotion sighting:** 2026-06-20 — `scripts/worktree-add.sh` line 3 header comment said `Usage: ... <path> <branch>` after adding an optional `[base-ref]` parameter. The `:?` usage strings on lines 13–14 were updated but the header was not. Fixed in this pass.
+**Post-promotion sighting:** 2026-06-22 — `scripts/ci-verify.sh` deploy-drift step comment said "Exits 0 when the manifest is absent (opt-in only)" — omitted the second exit-0 case (all entries pass). Fixed in this pass.

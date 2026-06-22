@@ -30,6 +30,7 @@ make_src() {
   printf 'PITFALLS template v1\n' > "$src/docs/templates/PITFALLS.md"
   printf 'AGENTS template v1\n' > "$src/docs/templates/AGENTS.md"
   printf 'CONTEXT template v1\n' > "$src/docs/templates/CONTEXT.md"
+  printf '# deploy-targets template\n' > "$src/docs/templates/deploy-targets.yml"
   cp "$INSTALL" "$src/scripts/install.sh"
   cp "$SYNC" "$src/scripts/sync-harness.sh"
   printf 'hook body\n' > "$src/$CLDIR/hooks/example-hook.sh"
@@ -50,10 +51,12 @@ ck "$rc" "install exits 0 on a git repo target"
 [ -f "$TGT/$CLDIR/.harness-manifest.json" ]; ck "$?" "manifest written"
 [ -f "$TGT/$CLDIR/skills/example.md" ]; ck "$?" "category-1 copy file installed"
 [ -f "$TGT/CLAUDE.md" ]; ck "$?" "category-2 create-once file installed from template"
+[ -f "$TGT/deploy-targets.yml" ]; ck "$?" "deploy-targets.yml create-once file installed from template"
 if command -v jq >/dev/null 2>&1; then
   MAN="$TGT/$CLDIR/.harness-manifest.json"
   jq -e '.schema == 1' "$MAN" >/dev/null 2>&1; ck "$?" "manifest schema is 1"
   jq -e '.files["CLAUDE.md"].policy == "create-once"' "$MAN" >/dev/null 2>&1; ck "$?" "CLAUDE.md recorded as create-once"
+  jq -e '.files["deploy-targets.yml"].policy == "create-once"' "$MAN" >/dev/null 2>&1; ck "$?" "deploy-targets.yml recorded as create-once"
   jq -e ".files[\"$CLDIR/skills/example.md\"].policy == \"copy\"" "$MAN" >/dev/null 2>&1; ck "$?" "skill recorded as copy"
 fi
 
@@ -65,8 +68,10 @@ HARNESS_SRC="$SRC2" bash "$INSTALL" "$TGT2" >/dev/null 2>&1; rc=$?
 
 echo "── install re-run: create-once is preserved ──"
 printf 'USER EDITED CLAUDE\n' > "$TGT/CLAUDE.md"
+printf '# user edited deploy-targets\n' > "$TGT/deploy-targets.yml"
 HARNESS_SRC="$SRC" bash "$INSTALL" "$TGT" >/dev/null 2>&1
 [ "$(cat "$TGT/CLAUDE.md")" = "USER EDITED CLAUDE" ]; ck "$?" "re-run does not clobber an existing create-once file"
+[ "$(cat "$TGT/deploy-targets.yml")" = "# user edited deploy-targets" ]; ck "$?" "re-run does not clobber existing deploy-targets.yml"
 
 echo "── sync: missing manifest ──"
 TGT3=$(mktemp -d); make_target "$TGT3"
