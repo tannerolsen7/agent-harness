@@ -97,6 +97,190 @@ else
 fi
 rm -rf "$D"
 
+# ── .claude/hooks/* — permission and egress scripts are all blocked ──
+
+echo "── staging a .claude/hooks/* file is blocked ──"
+D=$(mk)
+mkdir -p "$D/.claude/hooks"
+printf 'echo hook\n' > "$D/.claude/hooks/block-egress.sh"
+(cd "$D" && git add .claude/hooks/block-egress.sh) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "hook files"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (claude/hooks): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+# ── .claude/settings*.json — permission plane ──
+
+echo "── staging .claude/settings.json is blocked ──"
+D=$(mk)
+mkdir -p "$D/.claude"
+printf '{"permissions":{}}\n' > "$D/.claude/settings.json"
+(cd "$D" && git add .claude/settings.json) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "permissions"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (settings.json): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+echo "── staging .claude/settings.local.json is blocked ──"
+D=$(mk)
+mkdir -p "$D/.claude"
+printf '{"permissions":{}}\n' > "$D/.claude/settings.local.json"
+(cd "$D" && git add -f .claude/settings.local.json) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "permissions"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (settings.local.json): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+echo "── staging a new .claude/agents/my-agent.md is NOT blocked ──"
+D=$(mk)
+mkdir -p "$D/.claude/agents"
+printf 'name: my-agent\n' > "$D/.claude/agents/my-agent.md"
+(cd "$D" && git add .claude/agents/my-agent.md) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -qE "hook files|permissions|gate|secrets"; then
+  fail=$((fail+1))
+  echo "  MISS (agents file): safety guard fired on .claude/agents/*.md"
+else
+  pass=$((pass+1))
+fi
+rm -rf "$D"
+
+# ── gate scripts — lint and gate enforcers ──
+
+echo "── staging scripts/lint.sh is blocked ──"
+D=$(mk)
+mkdir -p "$D/scripts"
+printf 'echo lint\n' > "$D/scripts/lint.sh"
+(cd "$D" && git add scripts/lint.sh) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "gate"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (scripts/lint.sh): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+echo "── staging scripts/cr-ok.sh is blocked ──"
+D=$(mk)
+mkdir -p "$D/scripts"
+printf 'echo cr\n' > "$D/scripts/cr-ok.sh"
+(cd "$D" && git add scripts/cr-ok.sh) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "gate"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (scripts/cr-ok.sh): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+# ── package.json / package-lock.json — hooks wiring ──
+
+echo "── staging package.json is blocked ──"
+D=$(mk)
+printf '{"name":"test"}\n' > "$D/package.json"
+(cd "$D" && git add package.json) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "package"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (package.json): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+echo "── staging package-lock.json is blocked ──"
+D=$(mk)
+printf '{"lockfileVersion":2}\n' > "$D/package-lock.json"
+(cd "$D" && git add package-lock.json) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "package"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (package-lock.json): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+# ── .env files — credential files ──
+
+echo "── staging a new .env file is blocked ──"
+D=$(mk)
+printf 'SECRET=abc\n' > "$D/.env"
+(cd "$D" && git add .env) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "secrets"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (.env new): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+echo "── staging a .env modification is blocked ──"
+D=$(mk)
+printf 'SECRET=old\n' > "$D/.env"
+(cd "$D" && git add .env && git commit -q --no-verify -m 'add env') >/dev/null 2>&1
+printf 'SECRET=new\n' > "$D/.env"
+(cd "$D" && git add .env) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "secrets"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (.env modification): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+echo "── deleting a .env file is NOT blocked ──"
+D=$(mk)
+printf 'SECRET=abc\n' > "$D/.env"
+(cd "$D" && git add .env && git commit -q --no-verify -m 'add env') >/dev/null 2>&1
+(cd "$D" && git rm -q .env) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "secrets"; then
+  fail=$((fail+1))
+  echo "  MISS (.env deletion): guard blocked a .env deletion (should be allowed)"
+else
+  pass=$((pass+1))
+fi
+rm -rf "$D"
+
+echo "── staging .envrc is NOT blocked ──"
+D=$(mk)
+printf 'export FOO=bar\n' > "$D/.envrc"
+(cd "$D" && git add .envrc) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "secrets"; then
+  fail=$((fail+1))
+  echo "  MISS (.envrc): guard blocked .envrc (should be allowed)"
+else
+  pass=$((pass+1))
+fi
+rm -rf "$D"
+
 echo ""
-echo "safety-file-guard (slice 1): $pass passed, $fail failed"
+echo "safety-file-guard: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
