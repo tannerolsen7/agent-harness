@@ -175,3 +175,102 @@ BSD/macOS or older bash. Called from `.husky/pre-commit` on staged `.sh` files.
 - **PITFALLS.md worktree detection entry regression gate updated:** The existing
   worktree detection pitfall entry has its "Regression gate" field changed from
   "Human review" to a reference to `scripts/shell-portability-lint.sh`.
+
+## Agent worktree enforcement (`.husky/pre-push`)
+
+A check added to `.husky/pre-push` blocks agents from pushing a feature branch
+directly out of the main worktree. It distinguishes the main worktree (where
+`.git` is a directory) from a dedicated worktree (where `.git` is a file
+pointing back to the real repo). The check runs only on the non-interactive
+(agent) path and only for branch names that are not already exempt from the
+naming check.
+
+### Confirmed behaviors
+
+- **Agent push from main worktree on feature branch is blocked:** Given the
+  push is non-interactive (no TTY), the branch is not main, master, HEAD, or
+  empty, and `.git` is a directory, the hook exits 1 and blocks the push.
+
+- **Agent push from dedicated worktree on feature branch passes:** Given the
+  push is non-interactive, the branch is a feature branch, and `.git` is a
+  file (dedicated worktree), the check exits 0 and the push continues.
+
+- **Human push from main worktree on feature branch warns but does not block:**
+  Given the push is interactive (TTY present), the branch is a feature branch,
+  and `.git` is a directory, the hook prints a warning to stderr but exits 0
+  and allows the push to proceed.
+
+- **Exempt branches skip the check:** Given the branch is main, master, HEAD,
+  or empty-string, the worktree check is skipped entirely regardless of whether
+  `.git` is a file or directory.
+
+- **Error message names the worktree creation command:** When the check blocks,
+  the error output includes the command
+  `bash scripts/worktree-add.sh .claude/worktrees/<slug> feat/<slug>` so the
+  agent knows exactly what to run to fix the problem.
+
+## GIT_DIR clearing in test files (`.husky/pre-commit`)
+
+A check added to `.husky/pre-commit` verifies that every staged `*.test.sh`
+file contains the line that clears git environment variables. Without this
+clear, tests that create their own temporary git repos inherit the real repo's
+environment and can produce wrong results or corrupt the working tree.
+
+### Confirmed behaviors
+
+- **Staged `*.test.sh` missing the unset line exits 1:** Given a file matching
+  `*.test.sh` is staged and does not contain the full
+  `unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE`
+  line, the pre-commit hook exits 1 and blocks the commit.
+
+- **Staged `*.test.sh` containing the unset line passes:** Given a file
+  matching `*.test.sh` is staged and does contain the required unset line, the
+  check exits 0 for that file.
+
+- **Error explains why the line is required and what to add:** The error output
+  describes why inheriting git environment variables breaks tests that create
+  temporary repos and shows the exact unset line to add.
+
+- **Files that are not `*.test.sh` are not checked:** Given a staged file that
+  does not match the `*.test.sh` pattern (e.g. a `.sh` helper or a `.md` file),
+  the GIT_DIR check does not inspect it and exits 0.
+
+## Agent spawn lint for staged agent definitions (`.husky/pre-commit`)
+
+A check added to `.husky/pre-commit` inspects staged `.md` files under
+`.claude/agents/` and verifies that any agent definition which spawns
+sub-agents has both required settings. An agent that uses the `Task` tool
+without the correct `permissionMode` setting will fail to spawn; an agent with
+the correct `permissionMode` but no `Task` tool cannot spawn at all.
+
+### Confirmed behaviors
+
+- **Agent definition with `Task` in tools but missing `permissionMode` exits 1:**
+  Given a staged `.md` file under `.claude/agents/` that lists `Task` in its
+  `tools:` frontmatter field but does not have a `permissionMode` of `default`
+  or `auto`, the pre-commit hook exits 1 and blocks the commit.
+
+- **Agent definition with valid `permissionMode` but missing `Task` in tools exits 1:**
+  Given a staged `.md` file under `.claude/agents/` that has `permissionMode:
+  default` or `permissionMode: auto` but does not list `Task` in its `tools:`
+  field, the pre-commit hook exits 1 and blocks the commit.
+
+- **Agent definition with both `Task` and valid `permissionMode` passes:**
+  Given a staged `.md` file under `.claude/agents/` that lists `Task` in
+  `tools:` and has `permissionMode: default` or `permissionMode: auto`, the
+  check exits 0 for that file.
+
+- **Agent definition with neither `Task` nor a spawn `permissionMode` passes:**
+  Given a staged `.md` file under `.claude/agents/` that does not list `Task`
+  in `tools:` and does not set a spawn-capable `permissionMode`, the check
+  exits 0 because the agent does not spawn sub-agents.
+
+- **Files outside `.claude/agents/` are not checked:** Given a staged `.md`
+  file that is not under the `.claude/agents/` directory, the agent spawn lint
+  does not inspect it.
+
+- **Error message names both required fields and explains what breaks:** The
+  error output names `Task` (in `tools:`) and `permissionMode` (`default` or
+  `auto`) and explains that missing `Task` prevents spawning entirely while a
+  missing or wrong `permissionMode` causes the spawned agent to fail at
+  startup.
