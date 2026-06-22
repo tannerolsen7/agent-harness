@@ -74,7 +74,7 @@ Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install h
   filesAffected: .claude/workflows/queue-execute.js
   Notes: /cr backlog from feat/queue-bs-clean. If task A in a stack lands commits but its /cr fails, A won't be pushed. Task B's PR would still open with --base feat/A, targeting a branch that never merges. GitHub only auto-retargets a stacked PR on merge — not on rejection. Fix: in the Push phase, track which task slugs were actually pushed (status: "pushed"). Before opening a stacked PR (--base feat/prevSlug), check that prevSlug is in the pushed set. If not, either open the PR targeting main with a warning comment, or skip with a clear message.
 
-- [ ] queue-execute: validate slug format before shell interpolation
+- [x] queue-execute: validate slug format before shell interpolation (@task-runner)
   Size: TINY
   Slug: queue-slug-validation
   filesAffected: .claude/workflows/queue-execute.js

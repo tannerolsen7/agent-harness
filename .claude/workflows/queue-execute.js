@@ -18,6 +18,32 @@ export const meta = {
 //   tdd         — "TDD required" or "TDD N/A (no new behaviors)"
 const tasks = args
 
+// ── Slug validation ──────────────────────────────────────────────────────────
+// Every task slug is interpolated into shell commands — for example
+// "bash scripts/worktree-add.sh .claude/worktrees/<slug> feat/<slug>" plus the
+// branch names and PR titles built later. A slug like "my-task --force" or
+// "x; rm -rf ." would inject extra shell arguments or whole commands. Only
+// lowercase letters, digits, and hyphens are safe. Check every slug up front
+// and throw before any worktree is created, so a bad slug never reaches a shell.
+const SLUG_RE = /^[a-z0-9-]+$/
+function validateSlugs(taskList) {
+  const bad = []
+  taskList.forEach((t, i) => {
+    const slug = t && t.slug
+    if (typeof slug !== 'string' || !SLUG_RE.test(slug)) {
+      const shown = typeof slug === 'string' ? `"${slug}"` : String(slug)
+      bad.push(`task[${i}]: ${shown}`)
+    }
+  })
+  if (bad.length > 0) {
+    throw new Error(
+      'Invalid task slug(s) — each slug must match /^[a-z0-9-]+$/ ' +
+      `(lowercase letters, digits, hyphens only): ${bad.join(', ')}`
+    )
+  }
+}
+validateSlugs(tasks)
+
 // ── Stacking helpers ─────────────────────────────────────────────────────────
 // Parse a filesAffected string into a Set of trimmed, non-empty paths.
 // "N/A", "", or whitespace-only returns an empty Set (task is never stacked).
