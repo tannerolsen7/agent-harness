@@ -197,6 +197,7 @@ Write for a tired engineer five years from now.
 - Does the diff add/change domain vocabulary? Does CONTEXT.md reflect it?
 - New confirmed behaviors in docs/testing/<slug>.md (the per-feature shard)?
 - Does any sentence in CLAUDE.md, AGENTS.md, or CONTEXT.md now contradict the code?
+- Are there any specs in `docs/specs/` whose `status:` is not `complete`? List each one. If the feature it describes is shipped, flag it as MUST FIX with the spec path and current status.
 
 ### Pass 8 — Architectural Drift (Sonnet)
 Before reviewing the diff, search the codebase for existing patterns relevant to what changed. Then evaluate:

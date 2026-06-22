@@ -3,7 +3,7 @@
 <!-- spec-meta
 slug: safety-file-guard
 human-approved: true
-status: implemented
+status: complete
 -->
 
 ## User goal
