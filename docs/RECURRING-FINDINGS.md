@@ -141,10 +141,10 @@ file and you reset the loop's memory.
 
 ### documented-edge-case-not-guarded
 **Signature:** A guard condition documents a fallback for an edge case (e.g. "falls back to X if Y") but the code only checks the most obvious form — a related but distinct form of Y slips through.
-**Occurrences:** 1
-**Last seen:** 2026-06-17
-**Locations:** scripts/pr.sh (line 85 — `[ -z "$MERGE_CHECK_BASE" ]` caught empty string but not `"(unknown)"` from git); .claude/skills/cr/SKILL.md (same guard)
-**Detail:** `git remote show origin` outputs the literal string `(unknown)` when the remote HEAD symref is unset. TESTING.md documented "falls back to main if the remote HEAD cannot be determined" — but `(unknown)` is non-empty, so the guard didn't fire. Fixed by adding `|| [ "$X" = "(unknown)" ]`.
+**Occurrences:** 2
+**Last seen:** 2026-06-20
+**Locations:** scripts/pr.sh (line 85 — `[ -z "$MERGE_CHECK_BASE" ]` caught empty string but not `"(unknown)"` from git); scripts/worktree-add.sh (BRANCH has a leading-dash guard but BASE_REF, added in the same commit, has no equivalent guard)
+**Detail:** (1) `git remote show origin` outputs `(unknown)` when unset. Guard checked only empty string. Fixed by adding `|| [ "$X" = "(unknown)" ]`. (2) `worktree-add.sh` added BASE_REF without the same `case "$BASE_REF" in -*) ... esac` guard already present for BRANCH. A caller passing `--detach` or `-f` as `$3` would cause git to interpret it as a flag. Fixed by adding the guard immediately after the BRANCH check.
 
 ### doc-drift-generated-file-references
 **Signature:** Multiple skill or agent files still reference a file as the write target after it becomes a generated artifact; agents follow stale instructions and write to the wrong path.
@@ -209,3 +209,4 @@ file and you reset the loop's memory.
 ### stale-comment-wrong-output-protocol
 **Promoted:** 2026-06-18 (Occurrences: 3)
 **Entry:** PITFALLS.md → "Stale comments: describing code state that has since changed"
+**Post-promotion sighting:** 2026-06-20 — `scripts/worktree-add.sh` line 3 header comment said `Usage: ... <path> <branch>` after adding an optional `[base-ref]` parameter. The `:?` usage strings on lines 13–14 were updated but the header was not. Fixed in this pass.

@@ -132,5 +132,84 @@ chk $? "script exits 0 for already-done task"
 grep -q '^- \[x\] Alpha task' "$TMP5/TASKS.md"
 chk $? "task already [x] is not changed to [~]"
 
+# ── Test 6: optional $3 base-ref — new branch starts from that ref ───────────
+TMP6=$(mktemp -d)
+TMP6_BASE_WT=$(mktemp -d)
+TMP6_CHILD_WT=$(mktemp -d)
+trap 'rm -rf "$TMP1" "$TMP1_WT" "$TMP2" "$TMP2_WT" "$TMP3" "$TMP3_WT" "$TMP4" "$TMP4_WT" "$TMP5" "$TMP5_WT" "$TMP6" "$TMP6_BASE_WT" "$TMP6_CHILD_WT"' EXIT
+(
+  cd "$TMP6"
+  git init -q
+  git config user.email t@example.com
+  git config user.name tester
+  git commit -q --allow-empty --no-verify -m "init"
+  git branch -M main 2>/dev/null || git checkout -q -b main 2>/dev/null || true
+  # Create a base branch with a unique commit so we can verify ancestry
+  git checkout -q -b feat/base-task
+  git commit -q --allow-empty --no-verify -m "base-task work"
+  git checkout -q main
+) >/dev/null 2>&1
+# Create a child worktree based on feat/base-task (not main/HEAD)
+(cd "$TMP6" && unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE && bash "$SCRIPT" "$TMP6_CHILD_WT" "feat/child-task" "feat/base-task") >/dev/null 2>&1
+chk $? "script exits 0 when a base-ref is provided"
+# The child branch should include the base-task commit in its ancestry
+(cd "$TMP6" && git log feat/child-task --oneline 2>/dev/null | grep -q "base-task work")
+chk $? "feat/child-task ancestry includes the base-ref commit"
+
+# ── Test 7: TASKS.md in-progress marking still fires when $3 base-ref is supplied ──
+TMP7=$(mktemp -d)
+TMP7_BASE_WT=$(mktemp -d)
+TMP7_CHILD_WT=$(mktemp -d)
+trap 'rm -rf "$TMP1" "$TMP1_WT" "$TMP2" "$TMP2_WT" "$TMP3" "$TMP3_WT" "$TMP4" "$TMP4_WT" "$TMP5" "$TMP5_WT" "$TMP6" "$TMP6_BASE_WT" "$TMP6_CHILD_WT" "$TMP7" "$TMP7_BASE_WT" "$TMP7_CHILD_WT"' EXIT
+(
+  cd "$TMP7"
+  git init -q
+  git config user.email t@example.com
+  git config user.name tester
+  git commit -q --allow-empty --no-verify -m "init"
+  git branch -M main 2>/dev/null || git checkout -q -b main 2>/dev/null || true
+  git checkout -q -b feat/base-task2
+  git commit -q --allow-empty --no-verify -m "base-task2 work"
+  git checkout -q main
+) >/dev/null 2>&1
+cat > "$TMP7/TASKS.md" << 'TASKSEOF'
+# TASKS.md
+
+## P1 — Ready to Queue
+
+- [ ] Child task two
+  Size: SMALL
+  Slug: child-task2
+  Notes: Stacked on base-task2.
+TASKSEOF
+(cd "$TMP7" && unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE && bash "$SCRIPT" "$TMP7_CHILD_WT" "feat/child-task2" "feat/base-task2") >/dev/null 2>&1
+chk $? "script exits 0 when base-ref and TASKS.md are both present"
+grep -q '^- \[~\] Child task two' "$TMP7/TASKS.md"
+chk $? "task marked in-progress in TASKS.md even when \$3 base-ref is supplied"
+
+# ── Test 8: idempotency guard still fires when $3 base-ref is supplied ────────
+TMP8=$(mktemp -d)
+TMP8_WT=$(mktemp -d)
+trap 'rm -rf "$TMP1" "$TMP1_WT" "$TMP2" "$TMP2_WT" "$TMP3" "$TMP3_WT" "$TMP4" "$TMP4_WT" "$TMP5" "$TMP5_WT" "$TMP6" "$TMP6_BASE_WT" "$TMP6_CHILD_WT" "$TMP7" "$TMP7_BASE_WT" "$TMP7_CHILD_WT" "$TMP8" "$TMP8_WT"' EXIT
+(
+  cd "$TMP8"
+  git init -q
+  git config user.email t@example.com
+  git config user.name tester
+  git commit -q --allow-empty --no-verify -m "init"
+  git branch -M main 2>/dev/null || git checkout -q -b main 2>/dev/null || true
+  git checkout -q -b feat/some-base
+  git commit -q --allow-empty --no-verify -m "some-base work"
+  git checkout -q main
+) >/dev/null 2>&1
+# First call: create the worktree normally (no $3)
+(cd "$TMP8" && unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE && bash "$SCRIPT" "$TMP8_WT" "feat/idempotent-task") >/dev/null 2>&1
+# Second call: same worktree, same branch, but now with a $3 — idempotency guard must still fire
+(cd "$TMP8" && unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE && bash "$SCRIPT" "$TMP8_WT" "feat/idempotent-task" "feat/some-base") >/dev/null 2>&1
+chk $? "idempotency guard exits 0 even when \$3 base-ref is passed to existing worktree"
+# Confirm the branch was not rebased onto some-base — "some-base work" must NOT appear
+! (cd "$TMP8" && unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE && git log feat/idempotent-task --oneline 2>/dev/null | grep -q "some-base work")
+chk $? "existing worktree branch not rebased onto base-ref after idempotent call with \$3"
+
 [ "$fail" = 0 ] && echo "worktree-add: OK ($pass passed)"
 exit "$fail"
