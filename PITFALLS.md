@@ -50,6 +50,22 @@ Check this file before any `/cr` pass. If you see a pattern here in a diff, flag
 
 ---
 
+## Exempt branch arms in hook tests: every case arm needs its own test
+
+**Area:** Hook test files (`.husky/pre-push`, `.husky/pre-commit`) that protect a fixed set of branch names or values via a `case` statement
+
+**Rule:** Every arm of a hook's `case` statement needs its own test case. If a hook exempts `main|master|HEAD|""`, write four tests — one for each exempt value. A test that only covers `main` gives no protection against a regression that removes the `master` arm.
+
+**Why:** This pattern appeared in three separate PRs: (1) a main-branch guard that listed `develop` as exempt but had no `develop` test, (2) the pre-push sync gate that exempted `main|master|HEAD|""` but had no test for any of the four, (3) the worktree enforcement test that tested only `main`. In each case, the missing test looked fine because the code was correct at the time — but it left no signal to catch a future regression.
+
+**Symptoms:** A test suite passes after a code change that accidentally removes one of the exempt arms, because the only test for that branch type was never written.
+
+**The check:** After adding a `case` statement that exempts N values, count the exempt tests. If `N tests < N arms`, add the missing ones.
+
+**Source:** Promoted from RECURRING-FINDINGS.md at Occurrences 3 (2026-06-22).
+
+---
+
 ## Agent orchestrators — Task tool and permissionMode are both required for spawning
 
 **Area:** Agent system (`.claude/agents/*.md` frontmatter)
