@@ -21,7 +21,7 @@ if printf '%s\n' "$STAGED" | grep -qE '^\.claude/settings(\.local)?\.json$'; the
 fi
 
 # Gate scripts are called directly from hooks. Weakening them weakens the gate they enforce.
-_GATE_SCRIPTS='scripts/(cr-ok|design-confirm|commit-msg-lint|shell-portability-lint|lint|token-lint|comment-lint|data-state-lint)\.sh$'
+_GATE_SCRIPTS='scripts/(cr-ok|design-confirm|commit-msg-lint|shell-portability-lint|lint|token-lint|comment-lint|data-state-lint|circular-imports)\.sh$'
 if printf '%s\n' "$STAGED" | grep -qE "$_GATE_SCRIPTS"; then
   printf 'commit blocked: this script is called from a gate — only the operator can modify it.\n' >&2
   exit 1
@@ -135,6 +135,12 @@ if [ -n "$STAGED_COMPONENTS" ]; then
   bash scripts/data-state-lint.sh $STAGED_COMPONENTS
 fi
 
+
+# Circular import check: skip when no JS/TS files are staged.
+STAGED_JS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|ts|jsx|tsx|mjs|cjs)$' || true)
+if [ -n "$STAGED_JS" ] && [ -f package.json ]; then
+  bash scripts/circular-imports.sh
+fi
 # TESTING.md shard sync: when any docs/testing/*.md shard is staged, regenerate
 # the local docs/TESTING.md for browsability. The file is gitignored; don't add it.
 STAGED_SHARDS=$(git diff --cached --name-only --diff-filter=ACDM | grep -E "^docs/testing/[^/]+\.md$" || true)
