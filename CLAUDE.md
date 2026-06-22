@@ -47,6 +47,11 @@ These rules are enforced by hooks or scripts — violations stop the action auto
 | Staged `.sh` files must not use `mktemp -p`, leading-dash `printf`, or `worktree list \| grep` | `scripts/shell-portability-lint.sh` via `.husky/pre-commit` |
 | Staged `*.test.sh` files must include the git env unset line | `.husky/pre-commit` GIT_DIR guard |
 | Agent definitions under `.claude/agents/` must have both `Task` and `permissionMode` or neither | `.husky/pre-commit` agent spawn lint |
+| Agents cannot commit changes to `.husky/*` or `.claude/hooks/*` hook files | `.husky/pre-commit` safety-file guard |
+| Agents cannot commit changes to `.claude/settings.json` or `.claude/settings.local.json` | `.husky/pre-commit` safety-file guard |
+| Agents cannot commit changes to gate scripts (`cr-ok.sh`, `design-confirm.sh`, `lint.sh`, and five others) | `.husky/pre-commit` safety-file guard |
+| Agents cannot commit changes to `package.json` or `package-lock.json` | `.husky/pre-commit` safety-file guard |
+| Agents cannot add or modify `.env*` files (deletions are allowed) | `.husky/pre-commit` safety-file guard |
 
 These rules are guidance only — no hook can enforce them automatically:
 

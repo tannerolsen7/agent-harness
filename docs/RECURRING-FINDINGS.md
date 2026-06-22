@@ -271,6 +271,20 @@ file and you reset the loop's memory.
 **Locations:** docs/testing/claudemd-to-hooks.md (lines 198–201 — "human push from main worktree warns but does not block" with no matching code in .husky/pre-push)
 **Detail:** The worktree check lives entirely inside the non-interactive `else` branch. A human push via TTY does not trigger the worktree check at all — no warning fires. The confirmed behavior was written against an earlier design that was not implemented. Fix: update the spec entry to describe actual behavior. Pattern: testing shard entries must be cross-checked against the live code before merging — a confirmed behavior with no implementation and no test is a spec that can't fail.
 
+### hook-error-message-misleading-recovery
+**Signature:** A hook's error message gives a command to run that is blocked by the same hook, creating a recovery loop with no exit.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** .husky/pre-commit (settings.json guard — error message says "git add .claude/settings.json && git commit" but `git commit` goes through the same hook and is blocked by the same guard)
+**Detail:** The settings.json guard fires during `git commit` and tells the user "Apply the change directly: git add .claude/settings.json && git commit." Running that command will hit the same guard and fail again. The correct recovery instruction is `git commit --no-verify` since the hook itself is the barrier. Pattern: any error message in a guard hook must verify that the suggested recovery command does not itself pass through the same guard.
+
+### hook-guard-op-coverage-gap
+**Signature:** A hook guard that fires on multiple git operations (Add, Modify, Delete) has tests for only one operation type, leaving Modify and Delete regressions undetected.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** tests/safety-file-guard.test.sh (.claude/hooks/* guard — only Add tested; .husky/* guard correctly has all three)
+**Detail:** The `.husky/*` guard has three test cases (new, modify, delete), covering all arms of the ACMRDT filter. The `.claude/hooks/*` guard in the same file has only one test (new file). A regression that removes the Modify or Delete arm from the guard would go undetected. Pattern: for every category a hook protects, test each operation type (Add, Modify, Delete) that the diff-filter covers — not just Add.
+
 ---
 
 ## Promoted
