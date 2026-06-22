@@ -7,9 +7,38 @@ STAGED=$(git diff --cached --name-only --diff-filter=ACMRDT 2>/dev/null || true)
 
 # Agents must not commit changes to hook files — these scripts enforce the rules
 # that constrain what agents can do. An agent weakening them defeats the safety floor.
-if printf '%s\n' "$STAGED" | grep -qE '^\.husky/'; then
+if printf '%s\n' "$STAGED" | grep -qE '^(\.husky|\.claude/hooks)/'; then
   printf 'commit blocked: hook files are protected — they enforce the safety floor.\n' >&2
-  printf '  Changes to .husky/* require a direct human commit.\n' >&2
+  printf '  Changes to .husky/* and .claude/hooks/* require a direct human commit.\n' >&2
+  exit 1
+fi
+
+# .claude/settings*.json controls which tools agents can use. Only a human may change it.
+if printf '%s\n' "$STAGED" | grep -qE '^\.claude/settings(\.local)?\.json$'; then
+  printf 'commit blocked: .claude/settings.json controls agent permissions.\n' >&2
+  printf '  Apply the change directly: git add .claude/settings.json && git commit\n' >&2
+  exit 1
+fi
+
+# Gate scripts are called directly from hooks. Weakening them weakens the gate they enforce.
+_GATE_SCRIPTS='scripts/(cr-ok|design-confirm|commit-msg-lint|shell-portability-lint|lint|token-lint|comment-lint|data-state-lint)\.sh$'
+if printf '%s\n' "$STAGED" | grep -qE "$_GATE_SCRIPTS"; then
+  printf 'commit blocked: this script is called from a gate — only the operator can modify it.\n' >&2
+  exit 1
+fi
+
+# package.json and package-lock.json wire the husky prepare chain.
+# Removing or downgrading husky there disables all hooks.
+if printf '%s\n' "$STAGED" | grep -qE '^package(-lock)?\.json$'; then
+  printf 'commit blocked: package.json wires the husky hooks — only the operator can modify it.\n' >&2
+  exit 1
+fi
+
+# .env* files hold secrets. Block additions and modifications; allow deletions (removing a secret is safe).
+STAGED_ENV=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null || true)
+if printf '%s\n' "$STAGED_ENV" | grep -qE '(^|/)\.env($|\.)'; then
+  printf 'commit blocked: .env files must not be committed — they contain secrets.\n' >&2
+  printf '  Add all .env* files to .gitignore.\n' >&2
   exit 1
 fi
 
