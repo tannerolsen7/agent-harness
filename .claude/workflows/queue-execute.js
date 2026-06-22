@@ -172,6 +172,7 @@ function isAncestorViaGit(worktreePath, ref) {
   }
 }
 
+
 const TASK_RESULT_SCHEMA = {
   type: 'object',
   required: ['taskSlug', 'status', 'branch'],
