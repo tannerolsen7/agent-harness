@@ -107,6 +107,21 @@ else
     exit 1
   fi
 
+  # Agent worktree enforcement: feature branches must be pushed from a dedicated worktree.
+  # A dedicated worktree has .git as a FILE; the main worktree has .git as a DIRECTORY.
+  # Exempt: main, master, HEAD, and empty-string branches.
+  case "$BRANCH" in
+    main|master|HEAD|"") ;;
+    *)
+      if [ -d .git ]; then
+        _SLUG=$(printf '%s' "$BRANCH" | sed 's|.*/||')
+        printf "Push blocked: '%s' must be pushed from a dedicated worktree, not the main worktree.\n" "$BRANCH" >&2
+        printf "  Create one: bash scripts/worktree-add.sh .claude/worktrees/%s %s\n" "$_SLUG" "$BRANCH" >&2
+        exit 1
+      fi
+      ;;
+  esac
+
   SENTINEL_CR=".claude/.cr-ok"
   EXPECTED="${BRANCH}:${PUSH_SHA}"
 
