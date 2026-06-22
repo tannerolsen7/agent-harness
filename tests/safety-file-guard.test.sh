@@ -326,6 +326,20 @@ else
 fi
 rm -rf "$D"
 
+echo "── staging a .env.local file is blocked ──"
+D=$(mk)
+printf 'SECRET=abc\n' > "$D/.env.local"
+(cd "$D" && git add .env.local) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "secrets"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (.env.local): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
 echo "── staging .envrc is NOT blocked ──"
 D=$(mk)
 printf 'export FOO=bar\n' > "$D/.envrc"
