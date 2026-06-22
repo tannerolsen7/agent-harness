@@ -102,6 +102,7 @@ fi
 ```
 
 **Source:** `scripts/worktree-add.sh`; `docs/solutions/2026-06-17-worktree-git-file-detection.md`.
+**Regression gate:** `scripts/shell-portability-lint.sh` — flags `git worktree list --porcelain | grep` in any staged `.sh` file.
 
 ---
 
@@ -266,7 +267,7 @@ cd .claude/worktrees/<slug>
 **The fix:** Replace `mktemp -p "$DIR"` with `mktemp "$DIR/.file.XXXXXX"`.
 
 **Source:** PR #72 (feat/one-command-install), adversarial review pass finding [P10-assumption].
-**Regression gate:** Human review — run the script on macOS before merging any change to a `mktemp` call.
+**Regression gate:** `scripts/shell-portability-lint.sh` — runs on every staged `.sh` file via `.husky/pre-commit`.
 
 ---
 
@@ -300,7 +301,7 @@ cd .claude/worktrees/<slug>
 **The fix:** Change `printf '- [status] ...'` to `printf -- '- [status] ...'`. The `--` is harmless on all other shells and bash versions.
 
 **Source:** feat/gitattributes-merge-drivers — root cause of 2/18 tests failing; discovered by reading the subshell trace via `exec 2>/tmp/dbg-subshell.log` inside the test's `( ... )` block.
-**Regression gate:** `tests/gitattributes-merge-drivers.test.sh` — all 24 test fixtures use `printf --` for task-list items.
+**Regression gate:** `scripts/shell-portability-lint.sh` — runs on every staged `.sh` file via `.husky/pre-commit`.
 
 ---
 

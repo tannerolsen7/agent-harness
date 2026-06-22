@@ -17,6 +17,13 @@ if [ -n "$STAGED_SENTINELS" ]; then
   exit 1
 fi
 
+# Shell portability lint: check staged .sh files for patterns that break on BSD/macOS.
+STAGED_SHELL=$(git diff --cached --name-only --diff-filter=ACM | grep '\.sh$' || true)
+if [ -n "$STAGED_SHELL" ]; then
+  # shellcheck disable=SC2086
+  bash scripts/shell-portability-lint.sh $STAGED_SHELL
+fi
+
 bash scripts/lint.sh
 # Token lint: check only the files changed in this commit for hardcoded colors/spacing
 # and absolute design bans. Inert when docs/design/DESIGN.md does not exist yet.
