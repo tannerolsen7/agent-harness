@@ -30,10 +30,10 @@ staged. `docs/TESTING.md` is gitignored — it is local-only and never committed
   `feat/auth/login-v2` produces `auth-login-v2` and `fix/auth-bug` produces
   `fix-auth-bug`.
 
-- **Pre-commit hook regenerates assembled file when shards are staged:** Given one
+- **Pre-commit hook rebuilds assembled file when shards are staged:** Given one
   or more `docs/testing/*.md` files are staged for commit, when the pre-commit hook
-  runs, it executes `bash scripts/assemble-testing.sh` and stages `docs/TESTING.md`
-  automatically. The commit completes without any manual step from the developer.
+  runs, it executes `bash scripts/assemble-testing.sh` to rebuild `docs/TESTING.md`
+  locally for browsability. The file is gitignored and is not staged or committed.
 
 - **Bare `feat/` branch produces slug `unknown`:** Given a branch name of exactly
   `feat/` (no suffix), `scripts/derive-slug.sh` returns `unknown` rather than an
