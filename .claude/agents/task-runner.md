@@ -31,14 +31,15 @@ a PR while a BLOCKING entry for your task-slug is unanswered.
    task-slug from a prior interrupted run, surface it immediately
    and do not proceed until answered
 
-1.5. Design gate: read this task's TASKS.md entry. If it has `Size: LARGE`,
-   `Size: FEATURE`, `Type: LARGE`, or `Type: FEATURE` AND does NOT have a
-   `design:` line, stop immediately. Write to .claude/questions.md:
+1.5. Design gate: read this task's TASKS.md entry. If it has `Size: MEDIUM`,
+   `Size: LARGE`, `Size: FEATURE`, `Type: MEDIUM`, `Type: LARGE`, or
+   `Type: FEATURE` AND does NOT have a `design:` line, stop immediately.
+   Write to .claude/questions.md:
    ```
    ## [task-slug] — BLOCKING
    Type: BLOCKING
-   Question: LARGE task has no design reference. Run /design contract and add
-     a design: line to the TASKS.md entry before re-queuing.
+   Question: MEDIUM/LARGE/FEATURE task has no design reference. Run /design
+     contract and add a design: line to the TASKS.md entry before re-queuing.
    Context: @spec-writer cannot write a good spec without a human-validated design.
    Cannot proceed with: all steps — do not start.
    Can do while waiting: nothing

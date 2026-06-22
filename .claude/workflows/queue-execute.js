@@ -16,6 +16,8 @@ export const meta = {
 //   decisions   — resolved decisions relevant to this task (or "N/A")
 //   references  — CLAUDE.md / CONTEXT.md / AGENTS.md sections to read (or "N/A")
 //   tdd         — "TDD required" or "TDD N/A (no new behaviors)"
+//   size?       — "LARGE", "MEDIUM", "SMALL", "BUG", etc. (from TASKS.md Size: field)
+//   design?     — path to the design doc (from TASKS.md design: field); required for MEDIUM/LARGE/FEATURE
 const tasks = args
 
 // ── Slug validation ──────────────────────────────────────────────────────────
@@ -43,6 +45,53 @@ function validateSlugs(taskList) {
   }
 }
 validateSlugs(tasks)
+
+// ── Design gate ──────────────────────────────────────────────────────────────
+// MEDIUM, LARGE, and FEATURE tasks must have a design doc linked in TASKS.md.
+// This runs before any worktree is created so nothing is wasted on a bad batch.
+const GATED_SIZES = new Set(['LARGE', 'FEATURE', 'MEDIUM'])
+
+function validateDesignGate(taskList) {
+  const gated = taskList.filter(t => GATED_SIZES.has((t.size || '').trim().toUpperCase()))
+  const noDesign = gated.filter(t => !t.design || !t.design.trim())
+  if (noDesign.length > 0) {
+    throw new Error(
+      `Design gate: these tasks need a 'design:' line in TASKS.md before queuing:\n` +
+      noDesign.map(t => `  ${t.slug} (size: ${t.size || 'unset'})`).join('\n') +
+      `\n\nRun /design contract for each and add a 'design: <path>' line to TASKS.md.`
+    )
+  }
+  return gated
+}
+
+const gatedTasks = validateDesignGate(tasks)
+
+if (gatedTasks.length > 0) {
+  const cmds = gatedTasks
+    .map(t => {
+      const p = t.design.trim()
+      return `test -f "${p}" && echo "OK: ${t.slug}" || echo "MISSING: ${t.slug}: ${p}"`
+    })
+    .join('\n')
+  log(`design-gate: checking ${gatedTasks.length} design file(s)`)
+  const check = await agent(
+    `From the repo root, run each of these bash commands and report the exact output of every line:\n\`\`\`\n${cmds}\n\`\`\``,
+    { label: 'design-gate:files', phase: 'Setup' }
+  )
+  if (!check || !check.trim()) {
+    throw new Error(
+      'Design gate: file-existence check produced no output (agent returned null or empty). Aborting to avoid silently passing.'
+    )
+  }
+  const missing = check.split('\n').filter(l => l.trimStart().startsWith('MISSING:'))
+  if (missing.length > 0) {
+    throw new Error(
+      `Design gate: design doc file(s) not found:\n` +
+      missing.map(l => `  ${l.trim()}`).join('\n') +
+      `\n\nCreate the file(s) with /design contract before queuing.`
+    )
+  }
+}
 
 // ── Stacking helpers ─────────────────────────────────────────────────────────
 // Parse a filesAffected string into a Set of trimmed, non-empty paths.
