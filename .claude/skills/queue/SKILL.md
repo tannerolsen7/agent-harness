@@ -35,21 +35,25 @@ Wait for confirmation before proceeding.
 
 ## Step 2 — Preflight check
 
-### Design gate (LARGE / FEATURE tasks)
+### Design gate (MEDIUM / LARGE / FEATURE tasks)
 
 For each confirmed task, read its TASKS.md entry and check its size/type field:
 
-- **LARGE** or **FEATURE** tasks (entries with `Size: LARGE`, `Size: FEATURE`, `Type: LARGE`,
-  or `Type: FEATURE`) must have a `design:` reference in the entry. Example:
+- **MEDIUM**, **LARGE**, or **FEATURE** tasks (entries with `Size: MEDIUM`, `Size: LARGE`,
+  `Size: FEATURE`, `Type: MEDIUM`, `Type: LARGE`, or `Type: FEATURE`) must have a `design:`
+  reference in the entry. Example:
   ```
   - [ ] Redesign user dashboard
     Size: LARGE
     design: docs/design/dashboard.md
   ```
-  A LARGE task without a `design:` line is rejected — stop and tell the user to run
+  A MEDIUM or LARGE task without a `design:` line is rejected — stop and tell the user to run
   `/design contract` and add the `design:` reference before queuing it. Rationale: `@spec-writer`
   cannot write a good spec for a large task without a human-validated design; the run wastes
   overnight compute and blocks in the questions.md protocol.
+
+  The workflow enforces this gate automatically — it will throw before creating any worktrees
+  if a gated task is missing a `design:` field or if the file at that path does not exist.
 
 - **SMALL**, **BUG**, and **CHORE** tasks skip this check — their scope is narrow enough that
   `@spec-writer` can work from the task description alone.
@@ -87,7 +91,9 @@ results — no re-running from scratch.
   "filesAffected": "src/middleware/rate-limit.ts, src/routes/api.ts, tests/rate-limit.test.ts",
   "decisions": "N/A",
   "references": "AGENTS.md → Middleware layer; CLAUDE.md → API conventions",
-  "tdd": "TDD required"
+  "tdd": "TDD required",
+  "size": "SMALL",
+  "design": ""
 }
 ```
 
@@ -97,6 +103,8 @@ Field notes:
 - `description`: one sentence stating the done state — not "implement X" but "X is wired to Y, tests green."
 - `decisions`: resolved decisions from AGENTS.md → Resolved Decisions, or "N/A"
 - `tdd`: "TDD required" unless the task has no new behaviors ("TDD N/A (no new behaviors)")
+- `size`: copy the `Size:` value from the TASKS.md entry exactly (e.g. "LARGE", "MEDIUM", "SMALL"). Omit or set to `""` if the entry has no Size field.
+- `design`: copy the `design:` path from the TASKS.md entry (e.g. `"docs/features/my-task.md"`). Omit or set to `""` if the entry has no `design:` line. The workflow will reject MEDIUM/LARGE/FEATURE tasks where this field is missing or points to a file that doesn't exist.
 
 **Launch the Workflow** with the task array as `args`:
 
