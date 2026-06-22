@@ -151,12 +151,16 @@ function computeStacks(taskList) {
 // so it can check group membership without duplicating the union-find logic.
 // Collects all errors in one pass and throws once with the full list.
 function validateStacksOn(taskList, stacks, independent) {
-  const slugSet = new Set(taskList.map(t => t.slug))
-
-  // Map each slug to a group key so we can compare group membership.
+  // Build slugSet and groupOf in one pass over the already-computed groups.
+  // Each task in a serial group shares the same key (first task's slug).
+  // Each independent task uses its own slug as the key (guaranteed unique).
+  const slugSet = new Set()
   const groupOf = new Map()
-  stacks.forEach((group, gi) => group.forEach(t => groupOf.set(t.slug, `s${gi}`)))
-  independent.forEach((t, ii) => groupOf.set(t.slug, `i${ii}`))
+  stacks.forEach(group => {
+    const key = group[0].slug
+    group.forEach(t => { slugSet.add(t.slug); groupOf.set(t.slug, key) })
+  })
+  independent.forEach(t => { slugSet.add(t.slug); groupOf.set(t.slug, t.slug) })
 
   const errors = []
   const stacksOnMap = new Map() // slug → stacksOn target, for cycle detection
@@ -202,7 +206,7 @@ function validateStacksOn(taskList, stacks, independent) {
       path.push(cur)
       cur = stacksOnMap.get(cur)
     }
-    path.forEach(slug => visited.add(slug))
+    visited.add(start)
   }
 
   if (errors.length > 0) {
@@ -374,7 +378,7 @@ const allResults = await parallel(
       // the specified branch before we let an implementer build on it. The agent's
       // report is not trusted — we run the git check ourselves. A broken base
       // here would silently produce wrong diffs, so we abort the group.
-      if (task.stacksOn) {
+      if (baseRef !== null) {
         const worktreePath = `${REPO_ROOT}/.claude/worktrees/${task.slug}`
         const check = verifyAncestry(worktreePath, baseRef, isAncestorViaGit)
         if (!check.ok) {
