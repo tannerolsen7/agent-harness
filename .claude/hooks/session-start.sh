@@ -25,6 +25,9 @@ HASH=$(echo "${CLAUDE_PROJECT_DIR:-/}" | md5 | cut -c1-8)
 _GC_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 if [ -f "$_GC_DIR/.claude/.gc-enabled" ]; then
   ( cd "$_GC_DIR" && bash scripts/prune-branches.sh ) || true
+  # Rebase conflicting open PRs. Gated here so only repos that opted into
+  # automated maintenance (by creating .gc-enabled) trigger the sync.
+  ( cd "$_GC_DIR" && bash scripts/sync-open-prs.sh ) || true
 fi
 unset _GC_DIR
 

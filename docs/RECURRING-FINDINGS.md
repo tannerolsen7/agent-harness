@@ -244,6 +244,13 @@ file and you reset the loop's memory.
 **Last seen:** 2026-06-22
 **Locations:** `.claude/workflows/queue-execute.js` — ancestry check failure branch initially used `group.slice(i)` for the downstream list.
 **Detail:** When the ancestry check fails for task `i`, the log should list which *downstream* tasks are being cancelled. Using `slice(i)` includes the failing task itself, which confuses a reader: the task appears in the "Skipping" list even though it never got to run a task-runner. The correct pattern (used in the analogous task-runner failure branch in the same loop) is `slice(i + 1)` for downstream tasks, with the failing task named separately in the primary error message.
+### platform-field-name-mismatch
+**Signature:** A script written for one forge platform (GitHub/GitLab) uses the other platform's API field names, so every record silently passes the filter and no action is taken.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** scripts/sync-open-prs.sh (glab path read `.number`, `.headRefName`, `.isDraft`, `.mergeable` — GitHub field names; glab returns `iid`, `source_branch`, `draft`, `merge_status`)
+**Detail:** `glab mr list --output json` returns different keys than GitHub's `gh pr list --json`. Every jq read returned `null`; the CONFLICTING filter always skipped MRs. Feature ran to completion with exit 0 and no output, appearing to work while never rebasing anything. Fixed by adding an explicit "not yet supported" early-exit for the glab path. Pattern: any script that dispatches on forge type must verify the JSON field names match the actual CLI output for *each* forge — they differ significantly between `gh` and `glab`.
+
 ### file-path-guard-missing-type-check
 **Signature:** A script checks `[ -f "$PATH" ] || exit 0` for an optional config file. When the path is set to a directory, `-f` returns false and the script silently passes — treating a misconfigured path as "not present."
 **Occurrences:** 1

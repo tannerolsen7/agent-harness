@@ -1,0 +1,24 @@
+# Rebase open PRs that conflict with main whenever a PR merges.
+# Runs scripts/sync-open-prs.sh, which always exits 0 — merge events are never blocked.
+#
+# Permissions: contents: write lets gh pr update-branch push the rebased commits.
+#              pull-requests: write lets gh pr update-branch update the PR's head ref.
+# Auth: GITHUB_TOKEN is sufficient — no extra secret needed.
+# Note: gh and jq are pre-installed on ubuntu-latest — no npm ci needed.
+name: sync-prs-on-merge
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  sync:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/sync-open-prs.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

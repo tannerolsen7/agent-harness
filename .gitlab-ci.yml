@@ -4,7 +4,7 @@
 #
 # To make this BLOCK the merge button (the actual gate): Settings → Merge requests →
 # "Pipelines must succeed". One-time human step (a human owns the merge boundary).
-stages: [verify]
+stages: [verify, sync]
 
 variables:
   GIT_DEPTH: "0"   # full history so the routing-assertion can diff against the base
@@ -18,3 +18,16 @@ verify:
   script:
     - npm ci
     - bash scripts/ci-verify.sh
+
+# Rebase open MRs that conflict with main after a merge lands on main.
+# Gated on $GITLAB_TOKEN — a missing variable skips this job instead of breaking the pipeline.
+# Set GITLAB_TOKEN in project CI variables with MR-write permissions to enable syncing.
+sync-prs:
+  stage: sync
+  image: alpine/git
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
+  before_script:
+    - apk add --no-cache bash jq
+  script:
+    - bash scripts/sync-open-prs.sh
