@@ -52,12 +52,14 @@ if [ -d "$WT_BASE" ]; then
   done
 fi
 
-# Collect active worktree branches once — reused by both Pass B and the NO_UPSTREAM exclusion.
+# Collect active worktree branches once — reused by Pass B and the NO_UPSTREAM exclusion.
+# Also capture the full porcelain output for the worktree-path lookup inside the merge loop,
+# so the command runs once here instead of once per candidate branch.
 # A freshly-created worktree branch (no commits yet) has its tip at the branch point, which
 # makes `git merge-base --is-ancestor` return true — it looks "merged" but is live work.
-# Excluding active worktree branches prevents both false-positive deletions in Pass B and
-# in Pass 2's ancestor check below.
-ACTIVE_WT_BRANCHES=$(git worktree list --porcelain | awk '/^branch /{sub(/^branch refs\/heads\//, ""); print}' || true)
+# Excluding active worktree branches prevents false-positive deletions in both Pass B and Pass 2.
+WT_PORCELAIN=$(git worktree list --porcelain 2>/dev/null || true)
+ACTIVE_WT_BRANCHES=$(printf '%s\n' "$WT_PORCELAIN" | awk '/^branch /{sub(/^branch refs\/heads\//, ""); print}' || true)
 
 # Pass B: remote agent/workflow branches. The workflow system pushes under agent/* and
 # claude/* prefixes. Once the local branch and worktree are gone (cleaned by Passes 1/2),
@@ -70,8 +72,7 @@ for _ref in $(git for-each-ref --format='%(refname:short)' \
   _short="${_ref#origin/}"
   git rev-parse --verify "refs/heads/$_short" >/dev/null 2>&1 && continue
   printf '%s\n' "$ACTIVE_WT_BRANCHES" | grep -qxF "$_short" && continue
-  _tip=$(git rev-parse "$_ref" 2>/dev/null) || continue
-  if git merge-base --is-ancestor "$_tip" origin/main 2>/dev/null; then
+  if git merge-base --is-ancestor "$_ref" origin/main 2>/dev/null; then
     if git push origin --delete "$_short" >/dev/null 2>&1; then
       echo "  deleted remote: $_short (merged into origin/main)"
     else
@@ -112,6 +113,10 @@ fi
 # deleted if it is a confirmed merge (ancestor check or gh-confirmed merged PR).
 CANDIDATES=$(printf '%s\n%s\n' "$GONE" "$NO_UPSTREAM" | sort -u | grep -v '^$' || true)
 
+# Check gh availability once — used in the merge-verify and Pass C blocks inside the loop.
+GH_AVAILABLE=false
+command -v gh >/dev/null 2>&1 && GH_AVAILABLE=true
+
 if [ -n "$CANDIDATES" ]; then
   echo "Cleaning up stale merged branches:"
   while IFS= read -r b; do
@@ -122,7 +127,7 @@ if [ -n "$CANDIDATES" ]; then
     MERGED=false
     if git merge-base --is-ancestor "$b" HEAD 2>/dev/null; then
       MERGED=true
-    elif command -v gh >/dev/null 2>&1; then
+    elif [ "$GH_AVAILABLE" = true ]; then
       PR=$(gh pr list --head "$b" --state merged --json number -q '.[0].number' 2>/dev/null || true)
       [ -n "$PR" ] && MERGED=true
     fi
@@ -133,7 +138,7 @@ if [ -n "$CANDIDATES" ]; then
     # skip message so the human knows the branch was deliberately closed, not just stale.
     if [ "$MERGED" != true ]; then
       CLOSED_PR=""
-      if command -v gh >/dev/null 2>&1; then
+      if [ "$GH_AVAILABLE" = true ]; then
         CLOSED_PR=$(gh pr list --head "$b" --state closed --json number,title \
           -q '.[0] | "#\(.number) \(.title)"' 2>/dev/null || true)
       fi
@@ -146,9 +151,9 @@ if [ -n "$CANDIDATES" ]; then
     fi
 
     # Merged → safe to clean. If it's checked out in one of our worktrees, remove that first
-    # (git refuses to delete a checked-out branch). The awk reads the full path after "worktree "
-    # so paths with spaces aren't truncated.
-    WT=$(git worktree list --porcelain | awk -v br="refs/heads/$b" \
+    # (git refuses to delete a checked-out branch). Parse the cached porcelain output so we
+    # don't re-invoke git worktree list once per branch.
+    WT=$(printf '%s\n' "$WT_PORCELAIN" | awk -v br="refs/heads/$b" \
       '/^worktree /{ p=$0; sub(/^worktree /,"",p) } $0=="branch "br { print p }')
     if [ -n "$WT" ]; then
       case "$WT" in

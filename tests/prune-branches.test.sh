@@ -95,15 +95,14 @@ TMP=$(mktemp -d)
   git branch -D agent/unmerged-task >/dev/null 2>&1   # local gone but NOT merged
 ) >/dev/null 2>&1
 
-# Run prune-branches.sh in the temp repo.
-SCRIPT_OUT=$( cd "$TMP" && bash "$SCRIPT" 2>/dev/null )
-SCRIPT_ERR=$( cd "$TMP" && bash "$SCRIPT" 2>&1 >/dev/null ) 2>/dev/null || true
+# Run prune-branches.sh in the temp repo (single run; captures all side effects).
+( cd "$TMP" && bash "$SCRIPT" ) >/dev/null 2>&1
 
 # -- Existing behaviors (regression guard) --
 
 # Merged branch's worktree + branch are gone.
-[ -d "$TMP/.claude/worktrees/done" ]; chk "$([ $? -ne 0 ] && echo 0 || echo 1)" "merged worktree .claude/worktrees/done should be removed"
-( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/done >/dev/null 2>&1 ); chk "$([ $? -ne 0 ] && echo 0 || echo 1)" "merged branch feat/done should be deleted"
+! [ -d "$TMP/.claude/worktrees/done" ]; chk "$?" "merged worktree .claude/worktrees/done should be removed"
+! ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/done >/dev/null 2>&1 ); chk "$?" "merged branch feat/done should be deleted"
 
 # Active branch's worktree + branch survive (live remote → never touched).
 [ -d "$TMP/.claude/worktrees/wip" ]; chk "$?" "active worktree .claude/worktrees/wip must survive"
@@ -115,7 +114,7 @@ SCRIPT_ERR=$( cd "$TMP" && bash "$SCRIPT" 2>&1 >/dev/null ) 2>/dev/null || true
 [ -f "$TMP/.claude/worktrees/orphan/WIP.txt" ]; chk "$?" "untracked WIP in the unmerged worktree must survive"
 
 # No-upstream merged branch is deleted (Pass 2 blind-spot coverage).
-( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/local >/dev/null 2>&1 ); chk "$([ $? -ne 0 ] && echo 0 || echo 1)" "merged no-upstream branch feat/local should be deleted"
+! ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/local >/dev/null 2>&1 ); chk "$?" "merged no-upstream branch feat/local should be deleted"
 
 # Protected-name branch must survive even with no upstream and an ancestor position.
 ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/develop >/dev/null 2>&1 ); chk "$?" "develop (no upstream, merged) must survive — protected name exclusion"
@@ -127,7 +126,7 @@ SCRIPT_ERR=$( cd "$TMP" && bash "$SCRIPT" 2>&1 >/dev/null ) 2>/dev/null || true
 # -- Pass A: orphaned worktree directory behaviors --
 
 # Orphaned directory (no .git file) is removed.
-[ -d "$TMP/.claude/worktrees/orphaned-dir" ]; chk "$([ $? -ne 0 ] && echo 0 || echo 1)" "Pass A: orphaned directory (no .git file) should be removed"
+! [ -d "$TMP/.claude/worktrees/orphaned-dir" ]; chk "$?" "Pass A: orphaned directory (no .git file) should be removed"
 
 # Live worktree directory (has .git file) survives.
 [ -d "$TMP/.claude/worktrees/wip" ]; chk "$?" "Pass A: live worktree directory (.git file present) must survive"
@@ -135,7 +134,7 @@ SCRIPT_ERR=$( cd "$TMP" && bash "$SCRIPT" 2>&1 >/dev/null ) 2>/dev/null || true
 # -- Pass B: remote agent/workflow branch behaviors --
 
 # Merged agent branch (local gone, tip in main) is deleted from remote.
-( cd "$TMP" && git ls-remote --heads origin 'refs/heads/agent/done-task' | grep -q 'agent/done-task' ); chk "$([ $? -ne 0 ] && echo 0 || echo 1)" "Pass B: merged remote agent branch should be deleted from origin"
+! ( cd "$TMP" && git ls-remote --heads origin 'refs/heads/agent/done-task' | grep -q 'agent/done-task' ); chk "$?" "Pass B: merged remote agent branch should be deleted from origin"
 
 # Active local agent branch is NOT deleted from remote.
 ( cd "$TMP" && git ls-remote --heads origin 'refs/heads/agent/live-task' | grep -q 'agent/live-task' ); chk "$?" "Pass B: agent branch with live local branch must survive on remote"
