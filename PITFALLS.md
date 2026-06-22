@@ -375,3 +375,26 @@ cd .claude/worktrees/<slug>
 
 **Source:** Distribution model spike (2026-06-22) — `deploy-targets.yml` was the gap.
 **Regression gate:** `tests/install.test.sh` — "sync: re-creates a deleted create-once deploy-targets.yml" covers this file. Add a parallel case for any new create-once file added to the list.
+
+---
+
+## install.sh — non-git source dir records `"sha": "local"`, losing the pinned version
+
+**Area:** `scripts/install.sh` manifest writing (lines 121–126); any archive-based install path
+
+**Rule:** When `HARNESS_SRC` points at an unpacked tarball instead of a git checkout, pass the pinned commit SHA explicitly as `HARNESS_SHA=<sha>`. Never rely on `git -C "$HARNESS_SRC" rev-parse` to capture the version — it fails silently when the source has no `.git`.
+
+**Why:** `install.sh` computes the manifest `sha` only inside an `if git -C "$HARNESS_SRC" rev-parse --is-inside-work-tree` block. An unpacked tarball has no `.git`, so the check fails, `src_sha` stays `"local"`, and the manifest records `"sha": "local"`. The pinned commit SHA — the whole point of a reproducible, per-version upstream — is never saved. A TDD slice confirmed this on 2026-06-22.
+
+A separate but related gap: `sync-harness.sh` needs `HARNESS_SRC` at sync time, but the install-time temp dir is already deleted by then. Sync must re-fetch and unpack the pinned archive itself — it cannot rely on the temp dir being present.
+
+**Symptoms:** After a tarball-based install, the manifest contains `"sha": "local"`. Sync has no version anchor to compare against and cannot fetch upstream files.
+
+**The fix:**
+- In `install.sh`, add a fallback: use `HARNESS_SHA` env var when `git rev-parse` returns nothing.
+- In `sync-harness.sh`, re-fetch and unpack the pinned archive at sync time rather than reading from `HARNESS_SRC`.
+- When building the fetch command, always use `curl -L` — the GitHub archive URL 302-redirects to `codeload.github.com`, and without `-L` you get a silent empty extract.
+- The unpacked directory name uses the abbreviated 7-char SHA (`OWNER-REPO-abc1234/`), not the full 40-char SHA from the URL. Build the path accordingly.
+
+**Source:** Distribution model spike (2026-06-22); TDD slice `tests/install-delivery-model.test.sh`.
+**Regression gate:** `tests/install-delivery-model.test.sh` — asserts `.sha != "local"` after a non-git source install. Failing test handed to `/feature` for the simple-install implementation.
