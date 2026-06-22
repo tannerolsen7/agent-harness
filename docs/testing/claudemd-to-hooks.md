@@ -195,10 +195,10 @@ naming check.
   push is non-interactive, the branch is a feature branch, and `.git` is a
   file (dedicated worktree), the check exits 0 and the push continues.
 
-- **Human push from main worktree on feature branch warns but does not block:**
-  Given the push is interactive (TTY present), the branch is a feature branch,
-  and `.git` is a directory, the hook prints a warning to stderr but exits 0
-  and allows the push to proceed.
+- **Human push from main worktree is not checked:** The worktree check runs
+  only on the non-interactive (agent) path. A human push (TTY present) does not
+  trigger the worktree check — only the /cr prompt fires. Humans are expected to
+  use dedicated worktrees by convention, but are not hard-blocked.
 
 - **Exempt branches skip the check:** Given the branch is main, master, HEAD,
   or empty-string, the worktree check is skipped entirely regardless of whether

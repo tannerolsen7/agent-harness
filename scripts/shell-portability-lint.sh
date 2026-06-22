@@ -26,7 +26,8 @@ for f in "$@"; do
       continue
     fi
     # mktemp -p is not supported on BSD/macOS.
-    if printf '%s' "$line" | grep -qE '\bmktemp\b[[:space:]].*-p\b'; then
+    # [^;|&]* stops at command separators so mktemp -d; mkdir -p is not flagged.
+    if printf '%s' "$line" | grep -qE '\bmktemp\b[^;|&]*-p\b'; then
       printf "%s:%d: mktemp -p is not supported on BSD/macOS.\n" "$f" "$lineno" >&2
       printf "  Use: mktemp \"DIR/file.XXXXXX\" instead of mktemp -p DIR\n" >&2
       found=1
