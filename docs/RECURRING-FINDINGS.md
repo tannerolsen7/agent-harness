@@ -202,6 +202,27 @@ file and you reset the loop's memory.
 **Locations:** tests/pr-host-agnostic.test.sh (conflict test added without a clean-branch test for the same guard)
 **Detail:** The conflict-detection test verified that a conflicting branch is rejected. No test verified that a clean branch passes. A bug making `grep -c` always return non-zero would block every PR, but all tests would still pass. Fixed by adding a separate test for the clean-branch path.
 
+### null-guard-misses-empty-string
+**Signature:** A null guard (`!value`) accepts an empty string as truthy, letting a no-output agent response pass a gate that should reject it.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** `.claude/workflows/queue-execute.js` (design-gate file-existence check — `if (!check)` allowed `check = ""` to proceed, silently passing all MISSING tests when the agent produced no output)
+**Detail:** `!check` is false when `check` is `""`, so the guard only catches `null`/`undefined`. A model that runs the commands but produces no output would pass the check and find zero MISSING lines, falsely confirming all files exist. Fix: `!check || !check.trim()`. Pattern: wherever an agent's text output gates a decision, guard against both null and the empty-string case — they are equally invalid responses.
+
+### gate-size-not-mirrored-across-companion-docs
+**Signature:** When a gate's size list grows (e.g. adding MEDIUM alongside LARGE), not all companion docs that name the sizes are updated — leaving inconsistent behavior descriptions across files.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** `.claude/agents/task-runner.md` step 1.5 (still said "Size: LARGE / FEATURE" after MEDIUM was added to the workflow gate and SKILL.md Step 2); `.claude/skills/queue/SKILL.md` Step 2 prose (said "A MEDIUM or LARGE task" while omitting FEATURE that appears in the same section's heading)
+**Detail:** Three places all documented the gate's size list. When the list changed, one (SKILL.md heading and workflow code) was updated correctly but two others drifted. Pattern: before merging a gate-size change, grep all .md files under .claude/ for the previous size list and update every occurrence.
+
+### test-inline-copy-undocumented-drift-risk
+**Signature:** A test file contains an inline copy of a function from a source file that cannot be required, but the comment claims static analysis catches drift — when the static checks only verify substring presence, not logic parity.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** `tests/queue-design-gate.test.sh` (lines 14-26 — inline copy of `validateDesignGate`; comment said "static analysis catches it" but greps only checked that `GATED_SIZES` and `!check` strings appear somewhere in the source)
+**Detail:** An inline copy produces behavior tests that are totally disconnected from the actual implementation. Divergence is undetectable if the static grep only checks for substring presence. The correct comment is: "these behavioral tests exercise this copy, not the live function — any change to the function in the source must be manually mirrored here." Requires human discipline to maintain, not automation.
+
 ---
 
 ## Promoted
