@@ -155,11 +155,11 @@ Check whether the flagged link is inside backticks or a fenced block in the sour
 
 ## `git merge-base --is-ancestor` cannot tell a fresh branch from a merged one
 
-**Area:** Shell scripts that use ancestor checks to decide whether a branch is safe to delete (`scripts/gc.sh`)
+**Area:** Shell scripts that use ancestor checks to decide whether a branch is safe to delete (`scripts/prune-branches.sh`)
 
 **Rule:** Never use `git merge-base --is-ancestor "$branch" HEAD` alone as proof that a branch was merged. A freshly-created branch with zero commits has its tip at the branch point — that commit IS reachable from HEAD, so the check returns true. Guard with an explicit exclusion for branches that are actively checked out in a worktree before running the deletion loop.
 
-**Why:** "Reachable" and "was merged" are not the same thing. A branch with zero unique commits is always an ancestor of anything descended from its branch point. When `/queue` provisions a worktree but the task runner hasn't committed yet, the branch looks merged — and a gc.sh pass that runs concurrently (e.g. from a session-start hook in a parallel subagent) deletes it.
+**Why:** "Reachable" and "was merged" are not the same thing. A branch with zero unique commits is always an ancestor of anything descended from its branch point. When `/queue` provisions a worktree but the task runner hasn't committed yet, the branch looks merged — and a prune-branches.sh pass that runs concurrently (e.g. from a session-start hook in a parallel subagent) deletes it.
 
 **Symptoms:** Four parallel `/queue` worktrees are destroyed mid-run; task agents report "worktree was deleted by an external process"; `git worktree list` shows the branches are gone before any work was committed.
 
@@ -175,7 +175,7 @@ fi
 Use `-Fx` (fixed-string, full-line) — branch names with dots or brackets in them are misread as regex patterns without it.
 
 **Source:** PR #50; `docs/solutions/2026-06-17-merge-base-cannot-detect-empty-branch.md`
-**Regression gate:** `tests/gc.test.sh` case "fresh branch feat/queue-task must survive (no commits, active worktree)"
+**Regression gate:** `tests/prune-branches.test.sh` case "fresh branch feat/queue-task must survive (no commits, active worktree)"
 
 ---
 

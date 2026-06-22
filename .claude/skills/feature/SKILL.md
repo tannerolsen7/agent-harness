@@ -299,7 +299,7 @@ Needs human: <list or "None">
 ## Worktree cleanup (after merge)
 
 If this feature ran in a dedicated worktree (`.claude/worktrees/<slug>`), leave it in place while the
-PR is open — review fixes may need it. After the PR **merges**, `scripts/gc.sh` removes the worktree
+PR is open — review fixes may need it. After the PR **merges**, `scripts/prune-branches.sh` removes the worktree
 and deletes the branch (it removes the worktree before the branch, since git won't delete a branch
-that is still checked out). Run `gc.sh` after merging, or rely on the session-start hook
+that is still checked out). Run `prune-branches.sh` after merging, or rely on the session-start hook
 (`.claude/hooks/session-start.sh`), which runs it each session. Never remove the worktree before the PR merges.

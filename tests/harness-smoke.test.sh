@@ -3,6 +3,7 @@
 # in a fresh worktree or after an accidental deletion — the gates are the safety net,
 # so their absence must not be silent.
 set -euo pipefail
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 cd "$ROOT"
 
@@ -15,7 +16,7 @@ for h in block-dangerous-bash block-credential-read block-egress block-dangerous
 done
 
 # Executable scripts.
-for s in worktree-add assert-husky-shim pr cr-ok design-confirm detect-forge check-routing check-integrity gc test-local lint run-tests ci-verify install-locks mutation-test update-progress activity-report; do
+for s in worktree-add assert-husky-shim pr cr-ok design-confirm detect-forge check-routing check-integrity prune-branches test-local lint run-tests ci-verify install-locks mutation-test update-progress activity-report; do
   [ -x "scripts/$s.sh" ] || note "scripts/$s.sh (executable)"
 done
 

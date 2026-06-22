@@ -21,7 +21,7 @@ script runs, decides each new branch is "merged," and deletes all four — mid-r
 any work was committed to them.
 
 This is what happened in agent-harness when `/queue` provisioned four task worktrees and
-`gc.sh`'s NO_UPSTREAM pass ran at session start and wiped them.
+`prune-branches.sh`'s NO_UPSTREAM pass ran at session start and wiped them.
 
 ## Root cause
 
@@ -79,16 +79,16 @@ misread as regex patterns.
 
 ## Why only the NO_UPSTREAM pass needs this
 
-The `gc.sh` GONE pass (branches whose remote tracking ref was deleted by GitHub after merge)
+The `prune-branches.sh` GONE pass (branches whose remote tracking ref was deleted by GitHub after merge)
 does not need this exclusion. GitHub deletes the remote ref only when a PR is merged. A
 freshly-created branch with no commits and no PR cannot have a deleted remote ref — it can't
 appear in the GONE candidate list at all. The empty-branch problem is specific to logic that
 uses local-only signals (no-upstream status, ancestor checks) without a GitHub merge event
 as a prerequisite gate.
 
-## The three-exclusion checklist for gc.sh passes
+## The three-exclusion checklist for prune-branches.sh passes
 
-Every candidate-collection pass in `scripts/gc.sh` must apply all three exclusions before
+Every candidate-collection pass in `scripts/prune-branches.sh` must apply all three exclusions before
 the deletion loop:
 
 | Exclusion | Pattern |
@@ -105,22 +105,22 @@ later and got the first two but not the third. A new pass added in the future st
 
 If your deletion logic contains `git merge-base --is-ancestor "$branch" HEAD`, add one of:
 
-1. **Worktree check** (gc.sh pattern above) — if the branch might be checked out in a
+1. **Worktree check** (prune-branches.sh pattern above) — if the branch might be checked out in a
    worktree.
 2. **Commit-count check** — verify the branch has at least one commit beyond its merge-base
    with main before treating it as merged: `[ "$(git rev-list --count main.."$branch")" -gt 0 ]`.
 3. **Remote-event gate** — require a GitHub merge event (branch deleted on remote) before
    acting. A branch that GitHub never deleted was never merged through a PR.
 
-Option 1 is the right choice for `gc.sh` because the worktree list is always available and
+Option 1 is the right choice for `prune-branches.sh` because the worktree list is always available and
 is the exact thing you want to protect. Option 2 is the fallback for scripts that operate
 outside the worktree context. Option 3 is what the GONE pass already uses.
 
 ## Where this applies in the codebase
 
-- `scripts/gc.sh` lines 44–62 — the NO_UPSTREAM pass collects `ACTIVE_WT_BRANCHES` and
+- `scripts/prune-branches.sh` lines 44–62 — the NO_UPSTREAM pass collects `ACTIVE_WT_BRANCHES` and
   applies all three exclusions before the deletion loop.
-- `tests/gc.test.sh` — the regression test that provisions a zero-commit worktree branch
+- `tests/prune-branches.test.sh` — the regression test that provisions a zero-commit worktree branch
   and confirms gc does not delete it.
 
 ## Related

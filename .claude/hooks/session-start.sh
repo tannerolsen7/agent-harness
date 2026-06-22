@@ -24,7 +24,7 @@ HASH=$(echo "${CLAUDE_PROJECT_DIR:-/}" | md5 | cut -c1-8)
 # (install.sh does not copy it). A team can create it themselves to enable cleanup.
 _GC_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 if [ -f "$_GC_DIR/.claude/.gc-enabled" ]; then
-  ( cd "$_GC_DIR" && bash scripts/gc.sh ) || true
+  ( cd "$_GC_DIR" && bash scripts/prune-branches.sh ) || true
 fi
 unset _GC_DIR
 

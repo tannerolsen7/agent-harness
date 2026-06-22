@@ -39,7 +39,7 @@
       "Bash(gh run *)",
       "Bash(scripts/pr.sh*)",
       "Bash(scripts/worktree-add.sh*)",
-      "Bash(scripts/gc.sh*)",
+      "Bash(scripts/prune-branches.sh*)",
       "Bash(bash scripts/*.sh*)",
       "Bash(ln -sf*)",
       "Bash(chmod *)",
