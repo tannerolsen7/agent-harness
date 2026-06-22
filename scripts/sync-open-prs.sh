@@ -21,8 +21,15 @@ case "$FORGE" in
     ;;
 esac
 
+# Second check: forge is known but the CLI isn't installed (e.g. forge=github, gh missing).
 if ! command -v "$CLI" >/dev/null 2>&1; then
   echo "forge CLI unavailable — skipping PR sync"
+  exit 0
+fi
+
+# GitLab MR field names differ from GitHub's — the JSON mapping is not yet implemented.
+if [ "$CLI" = glab ]; then
+  echo "GitLab PR sync not yet supported — skipping"
   exit 0
 fi
 
@@ -30,12 +37,7 @@ fi
 DEFAULT_BRANCH=$(git -C "$ROOT" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||') || true
 [ -z "${DEFAULT_BRANCH:-}" ] && DEFAULT_BRANCH=main
 
-# Fetch open PRs as JSON.
-if [ "$CLI" = gh ]; then
-  PRS=$(gh pr list --json number,headRefName,baseRefName,mergeable,isDraft 2>/dev/null || echo "[]")
-else
-  PRS=$(glab mr list --output json 2>/dev/null || echo "[]")
-fi
+PRS=$(gh pr list --json number,headRefName,baseRefName,mergeable,isDraft 2>/dev/null || echo "[]")
 
 COUNT=$(printf '%s' "$PRS" | jq 'length' 2>/dev/null || echo 0)
 if [ "$COUNT" -eq 0 ]; then
@@ -53,24 +55,16 @@ while IFS= read -r pr; do
   head=$(printf '%s' "$pr" | jq -r '.headRefName')
   base=$(printf '%s' "$pr" | jq -r '.baseRefName')
   mergeable=$(printf '%s' "$pr" | jq -r '.mergeable')
-  isDraft=$(printf '%s' "$pr" | jq -r '.isDraft')
+  is_draft=$(printf '%s' "$pr" | jq -r '.isDraft')
 
-  [ "$isDraft" = "true" ] && continue
+  [ "$is_draft" = "true" ] && continue
   [ "$base" != "$DEFAULT_BRANCH" ] && continue
   [ "$mergeable" != "CONFLICTING" ] && continue
 
-  if [ "$CLI" = gh ]; then
-    if gh pr update-branch --rebase "$number" >/dev/null 2>&1; then
-      echo "updated #${number} (${head})"
-    else
-      echo "failed #${number} (${head}) — rebase manually"
-    fi
+  if gh pr update-branch --rebase "$number" >/dev/null 2>&1; then
+    echo "updated #${number} (${head})"
   else
-    if glab mr rebase "$number" >/dev/null 2>&1; then
-      echo "updated #${number} (${head})"
-    else
-      echo "failed #${number} (${head}) — rebase manually"
-    fi
+    echo "failed #${number} (${head}) — rebase manually"
   fi
 done < "$TMP"
 

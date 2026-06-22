@@ -38,10 +38,11 @@ Script reads from `gh pr list --json number,headRefName,baseRefName,mergeable,is
 ]
 ```
 
-Script output: exit code 0 always + one printed line per PR:
+Script output: exit code 0 always. One printed line per PR that was attempted:
 - `updated #102 (feat/deploy-drift-impl)` — rebase succeeded
-- `failed #102 (genuine conflict — rebase manually: cd .claude/worktrees/deploy-drift-impl && git rebase origin/main)` — rebase failed
-- `skipped #102 (already up to date)` — no rebase needed
+- `failed #102 (feat/deploy-drift-impl) — rebase manually` — rebase failed; human action needed
+
+PRs that are skipped (draft, non-default base, or non-CONFLICTING) produce no output line.
 
 ## Edge Cases
 

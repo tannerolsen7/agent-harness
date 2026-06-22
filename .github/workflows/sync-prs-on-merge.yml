@@ -4,6 +4,7 @@
 # Permissions: contents: write lets gh pr update-branch push the rebased commits.
 #              pull-requests: write lets gh pr update-branch update the PR's head ref.
 # Auth: GITHUB_TOKEN is sufficient — no extra secret needed.
+# Note: gh and jq are pre-installed on ubuntu-latest — no npm ci needed.
 name: sync-prs-on-merge
 on:
   pull_request:
@@ -18,12 +19,6 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm ci
       - run: bash scripts/sync-open-prs.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
