@@ -21,7 +21,7 @@ if printf '%s\n' "$STAGED" | grep -qE '^\.claude/settings(\.local)?\.json$'; the
 fi
 
 # Gate scripts are called directly from hooks. Weakening them weakens the gate they enforce.
-_GATE_SCRIPTS='scripts/(cr-ok|design-confirm|commit-msg-lint|shell-portability-lint|lint|token-lint|comment-lint|data-state-lint)\.sh$'
+_GATE_SCRIPTS='scripts/(cr-ok|design-confirm|commit-msg-lint|shell-portability-lint|lint|token-lint|comment-lint|data-state-lint|circular-imports)\.sh$'
 if printf '%s\n' "$STAGED" | grep -qE "$_GATE_SCRIPTS"; then
   printf 'commit blocked: this script is called from a gate — only the operator can modify it.\n' >&2
   exit 1
