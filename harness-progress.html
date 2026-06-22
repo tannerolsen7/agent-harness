@@ -164,7 +164,7 @@
       <h1>Agent Harness V2 — Standup</h1>
       <div class="subtitle">Building a standalone, project-agnostic AI engineering harness</div>
     </div>
-    <div class="date">June 18, 2026</div>
+    <div class="date">June 20, 2026</div>
   </div>
 
   <!-- Progress banner -->
@@ -173,7 +173,7 @@
     <div class="progress-track"><div class="progress-fill" style="width:69%"></div></div>
     <div class="progress-note">Step 0 + Phases 0&ndash;3 done &middot; Phase 4 in progress</div>
   </div>
-  <div class="auto-update-status">Last auto-updated: June 18, 2026 at 6:55 AM · 53 PRs (no change)</div>
+  <div class="auto-update-status">Last auto-updated: June 20, 2026 at 8:04 AM · 53 PRs (no change)</div>
 
   <!-- ── DONE ── -->
   <div class="section-label">Done</div>
@@ -614,6 +614,93 @@
       <div class="card-body">
         <div class="card-title">AI activity dashboard</div>
         <div class="card-desc">Every session is now recorded: which commit, which model, which skills fired, how long it took. Records are written as flat files (git-native, no database required) and rendered into <code>harness-activity.html</code>. The dashboard makes the AI's work auditable and comparable across sessions over time.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">TESTING.md sharded into per-feature files</div>
+        <div class="card-desc">The monolithic TESTING.md has been split into per-feature spec files under <code>docs/testing/</code>. Each feature owns its own file. The spec-writer pipeline was updated to write into the correct shard. Removes the merge-conflict bottleneck that was blocking overnight /queue runs.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">gitattributes merge drivers for shared docs</div>
+        <div class="card-desc">High-conflict shared files (patterns-registry.md, RECURRING-FINDINGS.md, etc.) now have <code>.gitattributes</code> merge driver rules that auto-resolve conflicts on merge using a union strategy. Parallel worktrees can append to these files independently and merge without manual intervention.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon done"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">/feature requires a worktree before implementation starts</div>
+        <div class="card-desc">Added a mandatory Step 0.5 to the /feature skill: create the worktree first, before any code is written. Prevents the main-worktree contention pattern where a feature branch and a parallel worktree task conflict over HEAD.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <!-- ── IN PROGRESS ── -->
+  <div class="section-label">In progress</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="2"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Enforce conventional commits + pre-push sync gate</div>
+        <div class="card-desc">A new pre-commit hook validates that commit messages follow the conventional commits format. A pre-push gate checks that the branch is in sync before pushing, preventing "forgot to pull" push failures.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="2"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Enforce conventional commits + pre-push sync gate</div>
+        <div class="card-desc">A new pre-commit hook validates that commit messages follow the conventional commits format. A pre-push gate checks that the branch is in sync before pushing, preventing "forgot to pull" push failures.</div>
+        <span class="tag tag-purple">Hooks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="2"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Perf budget: FID → INP, exit code fix, TESTING.md entries</div>
+        <div class="card-desc">The initial perf-budget merge used the deprecated FID metric instead of INP. This pass updates the metric, fixes an exit-code bug, and adds the missing TESTING.md behavior entries.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="2"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Queue branch stacking: unified execution path + O(1) slug lookup</div>
+        <div class="card-desc">Refactoring the /queue-execute skill to unify the independent and stacked task execution paths into one. Also replaces the linear slug lookup with an O(1) map. Separate clean branch from the main stacking work so each can be reviewed independently.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon active"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="2"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Queue branch stacking: automatic stacking for overlapping tasks</div>
+        <div class="card-desc">When two /queue tasks touch the same file, the second branch is automatically cut from the first instead of both branching off main. Prevents merge conflicts between parallel tasks that would otherwise write to the same file.</div>
       </div>
     </div>
   </div>

@@ -88,7 +88,7 @@ MERGE_CHECK_ANCESTOR=$(git merge-base HEAD "origin/$MERGE_CHECK_BASE" 2>/dev/nul
 if [ -n "$MERGE_CHECK_ANCESTOR" ]; then
   # grep -c exits 1 on zero matches; || true prevents set -e from aborting
   MERGE_CHECK_CONFLICTS=$(git merge-tree "$MERGE_CHECK_ANCESTOR" HEAD "origin/$MERGE_CHECK_BASE" \
-    2>/dev/null | grep -c '<<<<<<<' || true)
+    2>/dev/null | grep -c '^+<<<<<<< ' || true)
   if [ "${MERGE_CHECK_CONFLICTS:-0}" -gt 0 ]; then
     echo "PR aborted: branch '${CURRENT_BRANCH}' has merge conflicts with '${MERGE_CHECK_BASE}'." >&2
     echo "Rebase first: git fetch origin && git rebase origin/${MERGE_CHECK_BASE}" >&2

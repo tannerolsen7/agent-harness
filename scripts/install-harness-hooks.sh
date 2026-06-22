@@ -72,6 +72,9 @@ fi
 
 echo "Running npm install to wire husky..."
 ( cd "$TARGET_DIR" && npm install )
+# Populate origin/HEAD so the pre-push sync gate can detect the default branch.
+# Fails silently if there's no origin or the remote doesn't advertise a HEAD.
+git -C "$TARGET_DIR" remote set-head origin --auto 2>/dev/null || true
 
 if [ -f "$TARGET_DIR/.husky/pre-commit" ] && [ -x "$TARGET_DIR/.husky/pre-commit" ]; then
   echo "Done. .husky/pre-commit is wired and executable."

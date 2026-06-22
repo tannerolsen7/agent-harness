@@ -29,10 +29,24 @@ file and you reset the loop's memory.
 
 ### missing-protected-branch-in-test
 **Signature:** A regression gate for a hook that protects N branches only covers N-1 of them.
+**Occurrences:** 2
+**Last seen:** 2026-06-18
+**Locations:** tests/main-branch-guard.test.sh (develop branch missing); .husky/pre-push sync gate (0/4 exclusions tested initially)
+**Detail:** (1) The hook protects `main|master|develop` but the test had no `develop` stub or cases. (2) The pre-push sync gate skips main/master/HEAD/"" but had zero test coverage for any exclusion. Both fixed in their respective PRs by adding explicit test cases. Pattern: every new case-statement exclusion needs a companion test that would fail if that arm were removed.
+
+### sync-gate-head-vs-push-sha
+**Signature:** A pre-push sync check compares `HEAD` against the upstream instead of `$PUSH_SHA` (the commit actually being pushed), silently passing stale branches in worktree scenarios.
 **Occurrences:** 1
-**Last seen:** 2026-06-15
-**Locations:** tests/main-branch-guard.test.sh (develop branch missing)
-**Detail:** The hook protects `main|master|develop` but the test had no `develop` stub or cases. Dropping `develop` from the hook case pattern would ship green. Fixed by adding STUB_DEVELOP + 2 cases.
+**Last seen:** 2026-06-18
+**Locations:** .husky/pre-push (sync gate, line 60 — initial implementation used HEAD)
+**Detail:** `PUSH_SHA` is parsed from stdin at hook start specifically because "git can be in a detached state or a worktree where HEAD ≠ the branch being pushed." Using `HEAD` in the rev-list comparison defeats that. Fixed by replacing `HEAD` with `$PUSH_SHA`. Pattern: any behind-check in a pre-push hook must use the sha from stdin, not HEAD.
+
+### fetch-no-timeout-in-hook
+**Signature:** A `git fetch` in a git hook has no timeout, so a hung SSH connection or credential prompt hangs the hook (and the caller) indefinitely.
+**Occurrences:** 1
+**Last seen:** 2026-06-18
+**Locations:** .husky/pre-push (sync gate — initial implementation had no timeout)
+**Detail:** Fixed by wrapping with `GIT_TERMINAL_PROMPT=0 timeout 15 git fetch ...`. `GIT_TERMINAL_PROMPT=0` prevents credential prompts from blocking a non-interactive hook. `timeout 15` caps the hang. Both are needed; without `GIT_TERMINAL_PROMPT=0`, a missing credential can still block even after the fetch timeout.
 
 ### hook-refspec-norm-ref-bypasses
 **Signature:** A push refspec that resolves to a protected ref through an unrecognized form bypasses `norm_ref()`.

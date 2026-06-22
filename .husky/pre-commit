@@ -26,9 +26,8 @@ if [ -n "$STAGED_COMPONENTS" ]; then
 fi
 
 # TESTING.md shard sync: when any docs/testing/*.md shard is staged, regenerate
-# the assembled docs/TESTING.md and add it to this commit automatically.
+# the local docs/TESTING.md for browsability. The file is gitignored; don't add it.
 STAGED_SHARDS=$(git diff --cached --name-only --diff-filter=ACDM | grep -E "^docs/testing/[^/]+\.md$" || true)
 if [ -n "$STAGED_SHARDS" ]; then
   bash scripts/assemble-testing.sh
-  git add docs/TESTING.md
 fi

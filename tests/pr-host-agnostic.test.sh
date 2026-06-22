@@ -155,6 +155,42 @@ if [ "$conflict_rc" -ne 0 ]; then pass=$((pass+1)); else echo "  MISS (conflict 
 if [ -f "$CONFLICT_REPO/.claude/.cr-ok" ]; then pass=$((pass+1)); else echo "  MISS (conflict sentinel): .cr-ok was consumed before conflict check aborted"; fail=$((fail+1)); fi
 rm -rf "$CONFLICT_TMP"
 
+echo "── literal <<<<<<< in code does NOT trigger false-positive conflict abort ──"
+# Regression: pr.sh's conflict detector used grep -c '<<<<<<<', which matches the
+# substring anywhere in the git merge-tree output — including context lines that show
+# awk regex literals like /^<<<<<<< / in unrelated code (e.g. scripts/gc.sh).
+# A branch with no real conflict must pass even when origin/main contains code with
+# <<<<<<< literal strings.
+FP_TMP=$(mktemp -d); FP_BIN="$FP_TMP/bin"; mkdir -p "$FP_BIN"
+printf '#!/bin/sh\nexit 0\n' > "$FP_BIN/gh"; chmod +x "$FP_BIN/gh"
+FP_REPO="$FP_TMP/repo"; mkdir -p "$FP_REPO"
+(
+  cd "$FP_REPO" || exit 1
+  git init -q; git config user.email t@example.com; git config user.name tester
+  # Base file: line 2 is a literal <<<<<<< awk regex (like the one in scripts/gc.sh)
+  printf '#!/bin/sh\n/^<<<<<<< / { in_c=1 }\nkey_line\n' > handler.sh
+  git add handler.sh; git commit -q --no-verify -m "init with awk handler"
+  _BASE=$(git rev-parse --abbrev-ref HEAD)
+  git init -q --bare "$FP_TMP/origin.git"; git remote add origin "$FP_TMP/origin.git"
+  git push -q origin "$_BASE"
+  # Feature branch: unrelated addition, does NOT touch handler.sh
+  git checkout -q -b feat/fp-test
+  printf 'feature\n' > feature.txt; git add feature.txt
+  git commit -q --no-verify -m "add feature file"
+  git push -q origin feat/fp-test
+  # Main advances: appends to handler.sh — the <<<<<<< literal now appears in context
+  git checkout -q "$_BASE"
+  printf 'new_handler_line\n' >> handler.sh; git add handler.sh
+  git commit -q --no-verify -m "update handler"
+  git push -q origin "$_BASE"
+  git checkout -q feat/fp-test
+  mkdir -p .claude
+  printf 'feat/fp-test:%s' "$(git rev-parse HEAD)" > .claude/.cr-ok
+) >/dev/null 2>&1
+( cd "$FP_REPO" && PATH="$FP_BIN:$PATH" PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1 ); fp_rc=$?
+if [ "$fp_rc" -eq 0 ]; then pass=$((pass+1)); else echo "  MISS (false-positive): pr.sh aborted a branch with no real conflict — <<<<<<< literal in code triggered false positive"; fail=$((fail+1)); fi
+rm -rf "$FP_TMP"
+
 echo ""
 echo "pr-host-agnostic: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

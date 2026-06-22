@@ -282,6 +282,29 @@ cd .claude/worktrees/<slug>
 
 ---
 
+## pre-push hooks: git locks the push SHA before calling the hook
+
+**Area:** `.husky/pre-push` (or any git pre-push hook)
+
+**Rule:** Never auto-rebase inside a `pre-push` hook. Never use `HEAD` to reference the commit being pushed — use the SHA parsed from stdin (`PUSH_SHA`).
+
+**Why:** Git resolves the push ref SHAs *before* calling the hook. If you rebase inside the hook, the local branch tip moves, but git pushes the SHA it locked before the hook ran. The push reports success and the user's new commits stay local. There is no error — the failure is completely silent. The same applies to any `git rev-list` comparison using `HEAD`: in a worktree, `HEAD` is the worktree's checked-out branch, which may differ from the branch being pushed.
+
+**Symptoms (auto-rebase):** User runs `git push`. Hook rebases. Push reports success. Remote does not have the new commits. `git log --oneline origin/<branch>` shows the pre-rebase state.
+
+**Symptoms (HEAD in rev-list):** Sync gate reports "0 commits behind" when the branch is actually stale, because it compared `HEAD` (the worktree's checked-out branch — possibly `main`) against `origin/main`, not the pushed branch.
+
+**The fix:**
+- Parse `PUSH_INPUT=$(cat)` and extract `PUSH_SHA` at the top of the hook, before any other logic.
+- Use `$PUSH_SHA..origin/$MAIN` in all `git rev-list` comparisons.
+- Block-and-instruct instead of auto-rebase: exit 1 with the rebase command to run, then let the user push again cleanly outside the hook.
+- Add `GIT_TERMINAL_PROMPT=0 timeout 15` before any `git fetch` in a hook to prevent credential-prompt hangs in non-interactive contexts.
+
+**Source:** feat/enforce-claude-md-hooks — sync gate initially used `HEAD` in `git rev-list`; CI review agent caught the auto-rebase design flaw before it was wired; /cr fixed the `HEAD` vs `$PUSH_SHA` bug after initial implementation.
+**Regression gate:** `tests/pre-push-sync-gate.test.sh` — the "behind by N" test passes `PUSH_SHA` explicitly; replacing it with `HEAD` would produce a false pass when branch ≠ checked-out HEAD.
+
+---
+
 ## gitattributes merge drivers: registration is lost on fresh clone
 
 **Area:** `.gitattributes` + git merge drivers

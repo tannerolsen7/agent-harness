@@ -11,9 +11,9 @@ PUSH_INPUT=$(cat)
 _ALL_DELETIONS=true
 BRANCH=""
 PUSH_SHA=""
-# Empty/unreadable stdin must NOT short-circuit to exit 0 — that would skip the whole gate.
-# Treat "no refs seen" as not-all-deletions so it falls through to the sentinel + test gate.
-[ -z "$PUSH_INPUT" ] && _ALL_DELETIONS=false
+# Git only calls pre-push when there are refs to push. Empty stdin means the branch is
+# already up-to-date at the remote — nothing is being delivered, so nothing needs gating.
+[ -z "$PUSH_INPUT" ] && exit 0
 while IFS=' ' read -r _lref _lsha _rref _rsha; do
   [ -z "$_lsha" ] && continue
   if [ "$_lsha" != "0000000000000000000000000000000000000000" ]; then
@@ -47,6 +47,25 @@ if command -v gh >/dev/null 2>&1 && [ "$BRANCH" != "HEAD" ]; then
     exit 1
   fi
 fi
+
+# Sync gate — block push if branch is behind origin's default branch.
+# Skips main/master/HEAD/"" (they're merge targets, not feature branches).
+case "$BRANCH" in
+  main|master|HEAD|"") ;;
+  *)
+    _REF=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
+    _MAIN="${_REF##*/}"
+    _MAIN="${_MAIN:-main}"
+    if GIT_TERMINAL_PROMPT=0 timeout 15 git fetch origin "$_MAIN" --quiet 2>/dev/null; then
+      _BEHIND=$(git rev-list --count "$PUSH_SHA..origin/$_MAIN" 2>/dev/null || echo 0)
+      if [ "$_BEHIND" -gt 0 ]; then
+        printf "Push blocked: '%s' is %s commit(s) behind origin/%s.\n" "$BRANCH" "$_BEHIND" "$_MAIN" >&2
+        printf "Sync first:   git rebase origin/%s\n" "$_MAIN" >&2
+        exit 1
+      fi
+    fi
+    ;;
+esac
 
 # git pipes the push ref-list to stdin, so `[ -t 0 ]` is ALWAYS false in a pre-push hook —
 # it would treat a human push like an automated one. Detect a human by whether a controlling

@@ -60,7 +60,7 @@ fi
 # Each entry is a directory copied whole; every file inside gets a "copy" manifest entry.
 COPY_DIRS=".claude/skills .claude/agents .claude/hooks docs/engineering-system docs/security scripts"
 # Category-1 single files (not whole directories).
-COPY_FILES=".claude/settings.json .claude/AI-WORKFLOW.md .claude/agent-contract.md .claude/SOUL.md .husky/pre-commit .husky/pre-push .husky/post-checkout"
+COPY_FILES=".claude/settings.json .claude/AI-WORKFLOW.md .claude/agent-contract.md .claude/SOUL.md .husky/pre-commit .husky/pre-push .husky/post-checkout .husky/commit-msg"
 
 # ── Category-2: create-once files installed from a template in docs/templates/. ──
 # Format: "<dest path in target>:<template path in source>".

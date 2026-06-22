@@ -122,6 +122,34 @@ engineering advice.
 
 ---
 
+## add-linting-git-hook
+
+**What:** Add a new git hook that validates something about the repo state (commit message format, file contents, sync status) by delegating to a dedicated bash script, tested hermetically.
+
+**When to use:** You need to enforce a rule at commit or push time. The rule is checkable mechanically (a regex, a file-presence test, a count). The check should fail-closed (block the action on violation) and be runnable standalone for debugging.
+
+**When NOT to use:** Checks that require network access without a clear fail-open strategy — see the sync gate pitfall below. Checks that need to read the working tree at staging time but the staged content differs from disk (use pre-commit index-aware commands instead). Don't add a hook if a CI check in GitHub Actions is sufficient — hooks add latency to every developer action.
+
+**The recipe:**
+1. **Hook file (`.husky/<hook-name>`)** — Thin POSIX sh file, 3–5 lines. First line: `# shellcheck shell=sh`. Set `set -e`. Delegate immediately: `bash scripts/<name>-lint.sh "$@"`. Never put logic here — logic belongs in the script.
+2. **Lint script (`scripts/<name>-lint.sh`)** — Full bash (`#!/usr/bin/env bash`, `set -euo pipefail`). Reads input, validates, writes actionable errors to stderr, exits 1 on violation. Exit 0 on skip (auto-generated commits, etc).
+3. **Test file (`tests/<name>.test.sh`)** — Hermetic: `unset GIT_DIR GIT_WORK_TREE ...` at top. Uses `mktemp` for fixtures; cleans up with `trap`. Tests every case from the spec shard. Structure: `run()` helper invokes the script; `ok()` checks exit code.
+4. **Spec shard (`docs/testing/<feature-slug>.md`)** — List confirmed behaviors before writing the test. Each behavior is "Given X, exits N and [writes/does not write] to stderr." The shard is assembled into `docs/TESTING.md` locally by the pre-commit hook; `docs/TESTING.md` is gitignored and does not appear in commits or PR diffs.
+5. **install.sh (`scripts/install.sh` `COPY_FILES`)** — Add `.husky/<hook-name>` to the `COPY_FILES` string so `install.sh` propagates the new hook to target repos.
+
+**Golden exemplar:** `.husky/commit-msg` + `scripts/commit-msg-lint.sh` + `tests/commit-msg-lint.test.sh` + `docs/testing/enforce-claude-md-hooks.md`.
+
+**Established by:** feat/enforce-claude-md-hooks. See [solution doc](./solutions/2026-06-18-pre-push-sha-timing-and-rebase.md).
+
+**Gotchas:**
+- Husky v10 runs hooks with `sh .husky/<hook>` — no shebang, no `+x` needed on the hook file. The `# shellcheck shell=sh` directive at line 1 tells shellcheck which shell to target (without it, shellcheck raises SC2148 "specify a shell with a shebang").
+- The hook file must be POSIX sh. The script it delegates to can be bash. Do not use `${#var}`, `pipefail`, or `[[` in the hook file itself.
+- `PUSH_INPUT=$(cat)` must be the very first thing in `pre-push` hooks — stdin is single-read. Any `case` or `if` block that reads stdin after the first consumer will get nothing. Drain it all into a variable first, then pass it to sub-logic.
+- For pre-push hooks: use `$PUSH_SHA` (parsed from stdin), not `HEAD`, in any `git rev-list` comparison. `HEAD` is the wrong commit in worktrees. See [solution doc](./solutions/2026-06-18-pre-push-sha-timing-and-rebase.md).
+- Auto-rebase inside a pre-push hook silently sends the wrong commits — git locks the push SHA before calling the hook. Block-and-instruct instead: exit 1 with the rebase command to run, then let the user push again.
+
+---
+
 ## managed-file-distribution
 
 **What:** Install a set of harness files into an arbitrary repo, record each file's sha and ownership policy in a manifest, and run three-way conflict detection on subsequent updates so project-owned customizations are never clobbered.
