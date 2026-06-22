@@ -22,9 +22,20 @@ Read `TASKS.md`. Extract tasks from the **P1** (and **P0** if any) sections that
   `CLAUDE.md`, `AGENTS.md` — tasks that modify these must be serialized, not parallelized
 
 Tasks whose `filesAffected` fields share a file path are allowed in the same batch.
-The workflow detects the overlap and stacks them automatically: each branch is cut from
-the previous one's tip after it's implemented, so they merge to main without conflicts.
-Stacked tasks run serially within their group; tasks with no overlap still run in parallel.
+When two tasks share a file, the workflow runs them one at a time (serial) so they do not
+edit the same file concurrently. Each task still branches from `origin/main` by default —
+sharing a file does not automatically stack one branch on top of another.
+
+To opt into branch stacking, add `stacksOn: "<slug>"` to a task. That task will branch
+from `feat/<slug>` instead of `main`, and its PR will target `feat/<slug>` so the diff
+shows only that task's own changes. Add `stacksOn` when task B calls or imports code that
+task A writes. Omit it when two tasks happen to edit different parts of the same file but
+do not depend on each other's code.
+
+If two tasks have a code dependency but list no shared file, you cannot add `stacksOn` —
+the workflow will reject it. Fix: add the shared output file (e.g. the file task A creates
+and task B imports) to both tasks' `filesAffected`. That puts them in the same serial group,
+and then `stacksOn` will be accepted.
 
 Present the candidates as a numbered list with a one-line scope summary each.
 Ask the user: "Which tasks should run in this batch? Enter numbers, or 'all'."
@@ -93,7 +104,8 @@ results — no re-running from scratch.
   "references": "AGENTS.md → Middleware layer; CLAUDE.md → API conventions",
   "tdd": "TDD required",
   "size": "SMALL",
-  "design": ""
+  "design": "",
+  "stacksOn": ""
 }
 ```
 
@@ -105,6 +117,7 @@ Field notes:
 - `tdd`: "TDD required" unless the task has no new behaviors ("TDD N/A (no new behaviors)")
 - `size`: copy the `Size:` value from the TASKS.md entry exactly (e.g. "LARGE", "MEDIUM", "SMALL"). Omit or set to `""` if the entry has no Size field.
 - `design`: copy the `design:` path from the TASKS.md entry (e.g. `"docs/features/my-task.md"`). Omit or set to `""` if the entry has no `design:` line. The workflow will reject MEDIUM/LARGE/FEATURE tasks where this field is missing or points to a file that doesn't exist.
+- `stacksOn`: the slug of another task in this batch whose branch this task should sit on top of. Leave empty (`""`) for most tasks — they will branch from `origin/main`. Set it only when this task calls or imports code that the other task writes. Both tasks must list at least one shared file in `filesAffected`; if they share no files the workflow will reject the value and explain how to fix it.
 
 **Launch the Workflow** with the task array as `args`:
 
