@@ -2,6 +2,21 @@
 # husky runs hooks under sh; v10 removed the shebang + auto-sourced shim. Plain POSIX sh.
 # (The directive replaces the shebang as shellcheck's shell hint — without it shellcheck errors SC2148.)
 set -e
+
+# Sentinel direct-write guard: block staging .cr-ok or .design-confirmed directly.
+# These files are gitignored and can only be staged with git add -f.
+# Writing them directly bypasses scripts/cr-ok.sh and scripts/design-confirm.sh,
+# which are the only scripts allowed to produce these files.
+STAGED_SENTINELS=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '^\.claude/(\.cr-ok|\.design-confirmed)$' || true)
+if [ -n "$STAGED_SENTINELS" ]; then
+  printf "commit blocked: sentinel files cannot be staged directly.\n" >&2
+  printf "  .claude/.cr-ok       — write via scripts/cr-ok.sh\n" >&2
+  printf "  .claude/.design-confirmed — write via scripts/design-confirm.sh\n" >&2
+  printf "These files are gitignored and can only be staged with 'git add -f'.\n" >&2
+  exit 1
+fi
+
 bash scripts/lint.sh
 # Token lint: check only the files changed in this commit for hardcoded colors/spacing
 # and absolute design bans. Inert when docs/design/DESIGN.md does not exist yet.
