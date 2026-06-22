@@ -14,10 +14,17 @@ FAKE_BIN=$(mktemp -d)
 trap 'rm -rf "$FAKE_BIN"' EXIT
 
 # Run the script from the worktree root with $FAKE_BIN as the only place gh could come from.
-# For the no-CLI test: PATH is minimal (no Homebrew) so real gh/glab are absent.
+# For the no-CLI test: PATH contains only FAKE_BIN (no /usr/bin, /bin). This isolates gh on
+# Linux CI too — ubuntu-latest has gh at /usr/bin/gh, so /usr/bin in PATH defeats the test.
+# bash must be resolved now (outside the subshell) because name-lookup inside PATH="$FAKE_BIN"
+# would fail — bash isn't in FAKE_BIN. The script's own error guards make this safe:
+#   git rev-parse ... 2>/dev/null || pwd  →  ROOT = current dir (correct; we cd'd there)
+#   sh detect-forge.sh 2>/dev/null || echo unknown  →  FORGE=unknown
+# The unknown forge case tries command -v gh and glab, finds neither, and prints the skip msg.
 # For all other tests: $FAKE_BIN is prepended to the full PATH so stubs shadow real gh.
+_BASH=$(command -v bash)
 run_no_cli() {
-  ( cd "$ROOT" && PATH="$FAKE_BIN:/usr/bin:/bin:/usr/sbin:/sbin" bash "$SCRIPT" ) 2>&1
+  ( cd "$ROOT" && PATH="$FAKE_BIN" "$_BASH" "$SCRIPT" ) 2>&1
 }
 run_with_stub() {
   ( cd "$ROOT" && PATH="$FAKE_BIN:$PATH" bash "$SCRIPT" ) 2>&1
