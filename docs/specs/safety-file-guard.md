@@ -3,7 +3,7 @@
 <!-- spec-meta
 slug: safety-file-guard
 human-approved: true
-status: draft
+status: implemented
 -->
 
 ## User goal
@@ -40,7 +40,8 @@ BLOCKED:
 3. Staging `.claude/settings.json` (any change) is blocked.
 4. Staging `.claude/settings.local.json` (any change) is blocked.
 5. Staging a safety script (`cr-ok.sh`, `design-confirm.sh`, `commit-msg-lint.sh`,
-   `shell-portability-lint.sh`, `lint.sh`) is blocked.
+   `shell-portability-lint.sh`, `lint.sh`, `token-lint.sh`, `comment-lint.sh`,
+   `data-state-lint.sh`) is blocked.
 6. Staging `package.json` or `package-lock.json` is blocked.
 7. Staging a `.env` file addition or modification is blocked (`.env`, `.env.local`,
    `.env.production`, etc. — but NOT `.envrc`).

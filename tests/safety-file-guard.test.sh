@@ -31,11 +31,6 @@ mk() {
   printf '%s' "$d"
 }
 
-run_hook() {
-  bash "$HOOK" >/dev/null 2>&1
-  echo $?
-}
-
 # ── .husky/* — modifications, new files, and deletions are all blocked ──
 
 echo "── staging a .husky/* modification is blocked ──"
@@ -99,7 +94,7 @@ rm -rf "$D"
 
 # ── .claude/hooks/* — permission and egress scripts are all blocked ──
 
-echo "── staging a .claude/hooks/* file is blocked ──"
+echo "── staging a new .claude/hooks/* file is blocked ──"
 D=$(mk)
 mkdir -p "$D/.claude/hooks"
 printf 'echo hook\n' > "$D/.claude/hooks/block-egress.sh"
@@ -109,7 +104,40 @@ if printf '%s' "$err" | grep -q "hook files"; then
   pass=$((pass+1))
 else
   fail=$((fail+1))
-  echo "  MISS (claude/hooks): guard message not in stderr"
+  echo "  MISS (claude/hooks new): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+echo "── staging a .claude/hooks/* modification is blocked ──"
+D=$(mk)
+mkdir -p "$D/.claude/hooks"
+printf 'echo hook\n' > "$D/.claude/hooks/block-egress.sh"
+(cd "$D" && git add .claude/hooks/block-egress.sh && git commit -q --no-verify -m 'add hook') >/dev/null 2>&1
+printf 'echo modified\n' > "$D/.claude/hooks/block-egress.sh"
+(cd "$D" && git add .claude/hooks/block-egress.sh) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "hook files"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (claude/hooks modification): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+echo "── deleting a .claude/hooks/* file is blocked ──"
+D=$(mk)
+mkdir -p "$D/.claude/hooks"
+printf 'echo hook\n' > "$D/.claude/hooks/block-egress.sh"
+(cd "$D" && git add .claude/hooks/block-egress.sh && git commit -q --no-verify -m 'add hook') >/dev/null 2>&1
+(cd "$D" && git rm -q .claude/hooks/block-egress.sh) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "hook files"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (claude/hooks deletion): guard message not in stderr"
   echo "  stderr: $err"
 fi
 rm -rf "$D"
@@ -188,6 +216,36 @@ if printf '%s' "$err" | grep -q "gate"; then
 else
   fail=$((fail+1))
   echo "  MISS (scripts/cr-ok.sh): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+echo "── staging scripts/design-confirm.sh is blocked ──"
+D=$(mk)
+mkdir -p "$D/scripts"
+printf 'echo confirm\n' > "$D/scripts/design-confirm.sh"
+(cd "$D" && git add scripts/design-confirm.sh) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "gate"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (scripts/design-confirm.sh): guard message not in stderr"
+  echo "  stderr: $err"
+fi
+rm -rf "$D"
+
+echo "── staging scripts/token-lint.sh is blocked ──"
+D=$(mk)
+mkdir -p "$D/scripts"
+printf 'echo token\n' > "$D/scripts/token-lint.sh"
+(cd "$D" && git add scripts/token-lint.sh) >/dev/null 2>&1
+err=$(cd "$D" && bash "$HOOK" 2>&1; true)
+if printf '%s' "$err" | grep -q "gate"; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+  echo "  MISS (scripts/token-lint.sh): guard message not in stderr"
   echo "  stderr: $err"
 fi
 rm -rf "$D"
