@@ -5,7 +5,7 @@
 #   - Copies category-1 ("copy") files — the harness owns these forever (skills, agents, hooks,
 #     scripts, settings.json, harness docs, husky hooks). Always written.
 #   - Copies category-2 ("create-once") files from docs/templates/ — CLAUDE.md, PITFALLS.md,
-#     AGENTS.md, CONTEXT.md. Written only if they do not already exist; never clobbered.
+#     AGENTS.md, CONTEXT.md, deploy-targets.yml. Written only if they do not already exist; never clobbered.
 #   - Writes .claude/.harness-manifest.json LAST. If the script dies mid-run, no manifest exists
 #     and a re-run reinstalls everything safely. The install is idempotent by design.
 #
@@ -64,7 +64,7 @@ COPY_FILES=".claude/settings.json .claude/AI-WORKFLOW.md .claude/agent-contract.
 
 # ── Category-2: create-once files installed from a template in docs/templates/. ──
 # Format: "<dest path in target>:<template path in source>".
-CREATE_ONCE="CLAUDE.md:docs/templates/CLAUDE.md PITFALLS.md:docs/templates/PITFALLS.md AGENTS.md:docs/templates/AGENTS.md CONTEXT.md:docs/templates/CONTEXT.md"
+CREATE_ONCE="CLAUDE.md:docs/templates/CLAUDE.md PITFALLS.md:docs/templates/PITFALLS.md AGENTS.md:docs/templates/AGENTS.md CONTEXT.md:docs/templates/CONTEXT.md deploy-targets.yml:docs/templates/deploy-targets.yml"
 
 # Manifest entries accumulate here as "relpath\tsha\tpolicy" lines, joined into JSON at the end.
 manifest_lines=""

@@ -28,6 +28,28 @@ Check this file before any `/cr` pass. If you see a pattern here in a diff, flag
 
 ---
 
+## Internal labels without explanation: "Layer 2a", "CMP4", "F6", "R4-D2"
+
+**Area:** Any shell script, skill doc, or inline comment that references the harness's own design framework
+
+**Rule:** Every internal label — from any naming system, including the ADR layer model (Layer 2a, Layer 2b), the harness internal codes (F6, CMP4, R4-D*), or any project-specific abbreviation — must be explained in the same sentence or paragraph that uses it. "Do not drop internal codes without explaining them first" is a direct rule in CLAUDE.md. Cite the reference doc as a follow-on, not as a substitute for the inline explanation.
+
+**Why:** This pattern appeared three times before being promoted: (1) CMP1/CMP2/CMP4 labels in ci-verify.sh and agent specs. (2) "Layer 2a" in scripts/deploy-drift-check.sh header — the label means "the manifest-presence layer of the deploy-drift gate" but was dropped without explanation. (3) "F6" in ci-verify.sh header — the label means "the host-agnostic CI floor script." In each case, a cold reader (someone opening the file for the first time) saw only the label and had to trace back through the ADR or design doc to understand it.
+
+**Symptoms:** A reader opens a script, sees "Layer 2a" or "CMP4" in the header, and does not know what it means without reading the linked ADR — which may be long, proposed, or not yet accepted.
+
+**The fix:** Replace the label with a plain-English description first, then add the label parenthetically if useful:
+
+```bash
+# Checks that every required deploy step in deploy-targets.yml has a drift_check
+# command declared. This is the manifest-presence layer of the deploy-drift gate
+# (called "Layer 2a" in docs/adr/0002-deploy-drift-gate.md).
+```
+
+**Check:** Before committing, search every changed file for `Layer [0-9]`, `CMP[0-9]`, `R4-D`, `F[0-9]` and verify the surrounding sentence explains what the label means in plain English.
+
+---
+
 ## Agent orchestrators — Task tool and permissionMode are both required for spawning
 
 **Area:** Agent system (`.claude/agents/*.md` frontmatter)

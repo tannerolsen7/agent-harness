@@ -1,6 +1,6 @@
 # ADR 0002 — Deploy-drift gate (gating the out-of-band deploy step)
 
-**Status:** Proposed (awaiting acceptance)
+**Status:** Accepted (2026-06-22) — Layer 2a (manifest-presence check) shipped in `feat/deploy-drift-gate`
 **Date:** 2026-06-17
 **Deciders:** Tanner (human merges); drafted by the harness build agent
 **Originating field report:** a sibling project broke production when a manual migration push was never gated anywhere.
@@ -58,7 +58,7 @@ Adopt a **deploy-targets manifest** as the seam, a **two-tier gate**, and **rein
 | Layer | What it does | Home | Cadence | Creds |
 |---|---|---|---|---|
 | **1. Discovery** | Enumerate the project's release/deploy steps; emit/maintain the `deploy-targets` manifest; flag any stateful target with **no drift gate** | New light skill, or a step in `/setup-strategy` (project-level, scan-context family) | one-time + revisited | no |
-| **2a. Gate — deterministic** | Repo-internal consistency: every migration file is wired into the manifest (no orphans), **and every declared stateful target *has* a `drift_check`** | a step in `scripts/ci-verify.sh` (F6) — host-agnostic, both CI hosts inherit it | every PR, server-side | **no** |
+| **2a. Gate — deterministic** | Manifest-presence check: every declared stateful target has a `drift_check` command declared. A required entry with no `drift_check` fails CI. Entries marked `required: false` emit a warning only. Does not run the `drift_check` commands — that is Layer 2b. | a step in `scripts/ci-verify.sh` (the host-agnostic CI floor) — both CI hosts inherit it | every PR, server-side | **no** |
 | **2b. Gate — stateful** | The real drift: run each target's `drift_check` against the live/branch target; fail on a pending delta | a **separate credentialed CI job** (deploy pipeline), *not* the F6 floor | deploy/release | yes |
 | **3. Reinforcement** | `/migrate` entry gate refuses to proceed unless the target it mutates is in the manifest **and** gated; scaffolds the entry + gate if missing | `/migrate` skill | per-migration | no |
 
@@ -78,9 +78,12 @@ A single declared list keeps this out of Supabase-specific territory. The harnes
 - name: prod-db
   kind: db-migrations          # | infra | secrets | feature-flags | service
   drift_check: "supabase db push --dry-run"   # contract: exit ≠ 0 iff an undeployed delta exists
-  needs_creds: true            # true → routes to Layer 2b (credentialed job); false → folded into 2a/F6
+  required: true               # true (default): CI blocks if drift_check missing. false: warning only.
+  needs_creds: true            # true → routes to Layer 2b (credentialed job); false → folded into 2a
   cadence: deploy              # pr | deploy | both
 ```
+
+The `required` field (default `true`) lets teams mark a specific entry as advisory while the manifest is being built out. An entry with `required: false` and no `drift_check` prints a warning in CI but does not fail the build. Once the `drift_check` command is known, teams promote the entry to `required: true`.
 
 A target with `needs_creds: false` and a deterministic check is folded into `ci-verify.sh`; otherwise
 the harness generates a credentialed job for it. The manifest is the only thing a project author
@@ -159,8 +162,12 @@ Ship 2a first; treat 2b/Discovery/Reinforcement as follow-on PRs gated on real a
 
 ## Tracking
 
-**Proposed.** Not added to `V2-TRACEABILITY.md` — that matrix tracks R4-locked decisions only
-("how we prove V2 was built as planned, not re-planned"), and ADR-0001 set the precedent of tracking
-a proposed mechanism in `BACKLOG.md` until accepted. This ADR is tracked by the BACKLOG row
-"Gate the out-of-band deploy steps (deploy-drift gate)". On acceptance, promote the first slice (2a)
-into the active plan.
+**Accepted.** Layer 2a (manifest-presence check) shipped in `feat/deploy-drift-gate`.
+Remaining layers (Discovery, Layer 2b, Reinforcement) are tracked in `BACKLOG.md` under
+"Gate the out-of-band deploy steps (deploy-drift gate)".
+
+Layer 2a scope as shipped: reads `deploy-targets.yml`, checks each required entry has a
+`drift_check` command declared, exits 1 if any required entry is missing. Does not check
+for orphan migration files (a possible future addition) and does not run the `drift_check`
+commands (that is Layer 2b). The `required: true/false` field was added during design to
+let teams mark entries as advisory while the manifest is being built out.

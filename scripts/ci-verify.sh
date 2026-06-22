@@ -58,4 +58,10 @@ bash "$ROOT/scripts/assemble-testing.sh"
   exit 1
 }
 
+# Deploy-drift presence check: verify every required entry in deploy-targets.yml
+# has a drift_check command declared. Absent manifest exits 0 (opt-in). All entries
+# passing also exits 0. Any required entry missing a drift_check exits 1.
+echo "ci-verify: deploy-drift"
+bash "$ROOT/scripts/deploy-drift-check.sh"
+
 echo "ci-verify: OK"

@@ -1,0 +1,33 @@
+# deploy-targets.yml — list the manual deploy steps this project requires.
+#
+# The deploy-drift gate in CI reads this file and checks that every required
+# entry has a drift_check command declared. CI passes silently when this file
+# has no active entries (all commented out).
+#
+# To override the default location, set HARNESS_DEPLOY_TARGETS=/path/to/file
+# in your CI environment before running scripts/ci-verify.sh.
+#
+# Fields:
+#   name        — a short identifier for this step (required)
+#   kind        — what kind of step this is (required):
+#                 db-migrations | infra | secrets | feature-flags | service
+#   drift_check — a command that exits non-zero when this step has pending
+#                 changes that have not been applied. Required unless
+#                 required: false.
+#   required    — true (default): CI blocks if drift_check is missing.
+#                 false: CI prints a warning only.
+#   needs_creds — true if drift_check needs production credentials (default: false).
+#                 Credentialed checks belong in a separate CI job, not ci-verify.sh.
+#   cadence     — when this step applies: pr | deploy | both (default: deploy)
+#
+# Format rules:
+#   - Each entry must start with "- name: <value>"
+#   - drift_check values must be single-line
+#   - No YAML anchors or inline comments on drift_check lines
+#
+# Example (remove the leading "#" on each line to activate):
+#
+# - name: prod-db
+#   kind: db-migrations
+#   drift_check: "supabase db push --dry-run"
+#   required: true
