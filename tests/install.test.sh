@@ -166,7 +166,8 @@ echo "── sync: re-creates a deleted create-once deploy-targets.yml ──"
 SRC12=$(mktemp -d); TGT12=$(mktemp -d); make_src "$SRC12"; make_target "$TGT12"
 HARNESS_SRC="$SRC12" bash "$INSTALL" "$TGT12" >/dev/null 2>&1
 rm "$TGT12/deploy-targets.yml"
-HARNESS_SRC="$SRC12" bash "$SYNC" "$TGT12" >/dev/null 2>&1
+HARNESS_SRC="$SRC12" bash "$SYNC" "$TGT12" >/dev/null 2>&1; rc=$?
+ck "$rc" "sync exits 0 after restoring deleted deploy-targets.yml"
 [ -f "$TGT12/deploy-targets.yml" ]; ck "$?" "deleted create-once deploy-targets.yml re-created from template on sync"
 
 cleanup "$SRC" "$TGT" "$SRC2" "$TGT2" "$TGT3" "$SRC4" "$TGT4" "$SRC5" "$TGT5" \

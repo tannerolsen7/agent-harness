@@ -64,6 +64,16 @@ The shard slug is derived from the branch name at the time `@spec-writer` runs. 
 
 Source: /cr of feat/shard-testing-md — [P9] devil's advocate pass
 
+## sync-harness: automate CREATE_ONCE vs template_for parity check (LOW)
+
+**Problem:** `install.sh`'s `CREATE_ONCE` variable and `sync-harness.sh`'s `template_for()` case statement must list the same filenames, but there is no automated check. Adding to one without the other causes sync to silently skip restoring the file. Fixed manually for `deploy-targets.yml` in fix/sync-deploy-targets-restore; the structural fix (a lint script or pre-commit check that diffs the two lists) was backlogged.
+
+**Possible fix:** A ~5-line script that extracts filenames from both and diffs them. Run from `.husky/pre-commit` when either source file is staged. Alternatively, make `template_for` read from a shared list variable instead of a separate case statement.
+
+**Source:** fix/sync-deploy-targets-restore — [P8] architectural drift, [Pgov] PITFALLS.md regression gate currently says "human review."
+
+---
+
 ## safety-file-guard follow-ups (LOW priority, separate PRs)
 
 - **`^` anchor on `_GATE_SCRIPTS` regex** — `.husky/pre-commit` line 24 uses `scripts/(cr-ok|...)\.sh$` without a leading `^`. Low risk (git returns root-relative paths) but explicit anchoring is defensive. Requires `--no-verify` commit.
