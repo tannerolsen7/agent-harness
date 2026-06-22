@@ -48,7 +48,7 @@ fi
 # here and fail closed: remove the worktree we just made so nothing builds on a
 # broken base. Skip the check when no base-ref was supplied ($3 absent → HEAD).
 if [ -n "${3:-}" ]; then
-  if ! git -C "$WORKTREE_PATH" merge-base --is-ancestor "$BASE_REF" HEAD; then
+  if ! git -C "$WORKTREE_PATH" merge-base --is-ancestor "$BASE_REF" HEAD >/dev/null 2>&1; then
     echo "worktree-add: base-ref '$BASE_REF' is not an ancestor of '$BRANCH' (HEAD) in $WORKTREE_PATH — broken stack ancestry; removing worktree (fail-closed)." >&2
     git worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true
     exit 1
