@@ -1,5 +1,8 @@
 import { execFileSync } from 'node:child_process'
 
+// Resolve the repo root once so relative worktree paths work regardless of CWD.
+const REPO_ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+
 export const meta = {
   name: 'queue-execute',
   description: 'Run a /queue task batch: create worktrees, execute task-runner pipeline per task, push and open PRs for tasks that pass /cr. Tasks whose filesAffected fields share a file are automatically stacked — each branch cut from the previous one so they merge without conflicts.',
@@ -172,7 +175,6 @@ function isAncestorViaGit(worktreePath, ref) {
   }
 }
 
-
 const TASK_RESULT_SCHEMA = {
   type: 'object',
   required: ['taskSlug', 'status', 'branch'],
@@ -272,11 +274,12 @@ const allResults = await parallel(
       // here would silently produce merge conflicts later, so we abort the rest
       // of this stack group instead of continuing.
       if (baseRef !== null) {
-        const worktreePath = `.claude/worktrees/${task.slug}`
+        const worktreePath = `${REPO_ROOT}/.claude/worktrees/${task.slug}`
         const check = verifyAncestry(worktreePath, baseRef, isAncestorViaGit)
         if (!check.ok) {
-          const remaining = group.slice(i).map(t => t.slug)
-          log(`${check.error} Skipping: ${remaining.join(', ')}`)
+          const downstream = group.slice(i + 1).map(t => t.slug)
+          const skipNote = downstream.length ? ` Skipping downstream: ${downstream.join(', ')}` : ''
+          log(`${check.error}${skipNote}`)
           break
         }
       }

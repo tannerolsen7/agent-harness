@@ -202,6 +202,20 @@ file and you reset the loop's memory.
 **Locations:** tests/pr-host-agnostic.test.sh (conflict test added without a clean-branch test for the same guard)
 **Detail:** The conflict-detection test verified that a conflicting branch is rejected. No test verified that a clean branch passes. A bug making `grep -c` always return non-zero would block every PR, but all tests would still pass. Fixed by adding a separate test for the clean-branch path.
 
+### relative-path-implicit-cwd-in-js
+**Signature:** A JS function that shells out to `git -C <path>` uses a relative path resolved against the process CWD rather than an anchored repo root, silently targeting the wrong directory if CWD drifts.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** `.claude/workflows/queue-execute.js` — `isAncestorViaGit` initially built `worktreePath` as `.claude/worktrees/${task.slug}` with no REPO_ROOT anchor.
+**Detail:** `execFileSync` resolves relative paths from `process.cwd()`. Workflow scripts typically run from the repo root, but there is no guarantee. If CWD is elsewhere, `git -C <relative>` targets the wrong path, `merge-base --is-ancestor` exits non-zero (ref not found), and the guard returns `false` — aborting the stack group with a misleading "ancestry broken" error when the real issue is a path resolution failure. Fix: resolve `REPO_ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], {encoding: 'utf8'}).trim()` once at module scope and build the path as `${REPO_ROOT}/.claude/worktrees/${task.slug}`.
+
+### slice-index-off-by-one-in-skip-log
+**Signature:** A failure-path log message includes the failing task in the "Skipping" list because `slice(i)` was used instead of `slice(i + 1)`, making it appear the task ran and was skipped when it was never attempted.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** `.claude/workflows/queue-execute.js` — ancestry check failure branch initially used `group.slice(i)` for the downstream list.
+**Detail:** When the ancestry check fails for task `i`, the log should list which *downstream* tasks are being cancelled. Using `slice(i)` includes the failing task itself, which confuses a reader: the task appears in the "Skipping" list even though it never got to run a task-runner. The correct pattern (used in the analogous task-runner failure branch in the same loop) is `slice(i + 1)` for downstream tasks, with the failing task named separately in the primary error message.
+
 ---
 
 ## Promoted
