@@ -147,6 +147,8 @@ engineering advice.
 - `PUSH_INPUT=$(cat)` must be the very first thing in `pre-push` hooks — stdin is single-read. Any `case` or `if` block that reads stdin after the first consumer will get nothing. Drain it all into a variable first, then pass it to sub-logic.
 - For pre-push hooks: use `$PUSH_SHA` (parsed from stdin), not `HEAD`, in any `git rev-list` comparison. `HEAD` is the wrong commit in worktrees. See [solution doc](./solutions/2026-06-18-pre-push-sha-timing-and-rebase.md).
 - Auto-rebase inside a pre-push hook silently sends the wrong commits — git locks the push SHA before calling the hook. Block-and-instruct instead: exit 1 with the rebase command to run, then let the user push again.
+- **Testing gitignored files:** If a test stages a file that matches the user's global gitignore (`~/.config/git/ignore`), `git add` silently succeeds while staging nothing. The hook then runs against an empty index and every guard passes — a false positive. Use `git add -f` when staging files that are gitignored in the project (like `.claude/settings.local.json` or sentinel files like `.claude/.cr-ok`). See [solution doc](./solutions/2026-06-22-global-gitignore-silences-git-add-in-tests.md).
+- **Inline guards vs. delegated scripts:** When a guard lives directly in the hook file (not a separate lint script), test it by running `bash "$HOOK"` from within a temp repo, not by calling a script directly. Check stderr output (`err=$(cd "$D" && bash "$HOOK" 2>&1; true)`) rather than exit code — the exit code alone doesn't tell you which guard fired.
 
 ---
 
