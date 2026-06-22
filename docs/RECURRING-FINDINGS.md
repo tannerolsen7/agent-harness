@@ -29,10 +29,10 @@ file and you reset the loop's memory.
 
 ### missing-protected-branch-in-test
 **Signature:** A regression gate for a hook that protects N branches only covers N-1 of them.
-**Occurrences:** 2
-**Last seen:** 2026-06-18
-**Locations:** tests/main-branch-guard.test.sh (develop branch missing); .husky/pre-push sync gate (0/4 exclusions tested initially)
-**Detail:** (1) The hook protects `main|master|develop` but the test had no `develop` stub or cases. (2) The pre-push sync gate skips main/master/HEAD/"" but had zero test coverage for any exclusion. Both fixed in their respective PRs by adding explicit test cases. Pattern: every new case-statement exclusion needs a companion test that would fail if that arm were removed.
+**Occurrences:** 3 — AUTO-PROMOTE
+**Last seen:** 2026-06-22
+**Locations:** tests/main-branch-guard.test.sh (develop branch missing); .husky/pre-push sync gate (0/4 exclusions tested initially); tests/agent-worktree-enforcement.test.sh (main tested, but not master/HEAD/"")
+**Detail:** (1) The hook protects `main|master|develop` but the test had no `develop` stub or cases. (2) The pre-push sync gate skips main/master/HEAD/"" but had zero test coverage for any exclusion. (3) The worktree enforcement test covers `main` as exempt but not `master`, `HEAD`, or empty-string — the other three arms of the same `case` statement. Pattern: every new case-statement exclusion needs a companion test that would fail if that arm were removed. **→ Promoted to PITFALLS.md**
 
 ### sync-gate-head-vs-push-sha
 **Signature:** A pre-push sync check compares `HEAD` against the upstream instead of `$PUSH_SHA` (the commit actually being pushed), silently passing stale branches in worktree scenarios.
@@ -235,6 +235,19 @@ file and you reset the loop's memory.
 **Last seen:** 2026-06-22
 **Locations:** scripts/deploy-drift-check.sh (pre-fix — `[ -f "$MANIFEST" ] || exit 0` without checking whether the path exists-but-is-a-directory)
 **Detail:** `-f` is false for both "does not exist" and "exists but is a directory." An env var like `HARNESS_DEPLOY_TARGETS` pointing to a directory causes silent pass — the gate looks active but checks nothing. Fix: add `[ -e "$PATH" ] && [ ! -f "$PATH" ]` check before the absent-path early-exit, and print an error to stderr. Pattern: any optional-file guard that distinguishes "not opted in" from "opted in" needs a separate check for "path exists but is wrong type."
+### lint-regex-false-positive-on-separator
+**Signature:** A lint regex uses `.*` which crosses shell command separators (`;`, `&&`, `|`), producing false positives when the flagged pattern appears in a later command on the same line.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** scripts/shell-portability-lint.sh:29 (mktemp -p check — `\bmktemp\b[[:space:]].*-p\b` matched `mktemp -d; mkdir -p` in tests/pr-host-agnostic.test.sh lines 69, 99, 130, 164)
+**Detail:** `.*` in POSIX ERE matches everything including text after `;`. `mktemp -d; mkdir -p "$dir"` triggered the mktemp check because `-p` appeared later on the same line in an unrelated `mkdir -p` call. Fix: replace `.*` with `[^;|&]*` to stop at command separators. This also avoids false positives from `mktemp -d && mkdir -p` and piped commands.
+
+### confirmed-spec-without-implementation
+**Signature:** A testing shard entry lists a confirmed behavior that has no corresponding implementation in the hook or script.
+**Occurrences:** 1
+**Last seen:** 2026-06-22
+**Locations:** docs/testing/claudemd-to-hooks.md (lines 198–201 — "human push from main worktree warns but does not block" with no matching code in .husky/pre-push)
+**Detail:** The worktree check lives entirely inside the non-interactive `else` branch. A human push via TTY does not trigger the worktree check at all — no warning fires. The confirmed behavior was written against an earlier design that was not implemented. Fix: update the spec entry to describe actual behavior. Pattern: testing shard entries must be cross-checked against the live code before merging — a confirmed behavior with no implementation and no test is a spec that can't fail.
 
 ---
 
@@ -243,6 +256,9 @@ file and you reset the loop's memory.
 ### internal-code-no-explanation
 **Promoted:** 2026-06-22 (Occurrences: 3)
 **Entry:** PITFALLS.md → "Internal labels without explanation: 'Layer 2a', 'CMP4', 'F6', 'R4-D2'"
+### missing-protected-branch-in-test
+**Promoted:** 2026-06-22 (Occurrences: 3)
+**Entry:** PITFALLS.md → "Exempt branch arms in hook tests: every case arm needs its own test"
 
 ### stale-comment-wrong-output-protocol
 **Promoted:** 2026-06-18 (Occurrences: 3)

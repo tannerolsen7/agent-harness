@@ -38,6 +38,25 @@ if [ -z "$BRANCH" ]; then
   exit 1
 fi
 
+# Branch naming enforcement: branches must follow type/slug naming before any network call.
+# Exempt: main, master, HEAD, and empty-string (these are merge targets, not feature branches).
+case "$BRANCH" in
+  main|master|HEAD|"") ;;
+  *)
+    if ! printf '%s\n' "$BRANCH" | grep -qE '^(feat|fix|refactor|chore|docs|test|perf|build|ci|style|revert)/.+$'; then
+      if printf '%s\n' "$BRANCH" | grep -qE '^(feat|fix|refactor|chore|docs|test|perf|build|ci|style|revert)/$'; then
+        printf "Push blocked: '%s' is missing a slug after the slash.\n" "$BRANCH" >&2
+        printf "  Rename: git branch -m %s <type>/<slug>\n" "$BRANCH" >&2
+      else
+        printf "Push blocked: '%s' does not follow type/slug branch naming.\n" "$BRANCH" >&2
+        printf "  Rename: git branch -m %s <type>/<slug>\n" "$BRANCH" >&2
+        printf "  Valid types: feat fix refactor chore docs test perf build ci style revert\n" >&2
+      fi
+      exit 1
+    fi
+    ;;
+esac
+
 # Block pushes to branches whose PR is already merged — new commits need a new branch.
 if command -v gh >/dev/null 2>&1 && [ "$BRANCH" != "HEAD" ]; then
   MERGED_PR=$(gh pr list --head "$BRANCH" --state merged --json number --jq '.[0].number' 2>/dev/null || true)
@@ -87,6 +106,21 @@ else
     echo "Push blocked: repository is in detached HEAD state. Check out a branch first." >&2
     exit 1
   fi
+
+  # Agent worktree enforcement: feature branches must be pushed from a dedicated worktree.
+  # A dedicated worktree has .git as a FILE; the main worktree has .git as a DIRECTORY.
+  # Exempt: main, master, HEAD, and empty-string branches.
+  case "$BRANCH" in
+    main|master|HEAD|"") ;;
+    *)
+      if [ -d .git ]; then
+        _SLUG=$(printf '%s' "$BRANCH" | sed 's|.*/||')
+        printf "Push blocked: '%s' must be pushed from a dedicated worktree, not the main worktree.\n" "$BRANCH" >&2
+        printf "  Create one: bash scripts/worktree-add.sh .claude/worktrees/%s %s\n" "$_SLUG" "$BRANCH" >&2
+        exit 1
+      fi
+      ;;
+  esac
 
   SENTINEL_CR=".claude/.cr-ok"
   EXPECTED="${BRANCH}:${PUSH_SHA}"

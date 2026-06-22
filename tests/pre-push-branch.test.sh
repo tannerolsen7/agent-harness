@@ -2,6 +2,7 @@
 # pre-push hook uses the branch from git's stdin ref-list, not HEAD.
 # Pushing feat/x from a worktree where HEAD=main must check the sentinel
 # for feat/x, not for main.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
 set -u
 
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
@@ -45,29 +46,34 @@ run_hook() {
 }
 
 echo "── sentinel for feat/x passes when HEAD is on a different branch ──"
-D=$(mk)
-DEFAULT=$(cat "$D/.default-branch")
-FEAT_SHA=$(cd "$D" && git rev-parse feat/x)
-mkdir -p "$D/.claude"
-printf 'feat/x:%s' "$FEAT_SHA" > "$D/.claude/.cr-ok"
-# git sends: <local-ref> <local-sha> <remote-ref> <remote-sha>
+# Push from a dedicated worktree (where .git is a file) so the worktree
+# enforcement check passes. The sentinel is written to the worktree.
+MAIN=$(mk)
+WT=$(mktemp -d); rm -rf "$WT"
+(cd "$MAIN" && git worktree add "$WT" feat/x) >/dev/null 2>&1
+FEAT_SHA=$(cd "$MAIN" && git rev-parse feat/x)
+mkdir -p "$WT/.claude"
+printf 'feat/x:%s' "$FEAT_SHA" > "$WT/.claude/.cr-ok"
 PUSH_INPUT="refs/heads/feat/x $FEAT_SHA refs/heads/feat/x 0000000000000000000000000000000000000000"
-rc=$(cd "$D" && printf '%s\n' "$PUSH_INPUT" | PATH="$STUB:$PATH" run_hook "$HOOK" 2>/dev/null; echo $?)
-ok "$rc" 0 "sentinel feat/x:SHA passes when HEAD=$DEFAULT"
-rm -rf "$D"
+rc=$(cd "$WT" && printf '%s\n' "$PUSH_INPUT" | PATH="$STUB:$PATH" run_hook "$HOOK" 2>/dev/null; echo $?)
+DEFAULT=$(cat "$MAIN/.default-branch")
+ok "$rc" 0 "sentinel feat/x:SHA passes when HEAD=$DEFAULT (dedicated worktree)"
+rm -rf "$MAIN" "$WT"
 
 echo "── sentinel for a different branch blocks when pushing feat/x ──"
-D=$(mk)
-DEFAULT=$(cat "$D/.default-branch")
-FEAT_SHA=$(cd "$D" && git rev-parse feat/x)
-DEFAULT_SHA=$(cd "$D" && git rev-parse "$DEFAULT")
-mkdir -p "$D/.claude"
+MAIN=$(mk)
+WT=$(mktemp -d); rm -rf "$WT"
+(cd "$MAIN" && git worktree add "$WT" feat/x) >/dev/null 2>&1
+DEFAULT=$(cat "$MAIN/.default-branch")
+FEAT_SHA=$(cd "$MAIN" && git rev-parse feat/x)
+DEFAULT_SHA=$(cd "$MAIN" && git rev-parse "$DEFAULT")
+mkdir -p "$WT/.claude"
 # Sentinel belongs to the default branch, not to feat/x — a wrong sentinel.
-printf '%s:%s' "$DEFAULT" "$DEFAULT_SHA" > "$D/.claude/.cr-ok"
+printf '%s:%s' "$DEFAULT" "$DEFAULT_SHA" > "$WT/.claude/.cr-ok"
 PUSH_INPUT="refs/heads/feat/x $FEAT_SHA refs/heads/feat/x 0000000000000000000000000000000000000000"
-rc=$(cd "$D" && printf '%s\n' "$PUSH_INPUT" | PATH="$STUB:$PATH" run_hook "$HOOK" 2>/dev/null; echo $?)
-ok "$rc" 1 "wrong branch in sentinel blocks push of feat/x (HEAD=$DEFAULT)"
-rm -rf "$D"
+rc=$(cd "$WT" && printf '%s\n' "$PUSH_INPUT" | PATH="$STUB:$PATH" run_hook "$HOOK" 2>/dev/null; echo $?)
+ok "$rc" 1 "wrong branch in sentinel blocks push of feat/x"
+rm -rf "$MAIN" "$WT"
 
 rm -rf "$STUB"
 

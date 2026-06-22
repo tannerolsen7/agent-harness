@@ -36,12 +36,19 @@ These rules are enforced by hooks or scripts — violations stop the action auto
 | Rule | Where enforced |
 |------|----------------|
 | Commit messages must follow conventional commit format (`type(scope)?: description`) | `.husky/commit-msg` → `scripts/commit-msg-lint.sh` |
+| Commit subject must be 72 characters or fewer | `scripts/commit-msg-lint.sh` via `.husky/commit-msg` |
+| Branch names must follow `type/slug` format | `.husky/pre-push` naming gate |
 | Feature branches must not be behind the default branch at push time | `.husky/pre-push` sync gate |
+| Agent pushes must come from a dedicated worktree (`.git` file, not directory) | `.husky/pre-push` non-interactive path |
 | Design must be confirmed before coding | `.claude/.design-confirmed` sentinel, checked by `/feature` |
-| Code review must pass before pushing | `.claude/.cr-ok` sentinel, checked by `.husky/pre-push` on agent (non-interactive) pushes |
+| Sentinel files (`.cr-ok`, `.design-confirmed`) cannot be staged directly | `.husky/pre-commit` sentinel guard |
+| Code review must pass before pushing | `.claude/.cr-ok` sentinel, checked by `.husky/pre-push` on agent pushes |
 | Staged code must pass lint, comment-lint, and token-lint | `.husky/pre-commit` |
+| Staged `.sh` files must not use `mktemp -p`, leading-dash `printf`, or `worktree list \| grep` | `scripts/shell-portability-lint.sh` via `.husky/pre-commit` |
+| Staged `*.test.sh` files must include the git env unset line | `.husky/pre-commit` GIT_DIR guard |
+| Agent definitions under `.claude/agents/` must have both `Task` and `permissionMode` or neither | `.husky/pre-commit` agent spawn lint |
 
 These rules are guidance only — no hook can enforce them automatically:
 
 - **Communication voice** (9th-grade reading level, plain language) — judgment call; no linter catches bad prose.
-- **`/refactor` before structural moves** — no reliable way to detect a structural move from a diff alone.
+- **`/refactor` before structural moves** — no reliable way to detect a structural move from a diff alone. The branch `type/` prefix partially enforces the routing rule (the type must match the work), but detecting structural moves inside a diff is still a human judgment.

@@ -50,6 +50,22 @@ Check this file before any `/cr` pass. If you see a pattern here in a diff, flag
 
 ---
 
+## Exempt branch arms in hook tests: every case arm needs its own test
+
+**Area:** Hook test files (`.husky/pre-push`, `.husky/pre-commit`) that protect a fixed set of branch names or values via a `case` statement
+
+**Rule:** Every arm of a hook's `case` statement needs its own test case. If a hook exempts `main|master|HEAD|""`, write four tests — one for each exempt value. A test that only covers `main` gives no protection against a regression that removes the `master` arm.
+
+**Why:** This pattern appeared in three separate PRs: (1) a main-branch guard that listed `develop` as exempt but had no `develop` test, (2) the pre-push sync gate that exempted `main|master|HEAD|""` but had no test for any of the four, (3) the worktree enforcement test that tested only `main`. In each case, the missing test looked fine because the code was correct at the time — but it left no signal to catch a future regression.
+
+**Symptoms:** A test suite passes after a code change that accidentally removes one of the exempt arms, because the only test for that branch type was never written.
+
+**The check:** After adding a `case` statement that exempts N values, count the exempt tests. If `N tests < N arms`, add the missing ones.
+
+**Source:** Promoted from RECURRING-FINDINGS.md at Occurrences 3 (2026-06-22).
+
+---
+
 ## Agent orchestrators — Task tool and permissionMode are both required for spawning
 
 **Area:** Agent system (`.claude/agents/*.md` frontmatter)
@@ -102,6 +118,7 @@ fi
 ```
 
 **Source:** `scripts/worktree-add.sh`; `docs/solutions/2026-06-17-worktree-git-file-detection.md`.
+**Regression gate:** `scripts/shell-portability-lint.sh` — flags `git worktree list --porcelain | grep` in any staged `.sh` file.
 
 ---
 
@@ -266,7 +283,7 @@ cd .claude/worktrees/<slug>
 **The fix:** Replace `mktemp -p "$DIR"` with `mktemp "$DIR/.file.XXXXXX"`.
 
 **Source:** PR #72 (feat/one-command-install), adversarial review pass finding [P10-assumption].
-**Regression gate:** Human review — run the script on macOS before merging any change to a `mktemp` call.
+**Regression gate:** `scripts/shell-portability-lint.sh` — runs on every staged `.sh` file via `.husky/pre-commit`.
 
 ---
 
@@ -300,7 +317,7 @@ cd .claude/worktrees/<slug>
 **The fix:** Change `printf '- [status] ...'` to `printf -- '- [status] ...'`. The `--` is harmless on all other shells and bash versions.
 
 **Source:** feat/gitattributes-merge-drivers — root cause of 2/18 tests failing; discovered by reading the subshell trace via `exec 2>/tmp/dbg-subshell.log` inside the test's `( ... )` block.
-**Regression gate:** `tests/gitattributes-merge-drivers.test.sh` — all 24 test fixtures use `printf --` for task-list items.
+**Regression gate:** `scripts/shell-portability-lint.sh` — runs on every staged `.sh` file via `.husky/pre-commit`.
 
 ---
 
