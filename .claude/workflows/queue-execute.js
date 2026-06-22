@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process'
+
 export const meta = {
   name: 'queue-execute',
   description: 'Run a /queue task batch: create worktrees, execute task-runner pipeline per task, push and open PRs for tasks that pass /cr. Tasks whose filesAffected fields share a file are automatically stacked — each branch cut from the previous one so they merge without conflicts.',
@@ -131,6 +133,45 @@ function resolvePrBase(prevSlug, pushedSlugs) {
   return { base: null, retargeted: true, prevSlug }
 }
 
+// ── Stacked-worktree ancestry guard ──────────────────────────────────────────
+// A stacked task is built by asking a sub-agent to run worktree-add.sh with
+// feat/<prevSlug> as the base ref. The agent could paraphrase or garble that
+// command and create the worktree on the wrong base, which silently breaks the
+// stack's git ancestry. Because the agent's report is not trustworthy, the
+// workflow itself confirms feat/<prevSlug> is an ancestor of the new worktree's
+// HEAD after the agent returns.
+//
+// verifyAncestry is pure so it can be unit-tested without a real repo. It takes
+// isAncestorFn(worktreePath, ref) -> boolean and returns:
+//   { ok: true }                       when the base ref is an ancestor
+//   { ok: false, error: <message> }    when it is not (message names the branch
+//                                       and worktree path so a human can see it)
+function verifyAncestry(worktreePath, prevSlug, isAncestorFn) {
+  const baseRef = `feat/${prevSlug}`
+  if (isAncestorFn(worktreePath, baseRef)) return { ok: true }
+  return {
+    ok: false,
+    error: `Stacked-worktree ancestry check failed: ${baseRef} is not an ancestor of HEAD in ${worktreePath}. The worktree-create agent likely ran the wrong base-ref. Aborting this stack group.`,
+  }
+}
+
+// Real ancestry check: runs git in the new worktree. Returns true only when the
+// command exits 0 (ref is an ancestor). Any non-zero exit or error (missing ref,
+// bad worktree) is treated as "not an ancestor" so the guard fails closed rather
+// than letting a broken stack proceed. Arguments go to execFileSync as a list,
+// not a shell string — git is run directly, so a path or ref can never be read
+// as a shell metacharacter even if a caller forgets to validate it.
+function isAncestorViaGit(worktreePath, ref) {
+  try {
+    execFileSync('git', ['-C', worktreePath, 'merge-base', '--is-ancestor', ref, 'HEAD'], {
+      stdio: 'ignore',
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
 const TASK_RESULT_SCHEMA = {
   type: 'object',
   required: ['taskSlug', 'status', 'branch'],
@@ -223,6 +264,21 @@ const allResults = await parallel(
       const baseRef = i === 0 ? null : group[i - 1].slug
 
       await agent(createWorktreePrompt(task, baseRef), { label: `worktree:${task.slug}`, phase: 'Setup' })
+
+      // For a stacked task, confirm the new worktree really sits on top of the
+      // previous branch before we let an implementer build on it. The agent's
+      // report is not trusted — we run the git check ourselves. A broken base
+      // here would silently produce merge conflicts later, so we abort the rest
+      // of this stack group instead of continuing.
+      if (baseRef !== null) {
+        const worktreePath = `.claude/worktrees/${task.slug}`
+        const check = verifyAncestry(worktreePath, baseRef, isAncestorViaGit)
+        if (!check.ok) {
+          const remaining = group.slice(i).map(t => t.slug)
+          log(`${check.error} Skipping: ${remaining.join(', ')}`)
+          break
+        }
+      }
 
       const result = await agent(executeTaskPrompt(task), {
         agentType: 'task-runner',

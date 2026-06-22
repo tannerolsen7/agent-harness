@@ -80,7 +80,7 @@ Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install h
   filesAffected: .claude/workflows/queue-execute.js
   Notes: /cr backlog from feat/queue-bs-clean. Task slugs from user-supplied task objects are interpolated into shell commands inside createWorktreePrompt() — e.g. "bash scripts/worktree-add.sh .claude/worktrees/${task.slug} feat/${task.slug}". A slug like "my-task --force" would inject extra arguments. Fix: at the top of queue-execute.js, validate each task's slug against /^[a-z0-9-]+$/ before any work starts. If any slug is invalid, throw immediately with a clear message naming the offending slug.
 
-- [ ] worktree-add: verify ancestry after agent creates stacked worktree
+- [x] worktree-add: verify ancestry after agent creates stacked worktree (@task-runner)
   Size: SMALL
   Slug: queue-ancestry-verify
   filesAffected: .claude/workflows/queue-execute.js, scripts/worktree-add.sh
