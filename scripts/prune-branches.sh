@@ -171,8 +171,11 @@ if [ -n "$CANDIDATES" ]; then
     fi
     # -D (force) is justified: merged-ness is already proven above. Print the SHA so it's recoverable.
     SHA=$(git rev-parse --short "$b" 2>/dev/null || echo "unknown")
-    git branch --delete --force "$b" >/dev/null 2>&1 \
-      && echo "  deleted: $b (merged; was at $SHA — recover: git branch $b $SHA)"
+    if git branch --delete --force "$b" >/dev/null 2>&1; then
+      echo "  deleted: $b (merged; was at $SHA — recover: git branch $b $SHA)"
+    else
+      echo "  WARN: could not delete branch $b — try manually: git branch -D $b" >&2
+    fi
   done <<< "$CANDIDATES"
 else
   echo "No stale branches found."

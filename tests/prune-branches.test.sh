@@ -93,6 +93,14 @@ TMP=$(mktemp -d)
   git push -q origin agent/unmerged-task >/dev/null 2>&1
   git checkout -q "$DEF"
   git branch -D agent/unmerged-task >/dev/null 2>&1   # local gone but NOT merged
+
+  # Pass B — ACTIVE WORKTREE AGENT BRANCH: origin/agent/wt-task.
+  # The branch is checked out in a worktree (the way worktree-create.sh provisions tasks).
+  # The local branch exists inside the worktree, so both the local-branch check and the
+  # active-worktree check protect it. Remote must NOT be deleted.
+  git worktree add -q .claude/worktrees/wt-agent -b agent/wt-task >/dev/null 2>&1
+  ( cd .claude/worktrees/wt-agent && git commit -q --allow-empty --no-verify -m "worktree work" )
+  git push -q origin agent/wt-task >/dev/null 2>&1
 ) >/dev/null 2>&1
 
 # Run prune-branches.sh in the temp repo (single run; captures all side effects).
@@ -142,7 +150,25 @@ TMP=$(mktemp -d)
 # Unmerged remote agent branch is NOT deleted — warning is printed.
 ( cd "$TMP" && git ls-remote --heads origin 'refs/heads/agent/unmerged-task' | grep -q 'agent/unmerged-task' ); chk "$?" "Pass B: unmerged remote agent branch must survive on remote (warn only)"
 
+# Active worktree agent branch is NOT deleted from remote.
+( cd "$TMP" && git ls-remote --heads origin 'refs/heads/agent/wt-task' | grep -q 'agent/wt-task' ); chk "$?" "Pass B: active-worktree agent branch must survive on remote"
+
 rm -rf "$TMP"
+
+# -- Pass A: .claude/worktrees/ absent is safe --
+# Script must exit 0 and not error when the directory doesn't exist at all.
+TMP2=$(mktemp -d)
+(
+  cd "$TMP2" || exit 1
+  git init -q; git config user.email t@example.com; git config user.name tester
+  git commit -q --allow-empty --no-verify -m m0
+  git init -q --bare "$TMP2/remote.git"; git remote add origin "$TMP2/remote.git"
+  git push -q -u origin HEAD:refs/heads/main >/dev/null 2>&1
+  # No .claude/worktrees/ directory — Pass A must skip silently
+) >/dev/null 2>&1
+( cd "$TMP2" && bash "$SCRIPT" ) >/dev/null 2>&1; chk "$?" "Pass A: script exits 0 when .claude/worktrees/ is absent"
+rm -rf "$TMP2"
+
 echo ""
 echo "prune-branches: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

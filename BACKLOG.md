@@ -44,7 +44,7 @@
 - ✅ **Worktree/branch cleanup in `/feature` + `/queue`** — RESOLVED (worktree-lifecycle branch).
   `prune-branches.sh` now removes a merged branch's worktree before deleting the branch (also fixed the pre-existing
   `git branch -vv` "+ " worktree-prefix bug that made worktree branches un-gc'able; tested in
-  `tests/gc.test.sh`). `/feature` and `/queue` both document post-merge cleanup via `prune-branches.sh`.
+  `tests/prune-branches.test.sh`). `/feature` and `/queue` both document post-merge cleanup via `prune-branches.sh`.
 - ✅ **Branch-naming convention mismatch (`/queue` ↔ agent-contract ↔ task-runner)** — RESOLVED.
   `agent-contract.md` BRANCH section updated to `feat/<task-slug>` convention with prefix guidance.
   `/queue` Step 3 now specifies `subagent_type: task-runner` explicitly. `task-runner.md` draft

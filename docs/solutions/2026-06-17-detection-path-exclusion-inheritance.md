@@ -79,7 +79,7 @@ if [ -n "$CANDIDATES" ]; then
 fi
 ```
 
-This avoids duplicating the action loop (which in gc.sh includes a multi-step merge-verify,
+This avoids duplicating the action loop (which in prune-branches.sh includes a multi-step merge-verify,
 worktree removal, and delete-with-recovery-hint). A duplicated loop means every future fix
 must be applied in two places; a shared loop means it's written and tested once.
 
@@ -97,7 +97,7 @@ branch that was merged would still pass it.
 
 ## Where this applies in the codebase
 
-- `scripts/gc.sh` — two-pass branch cleanup (Pass 1: `[gone]` after remote delete; Pass 2:
+- `scripts/prune-branches.sh` — two-pass branch cleanup (Pass 1: `[gone]` after remote delete; Pass 2:
   no-upstream after local merge). Both passes exclude `main|master|develop` and `$CURRENT`.
 - `block-dangerous-git.sh` — the canonical source for the `main|master|develop` protected
   list. When this list changes, update both files.

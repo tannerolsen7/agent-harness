@@ -175,7 +175,7 @@ fi
 Use `-Fx` (fixed-string, full-line) — branch names with dots or brackets in them are misread as regex patterns without it.
 
 **Source:** PR #50; `docs/solutions/2026-06-17-merge-base-cannot-detect-empty-branch.md`
-**Regression gate:** `tests/gc.test.sh` case "fresh branch feat/queue-task must survive (no commits, active worktree)"
+**Regression gate:** `tests/prune-branches.test.sh` case "fresh branch feat/queue-task must survive (no commits, active worktree)"
 
 ---
 
