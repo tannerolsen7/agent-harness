@@ -73,13 +73,14 @@ if (gatedTasks.length > 0) {
       return `test -f "${p}" && echo "OK: ${t.slug}" || echo "MISSING: ${t.slug}: ${p}"`
     })
     .join('\n')
+  log(`design-gate: checking ${gatedTasks.length} design file(s)`)
   const check = await agent(
     `From the repo root, run each of these bash commands and report the exact output of every line:\n\`\`\`\n${cmds}\n\`\`\``,
     { label: 'design-gate:files', phase: 'Setup' }
   )
-  if (!check) {
+  if (!check || !check.trim()) {
     throw new Error(
-      'Design gate: file-existence check failed (agent returned null). Aborting to avoid silently passing.'
+      'Design gate: file-existence check produced no output (agent returned null or empty). Aborting to avoid silently passing.'
     )
   }
   const missing = check.split('\n').filter(l => l.trimStart().startsWith('MISSING:'))

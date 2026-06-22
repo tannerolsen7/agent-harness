@@ -47,7 +47,7 @@ For each confirmed task, read its TASKS.md entry and check its size/type field:
     Size: LARGE
     design: docs/design/dashboard.md
   ```
-  A MEDIUM or LARGE task without a `design:` line is rejected — stop and tell the user to run
+  A MEDIUM, LARGE, or FEATURE task without a `design:` line is rejected — stop and tell the user to run
   `/design contract` and add the `design:` reference before queuing it. Rationale: `@spec-writer`
   cannot write a good spec for a large task without a human-validated design; the run wastes
   overnight compute and blocks in the questions.md protocol.

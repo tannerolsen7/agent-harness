@@ -8,11 +8,12 @@ QE="$ROOT/.claude/workflows/queue-execute.js"
 SKILL="$ROOT/.claude/skills/queue/SKILL.md"
 
 pass=0; fail=0
-ok() { if [ "$1" = "$2" ]; then pass=$((pass+1)); else echo "  MISS ($3): got '$1', want '$2'"; fail=$((fail+1)); fi; }
 chk() { if [ "$1" = 0 ]; then pass=$((pass+1)); else echo "  MISS: $2"; fail=$((fail+1)); fi; }
 
 # Inline copy of the pure-JS validation function from queue-execute.js.
-# Tests run against this contract — if the implementation diverges, static analysis catches it.
+# WARNING: these behavioral tests exercise this copy, not the live function in queue-execute.js.
+# Any change to validateDesignGate or GATED_SIZES in queue-execute.js must be mirrored here.
+# The static-analysis tests below are the only automated guard against drift.
 read -r -d '' VALIDATE_FN << 'JSEOF' || true
 const GATED_SIZES = new Set(['LARGE', 'FEATURE', 'MEDIUM'])
 function validateDesignGate(taskList) {
@@ -40,13 +41,15 @@ out=$(run_validate '[{"slug":"my-task","size":"LARGE"}]')
 echo "$out" | grep -q 'THREW' && pass=$((pass+1)) || { echo "  MISS: LARGE without design should throw"; fail=$((fail+1)); }
 echo "$out" | grep -q 'my-task' && pass=$((pass+1)) || { echo "  MISS: error should name slug 'my-task'"; fail=$((fail+1)); }
 
-echo "── MEDIUM task missing design field → throws ──"
+echo "── MEDIUM task missing design field → throws, names the slug ──"
 out=$(run_validate '[{"slug":"med-task","size":"MEDIUM"}]')
 echo "$out" | grep -q 'THREW' && pass=$((pass+1)) || { echo "  MISS: MEDIUM without design should throw"; fail=$((fail+1)); }
+echo "$out" | grep -q 'med-task' && pass=$((pass+1)) || { echo "  MISS: error should name slug 'med-task'"; fail=$((fail+1)); }
 
-echo "── FEATURE task missing design field → throws ──"
+echo "── FEATURE task missing design field → throws, names the slug ──"
 out=$(run_validate '[{"slug":"feat-task","size":"FEATURE"}]')
 echo "$out" | grep -q 'THREW' && pass=$((pass+1)) || { echo "  MISS: FEATURE without design should throw"; fail=$((fail+1)); }
+echo "$out" | grep -q 'feat-task' && pass=$((pass+1)) || { echo "  MISS: error should name slug 'feat-task'"; fail=$((fail+1)); }
 
 echo "── LARGE task with design field → passes, included in gated list ──"
 out=$(run_validate '[{"slug":"big","size":"LARGE","design":"docs/features/big.md"}]')
