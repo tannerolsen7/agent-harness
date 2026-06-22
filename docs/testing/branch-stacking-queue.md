@@ -42,3 +42,18 @@ without conflicts. Tasks with no file overlap run in parallel as before.
   the PR is opened with `--base feat/<prevSlug>` so the PR diff shows only B's
   own changes. The first task in each stack group, and all independent tasks,
   open their PRs targeting the repository's default branch as before.
+
+- **Stacked-worktree ancestry is verified by the workflow, not trusted from the
+  agent:** Given task B is stacked on task A, the workflow asks a sub-agent to
+  run `worktree-add.sh` with `feat/A` as the base ref. An agent might paraphrase
+  or garble that command and create B's worktree on the wrong base. After the
+  worktree-create agent returns for a stacked task (one with a non-null base
+  ref), the workflow runs its own direct check that `feat/<prevSlug>` is an
+  ancestor of the new worktree's HEAD — it does not trust the agent's report.
+  The check is exposed as the pure function `verifyAncestry(worktreePath,
+  prevSlug, isAncestorFn)`: it returns `{ ok: true }` when `isAncestorFn`
+  reports the base is an ancestor, and `{ ok: false, error }` (with a message
+  naming `feat/<prevSlug>` and the worktree path) when it is not. The first task
+  in a stack group has a null base ref and is never checked. When the check
+  fails, the workflow logs the error and aborts the rest of that stack group;
+  other stack groups and independent tasks are unaffected.

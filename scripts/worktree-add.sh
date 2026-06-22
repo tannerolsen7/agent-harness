@@ -40,6 +40,21 @@ else
   git worktree add -b "$BRANCH" "$WORKTREE_PATH" "$BASE_REF"
 fi
 
+# --- ancestry guard: when stacking on a base-ref, the new branch must contain it ---
+# A stacked task (queue-execute passes $3 = feat/<prevSlug>) only stays conflict-free
+# if the new branch is built on top of the previous branch's tip. If the branch
+# already existed at a SHA that does not contain the base-ref, the checkout above
+# leaves it on the wrong base and the stack is silently broken. Verify directly
+# here and fail closed: remove the worktree we just made so nothing builds on a
+# broken base. Skip the check when no base-ref was supplied ($3 absent → HEAD).
+if [ -n "${3:-}" ]; then
+  if ! git -C "$WORKTREE_PATH" merge-base --is-ancestor "$BASE_REF" HEAD >/dev/null 2>&1; then
+    echo "worktree-add: base-ref '$BASE_REF' is not an ancestor of '$BRANCH' (HEAD) in $WORKTREE_PATH — broken stack ancestry; removing worktree (fail-closed)." >&2
+    git worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true
+    exit 1
+  fi
+fi
+
 # --- TASKS.md: mark task in-progress for feat/<slug> branches ---
 # Extract slug from branch name (only feat/* branches map to TASKS.md slugs).
 TASK_SLUG=""

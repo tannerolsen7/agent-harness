@@ -18,3 +18,13 @@ the script also marks the matching task as in-progress in `TASKS.md`.
 - **Missing TASKS.md is not an error:** Given `TASKS.md` does not exist at the
   repo root, when `worktree-add.sh` runs, the script exits 0 and no TASKS.md
   update attempt is made.
+
+- **Base-ref ancestry is verified before the script returns:** Given a base-ref
+  is passed as the third argument and the new worktree is created from it, when
+  `worktree-add.sh <path> feat/<child> <base-ref>` finishes creating the
+  worktree, the script checks that `<base-ref>` is an ancestor of the new
+  worktree's HEAD. If the new branch does not contain the base-ref's commits
+  (broken ancestry), the script prints an error naming the base-ref, removes the
+  just-created worktree, and exits non-zero. When `$3` is absent the check is
+  skipped (no base-ref to verify). When `$3` is present and ancestry holds, the
+  script exits 0 as before.
