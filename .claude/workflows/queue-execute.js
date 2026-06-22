@@ -104,6 +104,33 @@ function buildPrevSlugMap(stacks) {
   return map
 }
 
+// Decide what base branch a PR should target, given the slug of the task it is
+// stacked on (prevSlug) and the set of slugs whose branches were actually pushed.
+//
+// A stacked PR (task B on top of task A) should target feat/A so its diff shows
+// only B's own changes. But that only works if feat/A was pushed. If task A
+// landed commits and then failed /cr, it is never pushed and feat/A does not
+// exist on the remote. GitHub only auto-retargets a stacked PR to main when its
+// base branch merges — not when the base is rejected or was never pushed. So a
+// PR left pointing at an unpushed feat/A would have a broken base forever.
+//
+// Returns:
+//   base       — the branch to pass as --base, or null to use the repo default (main)
+//   retargeted — true when we dropped a stacked base because its branch was not pushed
+//   prevSlug   — the previous slug we wanted to stack on (for the warning message)
+//
+// An independent task (prevSlug == null) gets base: null and retargeted: false.
+// A stacked task whose previous slug was pushed gets base: "feat/<prevSlug>".
+// A stacked task whose previous slug was NOT pushed falls back to base: null and
+// retargeted: true, so the caller can target main and post a warning comment.
+function resolvePrBase(prevSlug, pushedSlugs) {
+  if (!prevSlug) return { base: null, retargeted: false, prevSlug: null }
+  if (pushedSlugs.has(prevSlug)) {
+    return { base: `feat/${prevSlug}`, retargeted: false, prevSlug }
+  }
+  return { base: null, retargeted: true, prevSlug }
+}
+
 const TASK_RESULT_SCHEMA = {
   type: 'object',
   required: ['taskSlug', 'status', 'branch'],
@@ -232,10 +259,23 @@ log(`${doneResults.length} of ${tasks.length} tasks done — pushing and opening
 
 const taskBySlug = new Map(tasks.map(t => [t.slug, t]))
 const prResults = []
+// Track which slugs were actually pushed (PR opened). A stacked PR may only
+// target feat/<prevSlug> if that previous task is in this set — see
+// resolvePrBase for why an unpushed base would break the stacked PR forever.
+const pushedSlugs = new Set()
 for (const result of doneResults) {
   const task = taskBySlug.get(result.taskSlug) ?? { title: result.taskSlug }
   const prevSlug = prevSlugMap[result.taskSlug]
-  const baseArg = prevSlug ? ` \\\n     --base feat/${prevSlug}` : ''
+  const { base, retargeted } = resolvePrBase(prevSlug, pushedSlugs)
+  const baseArg = base ? ` \\\n     --base ${base}` : ''
+
+  // When a stacked task loses its intended base (the previous task was not
+  // pushed), warn on the PR after it is created so a human knows the diff shows
+  // this task plus the un-landed base, and the base needs sorting before merge.
+  const retargetStep = retargeted
+    ? `5. The base task "${prevSlug}" was not pushed, so this PR targets the default branch (main) instead of feat/${prevSlug}. After the PR is created, post a warning comment on it:
+   gh pr comment <pr-url> --body "Note: this task was stacked on \`feat/${prevSlug}\`, but that base was never pushed (its /cr likely failed). This PR now targets the default branch, so its diff includes the changes from \`${prevSlug}\` as well. Review and re-base once \`${prevSlug}\` lands."`
+    : ''
 
   const pr = await agent(
     `Push branch and open a GitHub PR for task "${result.taskSlug}".
@@ -248,11 +288,14 @@ Steps (run in order):
 4. bash scripts/pr.sh \\
      --title "feat(${result.taskSlug}): ${task.title}" \\
      --body "$(cat .claude/compound-draft-${result.taskSlug}.md 2>/dev/null || echo 'Automated /queue task — see task-runner summary.')"${baseArg}
-
+${retargetStep}
 Report the PR URL and title on success, or the failure reason.`,
     { label: `pr:${result.taskSlug}`, schema: PR_RESULT_SCHEMA, phase: 'Push' }
   )
-  if (pr) prResults.push(pr)
+  if (pr) {
+    prResults.push(pr)
+    if (pr.status === 'pushed') pushedSlugs.add(result.taskSlug)
+  }
 }
 
 // ── Return structured summary for /queue's final report ──────────────────────

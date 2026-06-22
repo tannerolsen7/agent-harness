@@ -68,7 +68,7 @@ Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install h
   Slug: claudemd-to-hooks
   Notes: SERIALIZE — primary change touches CLAUDE.md (a shared, high-conflict file). Every rule in CLAUDE.md that can be enforced mechanically must become a hook or lint script, not a documented hope. This task audits every line of CLAUDE.md, creates hook scripts for the mechanically-enforceable rules, removes those lines from CLAUDE.md, and leaves only judgment-only guidance behind. Done when: each converted rule has a working hook script and test; CLAUDE.md is shorter by those rules; the harness enforces them on commit.
 
-- [ ] queue-execute: skip stacked PR when previous task was not pushed
+- [x] queue-execute: skip stacked PR when previous task was not pushed (@task-runner)
   Size: SMALL
   Slug: queue-stacked-pr-guard
   filesAffected: .claude/workflows/queue-execute.js
