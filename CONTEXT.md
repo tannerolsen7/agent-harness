@@ -21,6 +21,22 @@ _Avoid_: drift check, deploy gate, manifest check
 A per-entry flag (`required: true/false`, default `true`) that controls whether a missing drift_check blocks CI (`true`) or only prints a warning (`false`). Teams opt into advisory behavior by setting `required: false`.
 _Avoid_: blocking, severity, enforce
 
+**plugin installation**:
+What happens when a user runs `/plugin install agent-harness@agent-harness`. Claude Code downloads the harness repo to a managed directory and makes the plugin's skills, agents, and hooks available in every Claude Code session. This is the Claude Code side — it does not touch any project repo.
+_Avoid_: installing the harness, setting up Claude Code, running install.sh
+
+**per-project installation**:
+What `/init` does. Copies harness-owned files (scripts, husky hooks, settings) into a specific project repo and creates `.claude/.harness-manifest.json`. Done once per project. Separate from plugin installation.
+_Avoid_: installing the plugin, harness setup
+
+**plugin dir** (`$CLAUDE_PLUGIN_ROOT`):
+The directory where Claude Code put the plugin when the user ran `/plugin install`. Always available as the `$CLAUDE_PLUGIN_ROOT` environment variable in any Claude Code session where the plugin is loaded. The canonical source for all harness file updates — `install.sh` and `sync-harness.sh` both read from it.
+_Avoid_: harness repo, local clone, source directory
+
+**harness manifest** (`.claude/.harness-manifest.json`):
+A JSON file written into each project by `install.sh` at per-project installation time. Records the path where the harness was installed from (`source`), the git SHA of the plugin at install time (`sha`), and the sha256 fingerprint of every installed file (`files`). Used by `sync-harness.sh` for three-way comparison and by the session-start sync check.
+_Avoid_: manifest, config file, harness config
+
 ## Relationships
 
 - A **deploy-targets manifest** contains one or more entries, each with a **drift_check**
