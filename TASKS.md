@@ -69,6 +69,17 @@ Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install h
   filesAffected: .claude/workflows/queue-execute.js, .claude/skills/queue/SKILL.md
   Notes: Current stacking groups tasks by shared filesAffected paths and branches each task off the previous one's tip. This causes conflicts when tasks are squash-merged sequentially — squash creates new commit SHAs, so the stacked branch diverges from main. Fix: separate the two concerns. (1) Serialization (execution order) — tasks that share a file still run serially, not in parallel. (2) Branch base — every task branches from origin/main by default. Add an optional stacksOn: "<slug>" field to task objects; when present, the task branches from feat/<slug> instead of main. A task without stacksOn never gets stacked, even if it shares files with another task. Update queue/SKILL.md to document when to add stacksOn (only when task B calls or imports code written by task A) vs. when not to (two tasks that happen to edit different parts of the same file). Done when: tasks with shared files but no stacksOn branch from main and open PRs targeting main; tasks with stacksOn still branch from feat/<prevSlug>; tests cover both paths.
 
+- [ ] Agent sandboxing approach — explore and decide who owns it
+  Size: MEDIUM
+  Slug: agent-sandboxing-approach
+  Notes: The harness runs agents in git worktrees, which separates each task's filesystem writes. Hook guards prevent agents from touching specific files (husky/, settings.json, gate scripts). But a lot is still wide open — agents can run any shell command, read files outside the worktree, make network calls, and install packages. This task explores where the responsibility for tighter sandboxing belongs.
+
+  Two candidate owners: (1) The harness — it controls how agents are spawned (queue-execute.js, worktree-add.sh, agent definitions). It could enforce a default-safe permission profile for all agents it runs, expose a `sandboxing:` field in task objects, or ship a standard allowedTools list in agent `.md` files. (2) The repo — each consuming project knows what agents need. Repos can configure `.claude/settings.json` with `allowedTools`, `permissions.deny`, and `permissionMode`. The harness can document the expected shape and let repos decide.
+
+  The key question is whether the harness should pick a safe default that repos can loosen, or stay neutral and leave each repo to configure its own limits. Related questions to answer: Does Claude Code's `permissionMode: "default"` in agent definitions give us enough? Should worktree isolation extend to env vars (e.g., strip production credentials from agent subshells)? Should agents that run in CI have a stricter default than agents run locally?
+
+  Done when: a short design doc (`docs/features/agent-sandboxing.md`) answers the ownership question with a clear rationale, documents what the harness will enforce vs. what it will leave to repos, and lists any follow-on implementation tasks.
+
 - [ ] Audit CLAUDE.md rules and move to deterministic hooks
   Size: MEDIUM
   Slug: claudemd-to-hooks
