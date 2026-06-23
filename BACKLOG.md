@@ -81,3 +81,9 @@ Source: /cr of feat/shard-testing-md — [P9] devil's advocate pass
 - **4 more gate script tests** — `commit-msg-lint.sh`, `shell-portability-lint.sh`, `comment-lint.sh`, `data-state-lint.sh` all use the same `_GATE_SCRIPTS` regex but have no test case. The existing 4 tests validate the pattern; these add coverage breadth.
 - **Fail-open audit for safety-file guard** — `git diff --cached ... 2>/dev/null || true` silently makes STAGED empty on git error; all guards pass. Consistent with the whole hook but worth auditing all guards together in one pass.
 - **`.env/` directory bypass** — The `.env` guard regex `(^|/)\.env($|\.)` requires `.env` to be followed by end-of-string or a dot. A file at `.env/API_KEY` (a directory named `.env`) has a trailing `/` and does not match, so it slips through. Realistic only if an agent explicitly creates a directory named `.env/`. Possible fix: change the regex to `(^|/)\.env($|\.|/)`. Source: /cr of feat/safety-file-guard — [P10-abuse] adversarial pass.
+
+## Document plugin-level hooks/ directory convention
+From /cr on feat/harness-plugin. The hooks/ dir at repo root is new. Add a CONTEXT.md entry clarifying plugin-level hooks live there (not in .claude/hooks/). Also document the two-hook pattern: plugin-level (hooks/hooks.json) + per-project (.claude/hooks/session-start.sh). Separate scope — small doc-only change.
+
+## Verify plugin.json needs a "hooks" field
+NEEDS HUMAN. plugin.json declares "skills" and "agents" explicitly. It doesn't declare "hooks". If Claude Code requires a "hooks": "hooks/hooks.json" declaration to discover hooks/hooks.json, behavior 3 (session-start sync check) silently never fires. Cannot verify from codebase alone — needs the Claude Code plugin spec or a real install test. Low risk if Claude Code auto-discovers by convention.
