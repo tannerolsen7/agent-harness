@@ -10,8 +10,10 @@ set -euo pipefail
 MANIFEST="${CLAUDE_PROJECT_DIR:-}/.claude/.harness-manifest.json"
 [ -f "$MANIFEST" ] || exit 0
 
+# Sync errors are non-fatal — the user can run /sync to retry. Never block startup.
 output=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/sync-harness.sh" --dry-run "${CLAUDE_PROJECT_DIR}" 2>&1) || true
 
+# Patterns match sync-harness.sh output lines: "updated: <file>", "CONFLICT: <file>", "re-created (was deleted): <file>"
 case "$output" in
   *'updated:'*) echo "[harness] project files are out of date — run /sync to apply updates" ;;
   *'CONFLICT'*) echo "[harness] sync conflict detected — run /sync and resolve manually" ;;

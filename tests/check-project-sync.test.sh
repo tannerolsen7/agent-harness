@@ -95,6 +95,8 @@ LINE_COUNT3=$(printf '%s\n' "$OUT3" | grep -c . || true)
 
 [ "$EXIT3" = "0" ] && ok || no "test 3: expected exit 0, got $EXIT3"
 [ "$LINE_COUNT3" = "1" ] && ok || no "test 3: expected 1 output line, got $LINE_COUNT3: $OUT3"
+[ "$OUT3" = "[harness] project files are out of date — run /sync to apply updates" ] \
+  && ok || no "test 3: unexpected output: $OUT3"
 
 # ── Test 4: "CONFLICT:" line → one conflict notice ────────────────────────────
 
