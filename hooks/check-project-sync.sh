@@ -9,10 +9,9 @@ MANIFEST="${CLAUDE_PROJECT_DIR:-}/.claude/.harness-manifest.json"
 
 output=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/sync-harness.sh" --dry-run "${CLAUDE_PROJECT_DIR}" 2>&1) || true
 
-if printf '%s\n' "$output" | grep -q 'updated:'; then
-  echo "[harness] project files are out of date — run /sync to apply updates"
-elif printf '%s\n' "$output" | grep -q 'CONFLICT'; then
-  echo "[harness] sync conflict detected — run /sync and resolve manually"
-fi
+case "$output" in
+  *'updated:'*) echo "[harness] project files are out of date — run /sync to apply updates" ;;
+  *'CONFLICT'*) echo "[harness] sync conflict detected — run /sync and resolve manually" ;;
+esac
 
 exit 0
