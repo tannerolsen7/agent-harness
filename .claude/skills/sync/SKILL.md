@@ -5,8 +5,10 @@ description: Applies pending harness updates to the current project's files. Run
 
 # /sync — apply harness updates to this project
 
-The session-start hook noticed that the project's harness files are behind the
-plugin. This skill applies those updates using the same three-way comparison that
+This skill applies pending harness updates from the plugin to the current
+project's files. Run it any time, or in response to the session-start notice
+"[harness] project files are out of date". This skill applies those updates
+using the same three-way comparison that
 `sync-harness.sh` uses — it updates harness-owned files, skips create-once files
 the project has customized, and surfaces conflicts that need manual resolution.
 

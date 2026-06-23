@@ -7,7 +7,7 @@
 #   3. Dry-run reports three "updated:" lines → still one notice line, exit 0
 #   4. Dry-run reports a "CONFLICT:" line → one conflict notice line, exit 0
 #   5. Dry-run reports only "up-to-date:" lines → silent, exit 0
-#   6. Dry-run exits non-zero → silent, exit 0
+#   6. Dry-run exits non-zero with no recognized output → silent, exit 0
 #
 # Each test creates a fake $CLAUDE_PLUGIN_ROOT with a stub sync script that
 # produces controlled output, and a fake $CLAUDE_PROJECT_DIR with or without
@@ -122,13 +122,14 @@ EXIT5=$?
 
 # ── Test 6: sync exits non-zero → silent ──────────────────────────────────────
 
-PLUGIN6=$(make_plugin_root "  CONFLICT: some/file.sh" 1)
+PLUGIN6=$(make_plugin_root "sync-harness: fatal error" 1)
 PROJ6=$(make_project_dir yes)
 
 OUT6=$(run_check "$PLUGIN6" "$PROJ6")
 EXIT6=$?
 
 [ "$EXIT6" = "0" ] && ok || no "test 6: expected exit 0, got $EXIT6"
+[ -z "$OUT6" ] && ok || no "test 6: expected no output, got: $OUT6"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 

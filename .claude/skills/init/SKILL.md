@@ -54,9 +54,10 @@ know yet.
 ## Step 3 — Point out the setup checklist
 
 `CLAUDE.md` ships with a `## Setup checklist` block at the very top. Remind the
-user it lists the remaining one-time step:
+user it lists the remaining one-time steps:
 
 - `bash scripts/install-harness-hooks.sh` — wire git hooks and npm
+- `bash scripts/install-locks.sh` — optional: OS-level file locks (requires sudo)
 
 Tell them to delete that checklist section once all steps (including this `/init`
 run) are done.
@@ -67,6 +68,6 @@ Print a short summary:
 
 - Which docs were created vs. skipped (already existed)
 - That CLAUDE.md is now filled in (or which sections still say TODO)
-- The next command to run: `bash scripts/install-harness-hooks.sh`
+- The next command to run: `bash scripts/install-harness-hooks.sh`; mention that `bash scripts/install-locks.sh` is optional (requires sudo)
 
 Do not commit anything. The user reviews and commits when ready.
