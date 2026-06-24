@@ -65,7 +65,7 @@ not write the sentinel.**
    git merge "origin/$BASE"
    ```
 
-   - **If the merge succeeds** (exit 0, no conflict markers): proceed to Step 0.
+   - **If the merge succeeds** (exit 0, no conflict markers): proceed to Step 0. Note: this adds a merge commit to the branch.
    - **If the merge fails** (conflict markers remain in working tree): abort (`git merge --abort`) and emit this message, then stop:
      ```
      /cr blocked: branch has merge conflicts with '<BASE>' that need human resolution.
