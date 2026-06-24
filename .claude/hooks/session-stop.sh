@@ -105,3 +105,37 @@ printf '\n'
        '{ts:$ts,branch:$branch,sha:$sha,model:$model,skills:$skills,duration_s:$dur}')" \
     >> "$PROJ/.claude/activity/${SLUG}.jsonl"
 ) 2>&1 | sed 's/^/activity-writer: /' >&2 || true
+
+# Remove the session worktree when the session did no work, to keep the branch list clean.
+_SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""')
+if [ -n "$_SESSION_ID" ]; then
+  _SESSION_WT_FILE="/tmp/claude-session-wt-${_SESSION_ID}"
+  if [ -f "$_SESSION_WT_FILE" ]; then
+    _SESSION_WT=$(cat "$_SESSION_WT_FILE")
+    _SESSION_BRANCH="session/${_SESSION_ID}"
+    if [ -n "$_SESSION_WT" ]; then
+      _DEFAULT_BRANCH=$(git -C "$PROJ" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null \
+        | sed 's|refs/remotes/origin/||' || echo "main")
+      # Fall back to 1 (not 0) so a git failure preserves the branch rather than deleting it.
+      _AHEAD=$(git -C "$PROJ" rev-list --count "${_DEFAULT_BRANCH}..${_SESSION_BRANCH}" \
+        2>/dev/null || echo "1")
+      case "$_AHEAD" in ''|*[!0-9]*) _AHEAD=1 ;; esac
+      if [ "$_AHEAD" -eq 0 ]; then
+        if git -C "$PROJ" worktree remove "$_SESSION_WT" 2>/dev/null; then
+          git -C "$PROJ" branch -d "$_SESSION_BRANCH" 2>/dev/null || true
+          rm -f "$_SESSION_WT_FILE" || true
+        fi
+      else
+        printf '\n=== Session branch %s has %s commit(s) — run /feature or open a PR to merge ===\n' \
+          "$_SESSION_BRANCH" "$_AHEAD"
+        rm -f "$_SESSION_WT_FILE" || true
+      fi
+      unset _DEFAULT_BRANCH _AHEAD
+    else
+      rm -f "$_SESSION_WT_FILE" || true
+    fi
+    unset _SESSION_WT _SESSION_BRANCH
+  fi
+  unset _SESSION_WT_FILE
+fi
+unset _SESSION_ID

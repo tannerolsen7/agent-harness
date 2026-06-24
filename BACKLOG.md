@@ -85,6 +85,15 @@ Source: /cr of feat/shard-testing-md — [P9] devil's advocate pass
 ## Document plugin-level hooks/ directory convention
 From /cr on feat/harness-plugin. The hooks/ dir at repo root is new. Add a CONTEXT.md entry clarifying plugin-level hooks live there (not in .claude/hooks/). Also document the two-hook pattern: plugin-level (hooks/hooks.json) + per-project (.claude/hooks/session-start.sh). Separate scope — small doc-only change.
 
+## session-isolation: add session/* to prune-branches.sh Pass 2 explicit cleanup
+From /cr on feat/session-isolation. `prune-branches.sh` Pass B covers `origin/agent/*` and `origin/claude/*` but not `session/*`. Orphaned session branches (e.g. from interrupted sessions where the temp file was lost) are only cleaned by Pass 2, which requires `.gc-enabled`. Add `session/*` as an explicit local-only pass so stale session branches are cleaned on each session start without needing a separate exclusion rule.
+
+## session-isolation: document new temp file in cross-hook-state solution doc
+From /cr on feat/session-isolation. `docs/solutions/2026-06-18-cross-hook-state-via-temp-file.md` lists the cross-hook temp files by name. This PR adds `/tmp/claude-session-wt-<id>` under the same pattern but does not update that doc. Add an entry covering: filename pattern, written by session-start.sh, read+deleted by session-stop.sh, signals which worktree was created for the session.
+
+## session-isolation: create docs/solutions entry for the session isolation pattern
+From /cr on feat/session-isolation. The research that motivated this feature (103-agent analysis) recommends documenting the auto-create-at-start + auto-cleanup-at-stop pattern as a solution for future reference. Key non-obvious detail to preserve: Claude sees the worktree path in the session-start output but is not automatically moved there — soft enforcement only. A solutions doc at `docs/solutions/2026-06-24-session-start-worktree-isolation.md` would save re-discovering this.
+
 ## Verify plugin.json needs a "hooks" field
 NEEDS HUMAN. plugin.json declares "skills" and "agents" explicitly. It doesn't declare "hooks". If Claude Code requires a "hooks": "hooks/hooks.json" declaration to discover hooks/hooks.json, behavior 3 (session-start sync check) silently never fires. Cannot verify from codebase alone — needs the Claude Code plugin spec or a real install test. Low risk if Claude Code auto-discovers by convention.
 

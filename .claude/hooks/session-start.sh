@@ -12,10 +12,13 @@ if [ -n "$_SESSION_ID" ]; then
   printf '%s %s\n' "$(date +%s)" "$_MODEL" \
     > "/tmp/claude-activity-${_SESSION_ID}" 2>/dev/null || true
 fi
-unset _INPUT _SESSION_ID _MODEL
+unset _INPUT _MODEL
+# _SESSION_ID intentionally stays alive — the session isolation block below reads it.
 
 # Truncate the permission log so each session starts clean
-HASH=$(echo "${CLAUDE_PROJECT_DIR:-/}" | md5 | cut -c1-8)
+HASH=$(printf '%s' "${CLAUDE_PROJECT_DIR:-/}" | md5 2>/dev/null | cut -c1-8 \
+  || printf '%s' "${CLAUDE_PROJECT_DIR:-/}" | md5sum 2>/dev/null | cut -c1-8 \
+  || echo "00000000")
 > "/tmp/claude-perm-log-${HASH}.jsonl" 2>/dev/null || true
 
 # Auto-clean merged worktrees + branches at session start (best-effort).
@@ -43,8 +46,29 @@ if [ -n "$_BRANCH" ] && [ "$_BRANCH" != "HEAD" ]; then
     echo "=== Branch '$_BRANCH' is $_BEHIND commit(s) behind main (you are $_AHEAD ahead) ==="
     echo "Sync with main before starting new work."
   fi
+  unset _BEHIND _AHEAD
 fi
-unset _REPO _BRANCH _BEHIND _AHEAD
+
+# Agents starting on main in the main repo get a dedicated branch automatically.
+# Uses bare git worktree add (not scripts/worktree-add.sh) because session worktrees
+# are ephemeral — they do not need npm install or hook provisioning.
+if [ -n "$_SESSION_ID" ] \
+   && [ ! -f "$_REPO/.git" ] \
+   && { [ "${_BRANCH:-}" = "main" ] || [ "${_BRANCH:-}" = "master" ]; }; then
+  _SESSION_BRANCH="session/${_SESSION_ID}"
+  _SESSION_WT="$_REPO/.claude/worktrees/${_SESSION_ID}"
+  mkdir -p "$_REPO/.claude/worktrees" 2>/dev/null || true
+  if [ ! -f "$_SESSION_WT/.git" ]; then
+    git -C "$_REPO" worktree add -b "$_SESSION_BRANCH" "$_SESSION_WT" HEAD 2>/dev/null || true
+  fi
+  if [ -f "$_SESSION_WT/.git" ]; then
+    printf '%s\n' "$_SESSION_WT" > "/tmp/claude-session-wt-${_SESSION_ID}" || true
+    echo "=== Session worktree: $_SESSION_WT ==="
+    echo "Work in this directory — changes stay on branch '$_SESSION_BRANCH' until you merge."
+  fi
+  unset _SESSION_BRANCH _SESSION_WT
+fi
+unset _REPO _BRANCH _SESSION_ID
 
 
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
