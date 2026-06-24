@@ -446,8 +446,17 @@ Then push, then open the PR (this order matters — `scripts/pr.sh` validates th
 ```bash
 git push -u origin "$(git rev-parse --abbrev-ref HEAD)"
 scripts/pr.sh --title "..." --body "..."
-gh pr view --json state,title,url,mergeable,statusCheckRollup
 ```
+
+`pr.sh` polls CI automatically after the PR is created and exits 1 if any check fails. You do not need to run `gh pr view` separately.
+
+**If `pr.sh` exits 1 (CI failed):**
+
+1. Get the failure detail: `gh run view --log-failed`
+2. Invoke `/debug` with the PR URL and that failure output. `/debug` investigates the root cause and either applies a fix or surfaces the failure to the human.
+3. If `/debug` commits a fix: the `.cr-ok` sentinel is now stale (the new commit changed the sha). Re-run `/cr` to get a new sentinel, push, then run `scripts/pr.sh` again.
+
+Do not merge while CI is red.
 
 ---
 

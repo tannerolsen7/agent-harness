@@ -378,6 +378,39 @@ cd .claude/worktrees/<slug>
 
 ---
 
+## bash `SECONDS` tracks time since shell start, not script start — reset before timing loops
+
+**Area:** Any shell script that uses `SECONDS` to enforce a timeout
+
+**Rule:** Assign `SECONDS=0` immediately before the loop that compares against the timeout threshold. Do not compare the raw value of `SECONDS` against a timeout without first resetting it.
+
+**Why:** Bash's `SECONDS` builtin tracks elapsed time since the shell process launched, not since the current script started. By the time a long-running script reaches its polling loop, `SECONDS` may already be 30–90 seconds. Comparing that value against a 600-second timeout gives the loop only 510–570 seconds, not 600. The shortfall is invisible — the loop just exits early without printing any error.
+
+**Symptoms:** A polling loop or retry loop exits before the configured timeout. The exit looks normal (no error, just a "timed out" message), but the actual wait time is shorter than expected. The bug is most pronounced on slow networks or when the script runs significant pre-loop work.
+
+**The check:** Every `while [ "$SECONDS" -lt "$TIMEOUT" ]` pattern must have a `SECONDS=0` assignment immediately before it. If `SECONDS` is not reset, the timeout is unpredictable.
+
+**Source:** `scripts/pr.sh` CI polling block (2026-06-24).
+
+---
+
+## Test files that create temp repos must unset inherited GIT_DIR env vars
+
+**Area:** Any `*.test.sh` file that calls `git init` inside a temp directory
+
+**Rule:** Add the following line immediately after `set -u` (or at the top of the file):
+```sh
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
+```
+
+**Why:** When a test runs from inside a git worktree (for example, `.claude/worktrees/<slug>`), bash inherits git env vars from the shell. `GIT_DIR` is set to the worktree's `.git` file — which points at the real repo. Any `git` command in the test then operates on the real repo instead of the temp dir the test just created. This can corrupt the real index or break `git rev-parse`. The pre-commit hook enforces this: it blocks staging of any `*.test.sh` file that does not contain the `unset GIT_DIR` line.
+
+**Symptoms:** A test that passes alone fails when run from inside a worktree. Or worse, passes but leaves the real repo with uncommitted changes in `.git/index`.
+
+**Source:** Promoted from RECURRING-FINDINGS at Occurrences: 3 (2026-06-24). Sightings: `tests/check-integrity.test.sh`, `tests/install.test.sh`, `tests/pr-host-agnostic.test.sh`.
+
+---
+
 ## install.sh — non-git source dir records `"sha": "local"`, losing the pinned version
 
 **Area:** `scripts/install.sh` manifest writing (lines 121–126); any archive-based install path

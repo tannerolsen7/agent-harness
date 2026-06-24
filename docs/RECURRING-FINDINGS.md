@@ -55,13 +55,6 @@ file and you reset the loop's memory.
 **Locations:** .claude/hooks/block-dangerous-git.sh (norm_ref doesn't resolve HEAD; explicit-arg branch check only)
 **Detail:** `git push origin HEAD` on main exits 0 (allowed). `norm_ref("HEAD")` returns `"HEAD"` (not in protected list); two non-flag args means `_non_flag=2` skips the bare-push `_non_flag<=1` fallback. Guard file — NEEDS HUMAN to fix.
 
-### test-mk-no-gitdir-guard
-**Signature:** A test helper that calls `git init` in a temp dir does not unset inherited `GIT_DIR` env vars, risking real-repo corruption when run from a worktree.
-**Occurrences:** 2
-**Last seen:** 2026-06-18
-**Locations:** tests/check-integrity.test.sh (mk() function, lines 18–30); tests/install.test.sh (line 695 — correctly handled)
-**Detail:** Matches the documented PITFALL "Running tests from inside a worktree corrupts the real repo." The fix is to unset GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_PREFIX/GIT_COMMON_DIR/GIT_OBJECT_DIRECTORY/GIT_NAMESPACE at the top of the test file. Fixed in both locations. At Occurrences ≥3 this should be promoted to a named /cr check.
-
 ### stale-comment-wrong-output-protocol
 **Signature:** A comment describes the behavior or output of a command/function, but the actual behavior differs, misleading anyone who reads or extends it.
 **Occurrences:** 3 — AUTO-PROMOTE
@@ -303,6 +296,10 @@ file and you reset the loop's memory.
 
 ## Promoted
 
+### test-mk-no-gitdir-guard
+**Promoted:** 2026-06-24 (Occurrences: 3)
+**Entry:** PITFALLS.md → "Test files that create temp repos must unset inherited GIT_DIR env vars"
+
 ### internal-code-no-explanation
 **Promoted:** 2026-06-22 (Occurrences: 3)
 **Entry:** PITFALLS.md → "Internal labels without explanation: 'Layer 2a', 'CMP4', 'F6', 'R4-D2'"
@@ -315,3 +312,4 @@ file and you reset the loop's memory.
 **Entry:** PITFALLS.md → "Stale comments: describing code state that has since changed"
 **Post-promotion sighting:** 2026-06-20 — `scripts/worktree-add.sh` line 3 header comment said `Usage: ... <path> <branch>` after adding an optional `[base-ref]` parameter. The `:?` usage strings on lines 13–14 were updated but the header was not. Fixed in this pass.
 **Post-promotion sighting:** 2026-06-22 — `scripts/ci-verify.sh` deploy-drift step comment said "Exits 0 when the manifest is absent (opt-in only)" — omitted the second exit-0 case (all entries pass). Fixed in this pass.
+**Post-promotion sighting:** 2026-06-24 — `docs/testing/pr-ci-polling.md` spec entry said "GitLab forge skips polling with a warning" — written under the original design (skip-only). Design changed during grilling to attempt polling via `glab api`; spec was not updated. Fixed in /cr pass for feat/pr-ci-polling.

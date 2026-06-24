@@ -286,6 +286,7 @@ Needs human: <list or "None">
 - All /to-issues issues closed — via `closes #N` in commit body (auto-closed on merge) or manually if the issue was partially addressed
 - `/simplify` has run
 - `/cr` clean (and `/cr-security` if security-sensitive code touched)
+- CI passed — `scripts/pr.sh` polls checks after PR creation and exits non-zero on failure. If `/debug` commits a fix, re-run `/cr` to get a fresh sentinel, push, and re-run `scripts/pr.sh`.
 - `npx tsc --noEmit` exits zero
 - `tests/manual-checklist.sh` written by a fresh agent (not the implementation agent); not committed
 - Final report delivered

@@ -3,6 +3,7 @@
 # --title/--body interface maps to each CLI's flags (gh pr create --body /
 # glab mr create --description). Uses PR_DRY_RUN so nothing is created and no network is hit.
 set -u
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 DETECT="$ROOT/scripts/detect-forge.sh"
 PR="$ROOT/scripts/pr.sh"
@@ -190,6 +191,78 @@ FP_REPO="$FP_TMP/repo"; mkdir -p "$FP_REPO"
 ( cd "$FP_REPO" && PATH="$FP_BIN:$PATH" PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1 ); fp_rc=$?
 if [ "$fp_rc" -eq 0 ]; then pass=$((pass+1)); else echo "  MISS (false-positive): pr.sh aborted a branch with no real conflict — <<<<<<< literal in code triggered false positive"; fail=$((fail+1)); fi
 rm -rf "$FP_TMP"
+
+echo "── GitHub CI polling: all checks pass → exit 0 ──"
+CI_P_TMP=$(mktemp -d); CI_P_BIN="$CI_P_TMP/bin"; mkdir -p "$CI_P_BIN"
+CI_P_REPO="$CI_P_TMP/repo"; mkdir -p "$CI_P_REPO"
+setup_pushed_repo "$CI_P_REPO"
+cat > "$CI_P_BIN/gh" <<'STUB'
+#!/bin/sh
+case "$*" in
+  *"pr create"*)       exit 0 ;;
+  *statusCheckRollup*) printf 'passed\n'; exit 0 ;;
+  *"--json url"*)      printf 'https://github.com/test/repo/pull/1\n'; exit 0 ;;
+esac
+exit 0
+STUB
+chmod +x "$CI_P_BIN/gh"
+ci_p_rc=$(cd "$CI_P_REPO" && PATH="$CI_P_BIN:$PATH" PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1; echo $?)
+eq "CI pass exit 0" "$ci_p_rc" 0
+rm -rf "$CI_P_TMP"
+
+echo "── GitHub CI polling: checks fail → exit 1 ──"
+CI_F_TMP=$(mktemp -d); CI_F_BIN="$CI_F_TMP/bin"; mkdir -p "$CI_F_BIN"
+CI_F_REPO="$CI_F_TMP/repo"; mkdir -p "$CI_F_REPO"
+setup_pushed_repo "$CI_F_REPO"
+cat > "$CI_F_BIN/gh" <<'STUB'
+#!/bin/sh
+case "$*" in
+  *"pr create"*)       exit 0 ;;
+  *statusCheckRollup*) printf 'failed\n'; exit 0 ;;
+  *"--json url"*)      printf 'https://github.com/test/repo/pull/1\n'; exit 0 ;;
+esac
+exit 0
+STUB
+chmod +x "$CI_F_BIN/gh"
+ci_f_rc=$(cd "$CI_F_REPO" && PATH="$CI_F_BIN:$PATH" PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1; echo $?)
+eq "CI fail exit 1" "$ci_f_rc" 1
+rm -rf "$CI_F_TMP"
+
+echo "── GitHub CI polling: CI_POLL_SKIP=1 exits 0 even when checks fail ──"
+CI_SK_TMP=$(mktemp -d); CI_SK_BIN="$CI_SK_TMP/bin"; mkdir -p "$CI_SK_BIN"
+CI_SK_REPO="$CI_SK_TMP/repo"; mkdir -p "$CI_SK_REPO"
+setup_pushed_repo "$CI_SK_REPO"
+cat > "$CI_SK_BIN/gh" <<'STUB'
+#!/bin/sh
+case "$*" in
+  *"pr create"*)       exit 0 ;;
+  *statusCheckRollup*) printf 'failed\n'; exit 0 ;;
+  *"--json url"*)      printf 'https://github.com/test/repo/pull/1\n'; exit 0 ;;
+esac
+exit 0
+STUB
+chmod +x "$CI_SK_BIN/gh"
+ci_sk_rc=$(cd "$CI_SK_REPO" && PATH="$CI_SK_BIN:$PATH" CI_POLL_SKIP=1 PR_FORGE=github bash "$PR" --title T --body B </dev/null >/dev/null 2>&1; echo $?)
+eq "CI_POLL_SKIP exit 0" "$ci_sk_rc" 0
+rm -rf "$CI_SK_TMP"
+
+echo "── GitHub CI polling: timeout exits 0 with a warning ──"
+CI_TO_TMP=$(mktemp -d); CI_TO_BIN="$CI_TO_TMP/bin"; mkdir -p "$CI_TO_BIN"
+CI_TO_REPO="$CI_TO_TMP/repo"; mkdir -p "$CI_TO_REPO"
+setup_pushed_repo "$CI_TO_REPO"
+cat > "$CI_TO_BIN/gh" <<'STUB'
+#!/bin/sh
+case "$*" in
+  *"pr create"*)  exit 0 ;;
+  *"--json url"*) printf 'https://github.com/test/repo/pull/1\n'; exit 0 ;;
+esac
+exit 0
+STUB
+chmod +x "$CI_TO_BIN/gh"
+ci_to_out=$(cd "$CI_TO_REPO" && PATH="$CI_TO_BIN:$PATH" CI_POLL_TIMEOUT=0 PR_FORGE=github bash "$PR" --title T --body B </dev/null 2>&1); ci_to_rc=$?
+eq "CI timeout exit 0" "$ci_to_rc" 0
+if printf '%s' "$ci_to_out" | grep -qi "timed out"; then pass=$((pass+1)); else echo "  MISS (timeout warn): no 'timed out' in output"; fail=$((fail+1)); fi
+rm -rf "$CI_TO_TMP"
 
 echo ""
 echo "pr-host-agnostic: $pass passed, $fail failed"
