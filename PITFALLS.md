@@ -408,6 +408,29 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_
 **Symptoms:** A test that passes alone fails when run from inside a worktree. Or worse, passes but leaves the real repo with uncommitted changes in `.git/index`.
 
 **Source:** Promoted from RECURRING-FINDINGS at Occurrences: 3 (2026-06-24). Sightings: `tests/check-integrity.test.sh`, `tests/install.test.sh`, `tests/pr-host-agnostic.test.sh`.
+## Main-worktree commits on a feature branch bypass the worktree gate
+
+**Area:** Agent workflow discipline; `.husky/pre-commit` and `.husky/pre-push`
+
+**Rule:** Never make edits or commits to a feature branch from the main worktree, even temporarily. The pre-push worktree gate fires too late — by push time the branch already has commits from the wrong location, and `git worktree add` will refuse to create a proper worktree because the branch is already checked out.
+
+**Why:** The pre-push hook checks whether `.git` is a file (dedicated worktree) or a directory (main worktree). It fires after `/cr` has already run and written the sentinel. By that point: (1) commits exist on the branch in the wrong worktree; (2) `git worktree add .claude/worktrees/<slug> <branch>` fails with `fatal: '<branch>' is already used by worktree at '<main-worktree-path>'`; (3) the only escape is to delete the branch, recreate it in a proper worktree, and cherry-pick or repatch the commits.
+
+The bypass path is: edit on main → `git checkout -b feat/x` (uncommitted changes carry over) → `git commit` → `/cr` → sentinel written → `git push` blocked by pre-push. Pre-commit now blocks step 3 for agent processes, closing the gap.
+
+**Symptoms:** `fatal: '<branch>' is already used by worktree` when trying to run `bash scripts/worktree-add.sh`; `/cr` or push running from the main worktree directory.
+
+**The fix:** Always create the worktree before touching any files.
+
+```sh
+bash scripts/worktree-add.sh .claude/worktrees/<slug> feat/<slug>
+# then work exclusively inside .claude/worktrees/<slug>
+```
+
+If you are already in the broken state: `git checkout main`, `git branch -D feat/<slug>`, recreate the worktree, repatch the work.
+
+**Source:** Session 2026-06-24; agent edited SKILL.md on main, branched, committed, hit the error when trying to create the worktree. Closed by adding the worktree check to pre-commit (agent-only via TTY detection).
+**Regression gate:** `tests/main-branch-guard.test.sh` — worktree commit guard tests; pre-push worktree enforcement in `tests/agent-worktree-enforcement.test.sh`.
 
 ---
 
