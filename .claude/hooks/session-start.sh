@@ -12,7 +12,7 @@ if [ -n "$_SESSION_ID" ]; then
   printf '%s %s\n' "$(date +%s)" "$_MODEL" \
     > "/tmp/claude-activity-${_SESSION_ID}" 2>/dev/null || true
 fi
-unset _INPUT _SESSION_ID _MODEL
+unset _INPUT _MODEL
 
 # Truncate the permission log so each session starts clean
 HASH=$(echo "${CLAUDE_PROJECT_DIR:-/}" | md5 | cut -c1-8)
@@ -43,8 +43,26 @@ if [ -n "$_BRANCH" ] && [ "$_BRANCH" != "HEAD" ]; then
     echo "=== Branch '$_BRANCH' is $_BEHIND commit(s) behind main (you are $_AHEAD ahead) ==="
     echo "Sync with main before starting new work."
   fi
+  unset _BEHIND _AHEAD
 fi
-unset _REPO _BRANCH _BEHIND _AHEAD
+
+# Prevents one-off edits from landing directly on main when /feature is skipped.
+if [ -n "$_SESSION_ID" ] \
+   && [ ! -f "$_REPO/.git" ] \
+   && { [ "${_BRANCH:-}" = "main" ] || [ "${_BRANCH:-}" = "master" ]; }; then
+  _SESSION_BRANCH="session/${_SESSION_ID}"
+  _SESSION_WT="$_REPO/.claude/worktrees/${_SESSION_ID}"
+  mkdir -p "$_REPO/.claude/worktrees" 2>/dev/null || true
+  if [ ! -f "$_SESSION_WT/.git" ]; then
+    if git -C "$_REPO" worktree add -b "$_SESSION_BRANCH" "$_SESSION_WT" HEAD 2>/dev/null; then
+      printf '%s\n' "$_SESSION_WT" > "/tmp/claude-session-wt-${_SESSION_ID}" || true
+      echo "=== Session worktree: $_SESSION_WT ==="
+      echo "Work in this directory — changes stay on branch '$_SESSION_BRANCH' until you merge."
+    fi
+  fi
+  unset _SESSION_BRANCH _SESSION_WT
+fi
+unset _REPO _BRANCH _SESSION_ID
 
 
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then

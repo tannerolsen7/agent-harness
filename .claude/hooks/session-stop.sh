@@ -105,3 +105,25 @@ printf '\n'
        '{ts:$ts,branch:$branch,sha:$sha,model:$model,skills:$skills,duration_s:$dur}')" \
     >> "$PROJ/.claude/activity/${SLUG}.jsonl"
 ) 2>&1 | sed 's/^/activity-writer: /' >&2 || true
+
+# Remove the session worktree when the session did no work, to keep the branch list clean.
+_SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""')
+if [ -n "$_SESSION_ID" ]; then
+  _SESSION_WT_FILE="/tmp/claude-session-wt-${_SESSION_ID}"
+  if [ -f "$_SESSION_WT_FILE" ]; then
+    _SESSION_WT=$(cat "$_SESSION_WT_FILE")
+    _SESSION_BRANCH="session/${_SESSION_ID}"
+    _AHEAD=$(git -C "$PROJ" rev-list --count "main..${_SESSION_BRANCH}" 2>/dev/null || echo "1")
+    if [ "$_AHEAD" -eq 0 ]; then
+      git -C "$PROJ" worktree remove "$_SESSION_WT" 2>/dev/null && \
+        git -C "$PROJ" branch -d "$_SESSION_BRANCH" 2>/dev/null || true
+    else
+      printf '\n=== Session branch %s has %s commit(s) — run /feature or open a PR to merge ===\n' \
+        "$_SESSION_BRANCH" "$_AHEAD"
+    fi
+    rm -f "$_SESSION_WT_FILE" || true
+    unset _SESSION_WT _SESSION_BRANCH _AHEAD
+  fi
+  unset _SESSION_WT_FILE
+fi
+unset _SESSION_ID
