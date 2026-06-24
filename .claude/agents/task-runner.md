@@ -78,6 +78,12 @@ Receive: structured codebase findings.
 Invoke @spec-writer with: task contract + @explorer findings.
 Receive: TESTING.md entries (confirmed behaviors, not invented ones).
 The shard file is written by @spec-writer to docs/testing/<slug>.md — docs/TESTING.md is generated automatically; do not write to it directly.
+Then commit the spec file before Step 3 (the mandatory pre-commit gate — check .claude/questions.md for BLOCKING entries — applies as always):
+```bash
+SLUG=$(bash scripts/derive-slug.sh)
+git add "docs/testing/$SLUG.md"
+git commit -m "docs(testing): behaviors for $SLUG"
+```
 
 ### Step 3 — Implement
 For each behavior in the spec, invoke @implementer with:
