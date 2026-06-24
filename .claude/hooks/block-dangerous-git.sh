@@ -99,11 +99,17 @@ while IFS= read -r seg; do
     commit)
       # Block committing on main/master/develop — work must start on a feature branch.
       _cur=$(_resolve_branch)
-      case "$_cur" in main|master|develop) block "commit on protected branch '$_cur' — run: git checkout -b feat/<slug>" ;; esac ;;
+      case "$_cur" in main|master|develop) block "commit on protected branch '$_cur' — run: git checkout -b feat/<slug>" ;; esac
+      for a in "$@"; do
+        case "$a" in
+          --no-verify|-n) block "git commit --no-verify — agents cannot bypass pre-commit hooks" ;;
+        esac
+      done ;;
     push)
       for a in "$@"; do
         case "$a" in
           --force|--force-with-lease|--force-with-lease=*|--force=*) block "force push (rewrites remote history)" ;;
+          --no-verify) block "git push --no-verify — agents cannot bypass pre-push hooks" ;;
           --*) : ;;
           -*f*) block "force push (-f)" ;;
         esac
