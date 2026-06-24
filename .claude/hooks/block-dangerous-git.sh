@@ -122,7 +122,7 @@ while IFS= read -r seg; do
       for a in "$@"; do
         case "$a" in
           --no-verify|-n) block "git commit --no-verify — agents cannot bypass pre-commit hooks" ;;
-          -[!-]*n*) block "git commit -n flag — agents cannot bypass pre-commit hooks" ;;
+          -*n*) block "git commit -n flag — agents cannot bypass pre-commit hooks" ;;
         esac
       done ;;
     push)
