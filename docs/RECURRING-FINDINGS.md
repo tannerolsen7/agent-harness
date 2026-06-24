@@ -280,9 +280,9 @@ file and you reset the loop's memory.
 
 ### hook-guard-op-coverage-gap
 **Signature:** A hook guard that fires on multiple git operations (Add, Modify, Delete) has tests for only one operation type, leaving Modify and Delete regressions undetected.
-**Occurrences:** 1
-**Last seen:** 2026-06-22
-**Locations:** tests/safety-file-guard.test.sh (.claude/hooks/* guard — only Add tested; .husky/* guard correctly has all three)
+**Occurrences:** 2
+**Last seen:** 2026-06-24
+**Locations:** tests/safety-file-guard.test.sh (.claude/hooks/* guard — only Add tested; .husky/* guard correctly has all three); tests/agents-hook-guard.test.sh (agents guard initially only had Add — Modify and Delete added in /cr fix pass)
 **Detail:** The `.husky/*` guard has three test cases (new, modify, delete), covering all arms of the ACMRDT filter. The `.claude/hooks/*` guard in the same file has only one test (new file). A regression that removes the Modify or Delete arm from the guard would go undetected. Pattern: for every category a hook protects, test each operation type (Add, Modify, Delete) that the diff-filter covers — not just Add.
 
 ### parallel-lookup-tables-diverge-silently

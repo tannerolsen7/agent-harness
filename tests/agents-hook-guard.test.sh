@@ -43,6 +43,23 @@ else
 fi
 rm -rf "$D"
 
+echo "── modify to an existing agent definition is blocked ──"
+D=$(mk)
+printf -- '---\nname: test-agent\ntools: Read\n---\nbody\n' > "$D/.claude/agents/test-agent.md"
+( cd "$D" && git add .claude/agents/test-agent.md && git commit -q --no-verify -m init ) >/dev/null 2>&1
+printf -- '---\nname: test-agent\ntools: Read,Write\n---\nbody updated\n' > "$D/.claude/agents/test-agent.md"
+rc=$(cd "$D" && git add .claude/agents/test-agent.md && bash "$HOOK" >/dev/null 2>&1; echo $?)
+ok "$rc" 1 "modify to .claude/agents/ blocked"
+rm -rf "$D"
+
+echo "── delete of an agent definition is blocked ──"
+D=$(mk)
+printf -- '---\nname: test-agent\ntools: Read\n---\nbody\n' > "$D/.claude/agents/test-agent.md"
+( cd "$D" && git add .claude/agents/test-agent.md && git commit -q --no-verify -m init ) >/dev/null 2>&1
+rc=$(cd "$D" && git rm -q .claude/agents/test-agent.md && bash "$HOOK" >/dev/null 2>&1; echo $?)
+ok "$rc" 1 "delete of .claude/agents/ file blocked"
+rm -rf "$D"
+
 echo "── commit NOT touching .claude/agents/ is not affected by this guard ──"
 D=$(mk)
 printf 'hello\n' > "$D/readme.txt"
