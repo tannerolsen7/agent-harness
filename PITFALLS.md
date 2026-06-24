@@ -378,6 +378,23 @@ cd .claude/worktrees/<slug>
 
 ---
 
+## Test files that create temp repos must unset inherited GIT_DIR env vars
+
+**Area:** Any `*.test.sh` file that calls `git init` inside a temp directory
+
+**Rule:** Add the following line immediately after `set -u` (or at the top of the file):
+```sh
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
+```
+
+**Why:** When a test runs from inside a git worktree (for example, `.claude/worktrees/<slug>`), bash inherits git env vars from the shell. `GIT_DIR` is set to the worktree's `.git` file — which points at the real repo. Any `git` command in the test then operates on the real repo instead of the temp dir the test just created. This can corrupt the real index or break `git rev-parse`. The pre-commit hook enforces this: it blocks staging of any `*.test.sh` file that does not contain the `unset GIT_DIR` line.
+
+**Symptoms:** A test that passes alone fails when run from inside a worktree. Or worse, passes but leaves the real repo with uncommitted changes in `.git/index`.
+
+**Source:** Promoted from RECURRING-FINDINGS at Occurrences: 3 (2026-06-24). Sightings: `tests/check-integrity.test.sh`, `tests/install.test.sh`, `tests/pr-host-agnostic.test.sh`.
+
+---
+
 ## install.sh — non-git source dir records `"sha": "local"`, losing the pinned version
 
 **Area:** `scripts/install.sh` manifest writing (lines 121–126); any archive-based install path

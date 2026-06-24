@@ -6,6 +6,8 @@
 # Normalized interface: --title / --body. These map to each CLI's flags (gh: --body,
 # glab: --description); any other args pass through. Forge is detected from the remote
 # (override with PR_FORGE=github|gitlab). PR_DRY_RUN=1 prints the resolved command, runs nothing.
+# After a successful create, polls CI until checks pass, fail, or CI_POLL_TIMEOUT (default: 600s)
+# elapses. CI_POLL_SKIP=1 bypasses polling (useful in test environments or GitLab without glab).
 set -e
 
 SENTINEL=".claude/.cr-ok"
@@ -167,7 +169,7 @@ if "${cmd[@]}"; then
       if [ -z "$_GL_MR_IID" ] || [ "$_GL_MR_IID" = "null" ]; then
         printf "CI: could not find MR for branch — skipping poll. Use CI_POLL_SKIP=1 to suppress.\n" >&2
       else
-        _CI_MR_URL=$(glab api "projects/:fullpath/merge_requests/$_GL_MR_IID" \
+        _GL_MR_URL=$(glab api "projects/:fullpath/merge_requests/$_GL_MR_IID" \
           --jq '.web_url' 2>/dev/null || true)
         printf "CI: waiting for pipeline (timeout: %ds)...\n" "$_CI_TIMEOUT" >&2
         SECONDS=0
@@ -177,7 +179,7 @@ if "${cmd[@]}"; then
             --jq '(.head_pipeline.status // "none")' 2>/dev/null || echo "error")
           case "$_GL_STATUS" in
             success)         printf "CI: pipeline passed.\n" >&2; _CI_DONE=1; break ;;
-            failed|canceled) printf "CI: pipeline %s — see %s\n" "$_GL_STATUS" "${_CI_MR_URL:-MR}" >&2; exit 1 ;;
+            failed|canceled) printf "CI: pipeline %s — see %s\n" "$_GL_STATUS" "${_GL_MR_URL:-MR}" >&2; exit 1 ;;
             none)            printf "CI: no pipeline found — skipping poll.\n" >&2; _CI_DONE=1; break ;;
             *)               sleep 15 ;;
           esac

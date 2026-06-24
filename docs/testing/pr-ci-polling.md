@@ -47,10 +47,14 @@ separate `gh pr checks --watch` step.
   network calls — the same behavior as before this change. CI polling is never
   reached.
 
-- **GitLab forge skips polling with a warning:** When `FORGE=gitlab`, `pr.sh`
-  skips CI polling after a successful MR creation and prints a one-line warning
-  to stderr explaining that GitLab polling is not supported. The script still
-  exits 0.
+- **GitLab forge attempts pipeline polling via `glab api`:** When `FORGE=gitlab`,
+  `pr.sh` looks up the MR by source branch using `glab api
+  projects/:fullpath/merge_requests`, then polls the MR's `head_pipeline.status`
+  field in a loop. If `glab api` cannot find the MR (empty or `null` IID), the
+  script prints a warning and exits 0 without failing. If the pipeline status is
+  `failed` or `canceled`, the script exits 1. If the status reaches `success`, the
+  script exits 0. Set `CI_POLL_SKIP=1` to bypass GitLab polling if the `glab api`
+  field names differ on your instance.
 
 ### Confirmed behaviors — sentinel interaction
 
