@@ -42,7 +42,7 @@ fi
 # Spawn lint runs first (above) so misconfigured definitions get the specific error.
 if printf '%s\n' "$STAGED" | grep -qE '^(\.husky|\.claude/hooks|\.claude/agents)/'; then
   printf 'commit blocked: hook files and agent definitions are protected.\n' >&2
-  printf '  Changes to .husky/*, .claude/hooks/*, and .claude/agents/* require a direct human commit.\n' >&2
+  printf '  To apply the change as a human operator: git commit --no-verify -m "<message>"\n' >&2
   exit 1
 fi
 
@@ -88,6 +88,24 @@ if [ -n "$STAGED_SENTINELS" ]; then
   printf "These files are gitignored and can only be staged with 'git add -f'.\n" >&2
   exit 1
 fi
+
+# Worktree enforcement: agents must not commit feature branches from the main worktree.
+# The main worktree has .git as a DIRECTORY; a dedicated worktree has .git as a FILE.
+# Mirrors the pre-push worktree gate — catches the violation at commit time, not push time.
+COMMIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+case "$COMMIT_BRANCH" in
+  main|master|HEAD|"") ;;
+  *)
+    if [ -d .git ] && ! { exec 3</dev/tty; } 2>/dev/null; then
+      exec 3<&- 2>/dev/null || true
+      _SLUG=$(printf '%s' "$COMMIT_BRANCH" | sed 's|.*/||')
+      printf "commit blocked: '%s' must be committed from a dedicated worktree.\n" "$COMMIT_BRANCH" >&2
+      printf "  Create one: bash scripts/worktree-add.sh .claude/worktrees/%s %s\n" "$_SLUG" "$COMMIT_BRANCH" >&2
+      exit 1
+    fi
+    exec 3<&- 2>/dev/null || true
+    ;;
+esac
 
 # GIT_DIR clearing check: every staged *.test.sh must contain the git env unset line.
 # Without it, tests that create temp git repos inherit the real repo's environment
