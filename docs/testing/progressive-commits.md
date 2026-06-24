@@ -107,3 +107,33 @@ pipeline.
 - **@implementer must-fix commits in the fix loop are unchanged:** `@implementer`
   already commits must-fix items in the `@task-runner` fix loop. The
   task-runner spec commit does not change or replace that behavior.
+
+## Agent hook: blocking `--no-verify` and hook-path redirects
+
+Agents cannot use `git commit --no-verify`, `git push --no-verify`, or
+`git -c core.hooksPath=...` to bypass the project's pre-commit and pre-push
+hooks. These forms are blocked by `block-dangerous-git.sh` (the `PreToolUse(Bash)`
+hook) before the git command reaches the shell.
+
+### Confirmed behaviors
+
+- **`git commit --no-verify` is blocked:** When an agent runs
+  `git commit --no-verify -m "..."`, the hook exits 2 and the commit does
+  not run.
+
+- **`git commit -n` (short form) is blocked:** When an agent runs
+  `git commit -n -m "..."`, the hook exits 2 and the commit does not run.
+
+- **`git commit -nm "..."` (combined short flag) is blocked:** When an agent
+  passes `-nm` (combining `-n` with `-m`), the hook exits 2 and the commit
+  does not run.
+
+- **`git push --no-verify` is blocked:** When an agent runs
+  `git push --no-verify`, the hook exits 2 and the push does not run.
+
+- **`git -c core.hooksPath=...` is blocked:** When an agent uses
+  `-c core.hooksPath=<path>` to redirect git's hook directory before any
+  subcommand, the hook exits 2 and the git command does not run.
+
+- **Normal commits and pushes are not affected:** `git commit -m "normal"`
+  and `git push origin feat/my-feature` still pass through the hook unchanged.

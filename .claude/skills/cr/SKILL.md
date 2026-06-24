@@ -421,7 +421,7 @@ Then commit all cr-driven changes before the sentinel. Any commit after the sent
 ```bash
 SLUG=$(bash scripts/derive-slug.sh)
 git add -u
-git commit -m "fix($SLUG): apply cr findings" || true
+git commit -m "fix($SLUG): apply cr findings" || echo "nothing to commit — skipping"
 ```
 
 ---

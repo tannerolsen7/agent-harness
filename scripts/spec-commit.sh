@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 SLUG=$(bash scripts/derive-slug.sh)
 if [ ! -f "docs/testing/$SLUG.md" ]; then
   echo "spec-commit: docs/testing/$SLUG.md not found — did the spec writer fail?" >&2
