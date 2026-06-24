@@ -59,18 +59,22 @@ not write the sentinel.**
      | grep -c '^+<<<<<<< ' || true)
    ```
 
-5. **If `$CONFLICTS` is greater than 0 — HARD BLOCK:**
+5. **If `$CONFLICTS` is greater than 0 — attempt auto-merge:**
 
-   Emit this message and stop. Do not proceed to Step 0.
+   ```bash
+   git merge "origin/$BASE"
    ```
-   /cr blocked: branch has merge conflicts with '<BASE>'.
 
-   Rebase first:
-     git fetch origin
-     git rebase origin/<BASE>
+   - **If the merge succeeds** (exit 0, no conflict markers): proceed to Step 0. Note: this adds a merge commit to the branch.
+   - **If the merge fails** (conflict markers remain in working tree): abort (`git merge --abort`) and emit this message, then stop:
+     ```
+     /cr blocked: branch has merge conflicts with '<BASE>' that need human resolution.
 
-   Then re-run /cr.
-   ```
+     Run:
+       git fetch origin
+       git merge origin/<BASE>
+     Resolve the conflicts, then re-run /cr.
+     ```
 
 6. **If no conflicts** — proceed to Step 0.
 
@@ -442,7 +446,7 @@ Then push, then open the PR (this order matters — `scripts/pr.sh` validates th
 ```bash
 git push -u origin "$(git rev-parse --abbrev-ref HEAD)"
 scripts/pr.sh --title "..." --body "..."
-gh pr view --json url -q .url   # surface the PR URL to the user
+gh pr view --json state,title,url,mergeable,statusCheckRollup
 ```
 
 ---
