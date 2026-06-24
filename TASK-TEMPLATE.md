@@ -71,9 +71,14 @@ Constraints:
   exit 1 immediately.
 - Remove the worktree BEFORE deleting the branch — git refuses to delete a branch that
   is still checked out in a live worktree.
-- Use `git branch -d` (soft delete). Fall back to `git branch -D` ONLY when `gh`
-  confirms a squash-merge — the merge proof must precede the force delete.
-- Script is POSIX sh — no bash arrays, no `$((...))` arithmetic, no `[[` tests.
+- After confirming merge, use `git branch --delete --force` (same as `prune-branches.sh`
+  line 174). The merge check is the safety gate — not the delete flag. Using the soft
+  form (`-d`) is fragile because it checks the current HEAD, which may not be main.
+- Script is bash (shebang `#!/usr/bin/env bash`), matching every other script in
+  `scripts/`. Called via `bash scripts/cleanup-worktree.sh`, not as a hook under sh.
+- Use `git worktree remove --force "$WORKTREE_PATH"` — consistent with
+  `prune-branches.sh` and `worktree-add.sh`. Without `--force`, git refuses to
+  remove a worktree that has uncommitted changes.
 - Idempotent: if the worktree or branch was already removed, exit 0 silently.
 
 State:
@@ -112,8 +117,12 @@ operations only.
 - Branch name: derived inside the script via
   `git -C "$WORKTREE_PATH" rev-parse --abbrev-ref HEAD`.
 
-**Merge-check inputs (same pattern as `prune-branches.sh`):**
-- `git merge-base --is-ancestor <branch-tip> origin/main` — true for regular merges
+**Merge-check inputs:**
+- `git merge-base --is-ancestor <branch-tip> origin/main` — true for regular merges.
+  MUST use `origin/main`, NOT `HEAD`. When this script runs from inside the worktree,
+  `HEAD` = the feature branch itself — checking against `HEAD` would always return true
+  and silently delete every branch. `prune-branches.sh` uses `HEAD` because it runs
+  from the main worktree where `HEAD` = main; that assumption does not hold here.
 - `gh pr list --head <branch> --state merged --json number -q '.[0].number'`
   — detects squash-merges when `gh` is available
 
@@ -133,8 +142,9 @@ No persistent state written. No other files modified.
 - **`gh` absent + squash-merge**: `merge-base --is-ancestor` returns false, `gh`
   unavailable → treated as "not merged", exit 0. `prune-branches.sh` catches it at
   the next session start when `gh` is available.
-- **Worktree directory already removed, branch still exists**: skip
-  `git worktree remove`, go straight to `git branch -d`. Idempotent path.
+- **Worktree directory already removed**: exit 0 silently. Branch name cannot be
+  derived without the directory. Any orphaned branch will be caught by
+  `prune-branches.sh` at session start.
 - **Branch already deleted**: `git branch -d` exits non-zero; suppress the error and
   exit 0 — both are cleaned up, which is the desired end state.
 - **Called from inside the target worktree (no arg)**: `git rev-parse --show-toplevel`
