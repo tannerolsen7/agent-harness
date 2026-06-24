@@ -299,6 +299,13 @@ file and you reset the loop's memory.
 **Locations:** `scripts/install.sh` (`CREATE_ONCE`) vs `scripts/sync-harness.sh` (`template_for()`) — `deploy-targets.yml` was in `CREATE_ONCE` but missing from `template_for`; sync silently skipped restoring it after deletion.
 **Detail:** `template_for` is a `case` statement that maps create-once filenames to their source template paths — the same mapping already encoded in `install.sh`'s `CREATE_ONCE` variable. When a new entry is added to `CREATE_ONCE`, `template_for` must be updated in the same commit, or sync will hit the `*)` arm and print "skipped (create-once, no template)" with no error. Fixed by adding the missing case arm. Pattern: any time two structures must mirror each other without an automated check (a lint script, a test that reads both, or a shared constant), the PITFALLS or RECURRING-FINDINGS entry should recommend converting the human-process rule into an automated check.
 
+### test-assumes-local-main-branch-exists
+**Signature:** A test that exercises code using `refs/heads/main` or `main..origin/main` does not explicitly create a local `main` branch, so it silently fails on systems where `init.defaultBranch` is `master`.
+**Occurrences:** 1
+**Last seen:** 2026-06-24
+**Locations:** tests/cleanup-worktree.test.sh (new "behind main" test — `git checkout -q main` silently failed on master-default git; `BEHIND=0` prevented the reminder from printing)
+**Detail:** `make_repo` pushes to `origin/main` but does not rename the local branch. On systems with `init.defaultBranch=master`, local `refs/heads/main` never exists. Any script that computes `main..origin/main` returns 0 (silently). Fix: add `git branch -M main 2>/dev/null || true` to the test setup to force the local branch name, regardless of global git config.
+
 ---
 
 ## Promoted
