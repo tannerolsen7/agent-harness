@@ -378,6 +378,22 @@ cd .claude/worktrees/<slug>
 
 ---
 
+## bash `SECONDS` tracks time since shell start, not script start — reset before timing loops
+
+**Area:** Any shell script that uses `SECONDS` to enforce a timeout
+
+**Rule:** Assign `SECONDS=0` immediately before the loop that compares against the timeout threshold. Do not compare the raw value of `SECONDS` against a timeout without first resetting it.
+
+**Why:** Bash's `SECONDS` builtin tracks elapsed time since the shell process launched, not since the current script started. By the time a long-running script reaches its polling loop, `SECONDS` may already be 30–90 seconds. Comparing that value against a 600-second timeout gives the loop only 510–570 seconds, not 600. The shortfall is invisible — the loop just exits early without printing any error.
+
+**Symptoms:** A polling loop or retry loop exits before the configured timeout. The exit looks normal (no error, just a "timed out" message), but the actual wait time is shorter than expected. The bug is most pronounced on slow networks or when the script runs significant pre-loop work.
+
+**The check:** Every `while [ "$SECONDS" -lt "$TIMEOUT" ]` pattern must have a `SECONDS=0` assignment immediately before it. If `SECONDS` is not reset, the timeout is unpredictable.
+
+**Source:** `scripts/pr.sh` CI polling block (2026-06-24).
+
+---
+
 ## Test files that create temp repos must unset inherited GIT_DIR env vars
 
 **Area:** Any `*.test.sh` file that calls `git init` inside a temp directory
