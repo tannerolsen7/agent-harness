@@ -58,3 +58,13 @@ These rules are guidance only — no hook can enforce them automatically:
 
 - **Communication voice** (9th-grade reading level, plain language) — judgment call; no linter catches bad prose.
 - **`/refactor` before structural moves** — no reliable way to detect a structural move from a diff alone. The branch `type/` prefix partially enforces the routing rule (the type must match the work), but detecting structural moves inside a diff is still a human judgment.
+
+# Asking the user to act
+
+Any time you cannot do something yourself and need the user to run a command, make a file edit, or take any other manual action, give three things in order:
+
+1. **What** — one sentence describing what the action does.
+2. **Why** — one sentence explaining why you cannot do it yourself (hook blocks it, deny rule, requires human auth, etc.).
+3. **The action** — for a command: the full copy-pasteable `cd <absolute-path> && ...` command; for a file edit: the exact before/after text in a code block, or a self-contained command (e.g. `sed` with a heredoc) that makes the change without requiring the user to open an editor.
+
+Never just describe the change and ask the user to "handle it." Give them everything they need to act in one place.
