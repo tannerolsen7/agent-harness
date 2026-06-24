@@ -5,11 +5,44 @@ set -e
 
 STAGED=$(git diff --cached --name-only --diff-filter=ACMRDT 2>/dev/null || true)
 
-# Agents must not commit changes to hook files — these scripts enforce the rules
-# that constrain what agents can do. An agent weakening them defeats the safety floor.
-if printf '%s\n' "$STAGED" | grep -qE '^(\.husky|\.claude/hooks)/'; then
-  printf 'commit blocked: hook files are protected — they enforce the safety floor.\n' >&2
-  printf '  Changes to .husky/* and .claude/hooks/* require a direct human commit.\n' >&2
+# Agent spawn lint: staged agent definitions under .claude/agents/ must have
+# both Task (in tools) and permissionMode (default or auto) if they spawn sub-agents.
+# Task without permissionMode fails at startup; permissionMode without Task never spawns.
+# Runs before the safety-file guard so misconfigured definitions get a specific error first.
+STAGED_AGENTS=$(git diff --cached --name-only --diff-filter=ACM | grep '^\.claude/agents/.*\.md$' || true)
+if [ -n "$STAGED_AGENTS" ]; then
+  for _f in $STAGED_AGENTS; do
+    _frontmatter=$(awk '/^---$/{c++; next} c==1{print} c>=2{exit}' "$_f" 2>/dev/null || true)
+    _has_task=false
+    _has_perm=false
+    if printf '%s\n' "$_frontmatter" | grep -qE '^tools:.*\bTask\b' || \
+       printf '%s\n' "$_frontmatter" | grep -qE '^\s*-\s*Task\b'; then
+      _has_task=true
+    fi
+    if printf '%s\n' "$_frontmatter" | grep -qE '^permissionMode:\s*(default|auto)'; then
+      _has_perm=true
+    fi
+    if $_has_task && ! $_has_perm; then
+      printf "commit blocked: '%s' lists Task in tools but is missing permissionMode.\n" "$_f" >&2
+      printf "  Add 'permissionMode: default' or 'permissionMode: auto' to the frontmatter.\n" >&2
+      printf "  Without it, spawned sub-agents fail at startup.\n" >&2
+      exit 1
+    fi
+    if ! $_has_task && $_has_perm; then
+      printf "commit blocked: '%s' has permissionMode but is missing Task in tools.\n" "$_f" >&2
+      printf "  Add 'Task' to the 'tools:' field in the frontmatter.\n" >&2
+      printf "  Without Task, the agent cannot spawn sub-agents.\n" >&2
+      exit 1
+    fi
+  done
+fi
+
+# Agents must not commit changes to hook files or agent definitions — these control
+# what agents are allowed to do. Weakening them defeats the safety floor.
+# Spawn lint runs first (above) so misconfigured definitions get the specific error.
+if printf '%s\n' "$STAGED" | grep -qE '^(\.husky|\.claude/hooks|\.claude/agents)/'; then
+  printf 'commit blocked: hook files and agent definitions are protected.\n' >&2
+  printf '  Changes to .husky/*, .claude/hooks/*, and .claude/agents/* require a direct human commit.\n' >&2
   exit 1
 fi
 
@@ -69,37 +102,6 @@ if [ -n "$STAGED_TESTS" ]; then
       printf "  %s\n" "$_UNSET_LINE" >&2
       printf "  Without it, tests that git-init temp repos inherit the real repo's\n" >&2
       printf "  GIT_DIR and can corrupt the working tree or produce wrong results.\n" >&2
-      exit 1
-    fi
-  done
-fi
-
-# Agent spawn lint: staged agent definitions under .claude/agents/ must have
-# both Task (in tools) and permissionMode (default or auto) if they spawn sub-agents.
-# Task without permissionMode fails at startup; permissionMode without Task never spawns.
-STAGED_AGENTS=$(git diff --cached --name-only --diff-filter=ACM | grep '^\.claude/agents/.*\.md$' || true)
-if [ -n "$STAGED_AGENTS" ]; then
-  for _f in $STAGED_AGENTS; do
-    _frontmatter=$(awk '/^---$/{c++; next} c==1{print} c>=2{exit}' "$_f" 2>/dev/null || true)
-    _has_task=false
-    _has_perm=false
-    if printf '%s\n' "$_frontmatter" | grep -qE '^tools:.*\bTask\b' || \
-       printf '%s\n' "$_frontmatter" | grep -qE '^\s*-\s*Task\b'; then
-      _has_task=true
-    fi
-    if printf '%s\n' "$_frontmatter" | grep -qE '^permissionMode:\s*(default|auto)'; then
-      _has_perm=true
-    fi
-    if $_has_task && ! $_has_perm; then
-      printf "commit blocked: '%s' lists Task in tools but is missing permissionMode.\n" "$_f" >&2
-      printf "  Add 'permissionMode: default' or 'permissionMode: auto' to the frontmatter.\n" >&2
-      printf "  Without it, spawned sub-agents fail at startup.\n" >&2
-      exit 1
-    fi
-    if ! $_has_task && $_has_perm; then
-      printf "commit blocked: '%s' has permissionMode but is missing Task in tools.\n" "$_f" >&2
-      printf "  Add 'Task' to the 'tools:' field in the frontmatter.\n" >&2
-      printf "  Without Task, the agent cannot spawn sub-agents.\n" >&2
       exit 1
     fi
   done

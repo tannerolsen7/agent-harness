@@ -174,18 +174,12 @@ else
 fi
 rm -rf "$D"
 
-echo "── staging a new .claude/agents/my-agent.md is NOT blocked ──"
+echo "── staging a new .claude/agents/my-agent.md IS blocked ──"
 D=$(mk)
 mkdir -p "$D/.claude/agents"
-printf 'name: my-agent\n' > "$D/.claude/agents/my-agent.md"
-(cd "$D" && git add .claude/agents/my-agent.md) >/dev/null 2>&1
-err=$(cd "$D" && bash "$HOOK" 2>&1; true)
-if printf '%s' "$err" | grep -qE "hook files|permissions|gate|secrets"; then
-  fail=$((fail+1))
-  echo "  MISS (agents file): safety guard fired on .claude/agents/*.md"
-else
-  pass=$((pass+1))
-fi
+printf -- '---\nname: my-agent\ntools: Read\n---\nbody\n' > "$D/.claude/agents/my-agent.md"
+rc=$(cd "$D" && git add .claude/agents/my-agent.md && bash "$HOOK" >/dev/null 2>&1; echo $?)
+ok "$rc" 1 ".claude/agents/*.md now protected"
 rm -rf "$D"
 
 # ── gate scripts — lint and gate enforcers ──
