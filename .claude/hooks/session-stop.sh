@@ -113,16 +113,28 @@ if [ -n "$_SESSION_ID" ]; then
   if [ -f "$_SESSION_WT_FILE" ]; then
     _SESSION_WT=$(cat "$_SESSION_WT_FILE")
     _SESSION_BRANCH="session/${_SESSION_ID}"
-    _AHEAD=$(git -C "$PROJ" rev-list --count "main..${_SESSION_BRANCH}" 2>/dev/null || echo "1")
-    if [ "$_AHEAD" -eq 0 ]; then
-      git -C "$PROJ" worktree remove "$_SESSION_WT" 2>/dev/null && \
-        git -C "$PROJ" branch -d "$_SESSION_BRANCH" 2>/dev/null || true
+    if [ -n "$_SESSION_WT" ]; then
+      _DEFAULT_BRANCH=$(git -C "$PROJ" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null \
+        | sed 's|refs/remotes/origin/||' || echo "main")
+      # Fall back to 1 (not 0) so a git failure preserves the branch rather than deleting it.
+      _AHEAD=$(git -C "$PROJ" rev-list --count "${_DEFAULT_BRANCH}..${_SESSION_BRANCH}" \
+        2>/dev/null || echo "1")
+      case "$_AHEAD" in ''|*[!0-9]*) _AHEAD=1 ;; esac
+      if [ "$_AHEAD" -eq 0 ]; then
+        if git -C "$PROJ" worktree remove "$_SESSION_WT" 2>/dev/null; then
+          git -C "$PROJ" branch -d "$_SESSION_BRANCH" 2>/dev/null || true
+          rm -f "$_SESSION_WT_FILE" || true
+        fi
+      else
+        printf '\n=== Session branch %s has %s commit(s) — run /feature or open a PR to merge ===\n' \
+          "$_SESSION_BRANCH" "$_AHEAD"
+        rm -f "$_SESSION_WT_FILE" || true
+      fi
+      unset _DEFAULT_BRANCH _AHEAD
     else
-      printf '\n=== Session branch %s has %s commit(s) — run /feature or open a PR to merge ===\n' \
-        "$_SESSION_BRANCH" "$_AHEAD"
+      rm -f "$_SESSION_WT_FILE" || true
     fi
-    rm -f "$_SESSION_WT_FILE" || true
-    unset _SESSION_WT _SESSION_BRANCH _AHEAD
+    unset _SESSION_WT _SESSION_BRANCH
   fi
   unset _SESSION_WT_FILE
 fi

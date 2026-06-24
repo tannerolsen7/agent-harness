@@ -13,6 +13,7 @@ if [ -n "$_SESSION_ID" ]; then
     > "/tmp/claude-activity-${_SESSION_ID}" 2>/dev/null || true
 fi
 unset _INPUT _MODEL
+# _SESSION_ID intentionally stays alive — the session isolation block below reads it.
 
 # Truncate the permission log so each session starts clean
 HASH=$(echo "${CLAUDE_PROJECT_DIR:-/}" | md5 | cut -c1-8)
@@ -46,7 +47,9 @@ if [ -n "$_BRANCH" ] && [ "$_BRANCH" != "HEAD" ]; then
   unset _BEHIND _AHEAD
 fi
 
-# Prevents one-off edits from landing directly on main when /feature is skipped.
+# Agents starting on main in the main repo get a dedicated branch automatically.
+# Uses bare git worktree add (not scripts/worktree-add.sh) because session worktrees
+# are ephemeral — they do not need npm install or hook provisioning.
 if [ -n "$_SESSION_ID" ] \
    && [ ! -f "$_REPO/.git" ] \
    && { [ "${_BRANCH:-}" = "main" ] || [ "${_BRANCH:-}" = "master" ]; }; then
@@ -54,11 +57,12 @@ if [ -n "$_SESSION_ID" ] \
   _SESSION_WT="$_REPO/.claude/worktrees/${_SESSION_ID}"
   mkdir -p "$_REPO/.claude/worktrees" 2>/dev/null || true
   if [ ! -f "$_SESSION_WT/.git" ]; then
-    if git -C "$_REPO" worktree add -b "$_SESSION_BRANCH" "$_SESSION_WT" HEAD 2>/dev/null; then
-      printf '%s\n' "$_SESSION_WT" > "/tmp/claude-session-wt-${_SESSION_ID}" || true
-      echo "=== Session worktree: $_SESSION_WT ==="
-      echo "Work in this directory — changes stay on branch '$_SESSION_BRANCH' until you merge."
-    fi
+    git -C "$_REPO" worktree add -b "$_SESSION_BRANCH" "$_SESSION_WT" HEAD 2>/dev/null || true
+  fi
+  if [ -f "$_SESSION_WT/.git" ]; then
+    printf '%s\n' "$_SESSION_WT" > "/tmp/claude-session-wt-${_SESSION_ID}" || true
+    echo "=== Session worktree: $_SESSION_WT ==="
+    echo "Work in this directory — changes stay on branch '$_SESSION_BRANCH' until you merge."
   fi
   unset _SESSION_BRANCH _SESSION_WT
 fi

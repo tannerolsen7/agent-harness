@@ -14,7 +14,7 @@ When `session-start.sh` runs and:
 - the current directory is the main repo (`.git` is a directory, not a file), AND
 - the current branch is `main` or `master`
 
-Then it creates a git worktree at `.claude/worktrees/<session-id>/` on a branch named `session/<session-id>`, writes the worktree path to `/tmp/claude-session-wt-<session-id>`, and prints the path to stdout.
+Then it creates a git worktree at `.claude/worktrees/<session-id>/` on a branch named `session/<session-id>`, writes the worktree path to `/tmp/claude-session-wt-<session-id>`, and prints a banner to stdout that includes the worktree path.
 
 ### B2 — SessionStart skips when already in a worktree
 

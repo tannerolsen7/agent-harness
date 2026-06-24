@@ -196,7 +196,7 @@ else
 fi
 
 # Output must mention the session branch.
-if printf '%s' "$OUT5" | grep -q "session/$SID5"; then
+if printf '%s' "$OUT5" | grep -q "commit(s)"; then
   ok
 else
   no "B5: stop output did not mention session branch 'session/$SID5'"

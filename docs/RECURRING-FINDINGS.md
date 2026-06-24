@@ -55,6 +55,34 @@ file and you reset the loop's memory.
 **Locations:** .claude/hooks/block-dangerous-git.sh (norm_ref doesn't resolve HEAD; explicit-arg branch check only)
 **Detail:** `git push origin HEAD` on main exits 0 (allowed). `norm_ref("HEAD")` returns `"HEAD"` (not in protected list); two non-flag args means `_non_flag=2` skips the bare-push `_non_flag<=1` fallback. Guard file — NEEDS HUMAN to fix.
 
+### session-cleanup-pointer-not-rewritten-on-resume
+**Signature:** A cleanup hook writes a pointer file at creation time inside a creation guard, so a resumed session skips both the creation and the pointer write — leaving no pointer for the stop hook to find.
+**Occurrences:** 1
+**Last seen:** 2026-06-24
+**Locations:** .claude/hooks/session-start.sh (isolation block — temp file write gated inside `if [ ! -f "$_SESSION_WT/.git" ]`)
+**Detail:** Session-start writes `/tmp/claude-session-wt-<id>` only when it calls `git worktree add`. On a resumed session the worktree exists, so the guard skips both creation and the pointer write. Session-stop checks for the pointer file and finds nothing — the worktree and branch are never cleaned up. Fix: separate the creation guard from the pointer write. Create only when absent; write the pointer file whenever the worktree exists (whether just created or pre-existing).
+
+### hardcoded-default-branch-in-cleanup
+**Signature:** A cleanup script compares against a hardcoded `main` ref instead of detecting the repo's actual default branch, so cleanup never runs on repos where the default branch is `master`.
+**Occurrences:** 1
+**Last seen:** 2026-06-24
+**Locations:** .claude/hooks/session-stop.sh (cleanup block — `rev-list --count "main..${_SESSION_BRANCH}"`)
+**Detail:** The start hook correctly creates session branches for both `main` and `master` repos. The stop hook always compares against `main`. On a `master`-default repo, `main` does not exist, `rev-list` fails, the `|| echo "1"` fallback fires, and no cleanup ever runs — every session leaves an orphan worktree and branch. Fix: resolve the default branch with `git symbolic-ref refs/remotes/origin/HEAD` and fall back to `main` only if that fails.
+
+### temp-pointer-deleted-before-verifying-cleanup
+**Signature:** A cleanup script deletes a pointer/state file unconditionally, even when the operation it pointed to failed — leaving no recovery record if the operation fails silently.
+**Occurrences:** 1
+**Last seen:** 2026-06-24
+**Locations:** .claude/hooks/session-stop.sh (cleanup block — `rm -f "$_SESSION_WT_FILE"` runs after `worktree remove ... || true` regardless of success)
+**Detail:** `git worktree remove` can fail silently (e.g., staged-but-uncommitted changes, dirty tree). With `2>/dev/null` and `|| true`, the failure is swallowed. The temp file is then unconditionally deleted. On the next session-stop the pointer is gone and cleanup is skipped forever — the worktree becomes a permanent orphan. Fix: only delete the pointer file when the worktree was actually removed successfully. Leave it in place on failure so a future session-stop can retry.
+
+### test-mk-no-gitdir-guard
+**Signature:** A test helper that calls `git init` in a temp dir does not unset inherited `GIT_DIR` env vars, risking real-repo corruption when run from a worktree.
+**Occurrences:** 2
+**Last seen:** 2026-06-18
+**Locations:** tests/check-integrity.test.sh (mk() function, lines 18–30); tests/install.test.sh (line 695 — correctly handled)
+**Detail:** Matches the documented PITFALL "Running tests from inside a worktree corrupts the real repo." The fix is to unset GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_PREFIX/GIT_COMMON_DIR/GIT_OBJECT_DIRECTORY/GIT_NAMESPACE at the top of the test file. Fixed in both locations. At Occurrences ≥3 this should be promoted to a named /cr check.
+
 ### stale-comment-wrong-output-protocol
 **Signature:** A comment describes the behavior or output of a command/function, but the actual behavior differs, misleading anyone who reads or extends it.
 **Occurrences:** 3 — AUTO-PROMOTE
