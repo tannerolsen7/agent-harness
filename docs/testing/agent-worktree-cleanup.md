@@ -16,8 +16,8 @@ exits without touching anything.
   of running `git rev-parse --show-toplevel`.
 
 - **Path outside `.claude/worktrees/` exits 1 immediately:** Given the
-  resolved absolute path does not start with `$REPO_ROOT/.claude/worktrees/`,
-  the script exits 1 before touching any worktree or branch.
+  resolved absolute path does not contain `/.claude/worktrees/` as a path
+  segment, the script exits 1 before touching any worktree or branch.
 
 - **Main repo root exits 1 immediately:** Given the resolved path is the main
   repo root (identified by `.git` being a directory rather than a file), the

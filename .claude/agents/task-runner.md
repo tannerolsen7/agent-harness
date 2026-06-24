@@ -224,12 +224,12 @@ This check runs before every commit, without exception.
    this before pushing; `scripts/pr.sh` validates and consumes it before creating the PR.
    Use the script — writing the sentinel directly bypasses dirty-tree detection and the audit log.
 4. Update TASKS.md entry to `[x]`
-5. Run cleanup: `bash scripts/cleanup-worktree.sh` (called from inside the
-   worktree, no argument). The PR is usually not merged yet at this point.
+5. Run cleanup: `bash scripts/cleanup-worktree.sh || true` (called from inside
+   the worktree, no argument). The PR is usually not merged yet at this point.
    If it is (e.g., auto-merge landed), the worktree and branch are cleaned
    up immediately. If not, `prune-branches.sh` at the next session start
-   handles it. Treat the exit code as always 0; never block the return
-   summary on this step.
+   handles it. The `|| true` makes the exit code always 0 so a cleanup
+   failure never blocks the return summary.
 6. Return summary to /queue:
    - task-slug
    - commits made (SHAs)

@@ -3,13 +3,22 @@
 # Safe to call at any time: exits 0 without touching anything if branch is not yet merged.
 # Usage: bash scripts/cleanup-worktree.sh [WORKTREE_PATH]
 #   WORKTREE_PATH — optional; defaults to git rev-parse --show-toplevel from CWD.
+# Note: squash-merge detection requires `gh` (GitHub CLI). Without it, squash-merged
+# branches are treated as "not yet merged" and left for prune-branches.sh to handle.
 set -e
 
 # Resolve the target worktree path to an absolute path.
 if [ -n "${1-}" ]; then
   case "$1" in
     /*) WORKTREE_PATH=$1 ;;
-    *)  WORKTREE_PATH=$(pwd)/$1 ;;
+    *)
+      # Normalize relative paths so ../traversals don't bypass the safety gate.
+      if [ -d "$1" ]; then
+        WORKTREE_PATH=$(cd "$1" && pwd)
+      else
+        WORKTREE_PATH=$(pwd)/$1
+      fi
+      ;;
   esac
 else
   WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null) || {
@@ -17,6 +26,9 @@ else
     exit 1
   }
 fi
+
+# Strip any trailing slash so git worktree remove matches its stored registration.
+WORKTREE_PATH="${WORKTREE_PATH%/}"
 
 # Safety gate: path must be under a .claude/worktrees/ directory.
 # Prevents accidentally touching the main repo root or arbitrary paths.
@@ -39,9 +51,11 @@ fi
 [ -d "$WORKTREE_PATH" ] || exit 0
 
 # Find the main repo root via the git common dir.
-# In a linked worktree, git-common-dir returns an absolute path to the main .git directory.
-# We need the main repo root to run git worktree remove (running it from inside the target
-# worktree fails — git refuses to remove the current worktree).
+# We cannot use `git rev-parse --show-toplevel` here because inside a linked worktree
+# it returns the worktree path, not the main repo root. `git-common-dir` returns the
+# main .git directory's absolute path, whose parent is the main repo root.
+# We also need the main repo root to run git worktree remove — git refuses to remove
+# the current worktree when CWD is inside it.
 COMMON_DIR=$(git -C "$WORKTREE_PATH" rev-parse --git-common-dir 2>/dev/null) || {
   printf 'error: cannot find git common dir for %s\n' "$WORKTREE_PATH" >&2
   exit 1
@@ -62,15 +76,24 @@ if [ -z "$BRANCH" ] || [ "$BRANCH" = "HEAD" ]; then
 fi
 
 BRANCH_TIP=$(git -C "$WORKTREE_PATH" rev-parse HEAD 2>/dev/null || true)
+MAIN_TIP=$(git -C "$REPO_ROOT" rev-parse origin/main 2>/dev/null || true)
 
 # Merge check: is the branch already merged into origin/main?
 # Must compare against origin/main, NOT HEAD. Inside a linked worktree, HEAD points to
 # the feature branch itself — comparing against it always returns true, which would
 # silently delete every branch that calls this script.
+#
+# Guard: BRANCH_TIP != MAIN_TIP protects the false-positive case from PITFALLS.md —
+# a freshly-provisioned branch with no unique commits has its tip at origin/main's tip
+# (or an older commit in origin/main's history), so the ancestor check returns true
+# even though the branch was never merged. If the tips are equal, the branch is fresh;
+# fall through to the gh check for confirmation.
 MERGED=false
-if [ -n "$BRANCH_TIP" ] && git -C "$REPO_ROOT" merge-base --is-ancestor "$BRANCH_TIP" origin/main 2>/dev/null; then
+if [ -n "$BRANCH_TIP" ] && [ -n "$MAIN_TIP" ] && [ "$BRANCH_TIP" != "$MAIN_TIP" ] \
+   && git -C "$REPO_ROOT" merge-base --is-ancestor "$BRANCH_TIP" origin/main 2>/dev/null; then
   MERGED=true
-elif command -v gh >/dev/null 2>&1; then
+fi
+if [ "$MERGED" != true ] && command -v gh >/dev/null 2>&1; then
   PR=$(gh pr list --head "$BRANCH" --state merged --json number -q '.[0].number' 2>/dev/null || true)
   if [ -n "$PR" ]; then MERGED=true; fi
 fi

@@ -156,5 +156,23 @@ cd "$TMP/.claude/worktrees/head-guard" && bash "$SCRIPT" >/dev/null 2>&1; EC=$?
 ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/head-guard >/dev/null 2>&1 ); chk "$?" "origin/main guard: unmerged branch survives"
 rm -rf "$TMP"
 
+# ── zero-commit branch: freshly provisioned, tip equals origin/main ──────────
+# A branch with no unique commits of its own has its tip at origin/main's tip.
+# merge-base --is-ancestor returns true — but this is a false positive.
+# The script must not clean up a branch that was never merged.
+TMP=$(make_repo)
+(
+  cd "$TMP"
+  # Create a worktree branch from the current main tip — no commits added.
+  git worktree add -q .claude/worktrees/zero-commit-task -b feat/zero-commit-task >/dev/null 2>&1
+  # Do NOT merge or push this branch to origin/main.
+) >/dev/null 2>&1
+
+bash "$SCRIPT" "$TMP/.claude/worktrees/zero-commit-task" >/dev/null 2>&1; EC=$?
+[ "$EC" = 0 ]; chk "$?" "zero-commit: exit 0 (not merged — false positive blocked)"
+[ -d "$TMP/.claude/worktrees/zero-commit-task" ]; chk "$?" "zero-commit: worktree survives"
+( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/zero-commit-task >/dev/null 2>&1 ); chk "$?" "zero-commit: branch survives"
+rm -rf "$TMP"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ]
