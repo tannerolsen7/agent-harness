@@ -63,19 +63,25 @@ run() { # run <expect-exit> <label> <cmd> [stub-dir]
 }
 
 echo "── -D on merged branch (must ALLOW) ──"
-run 0 "git branch -D feat/merged → ALLOW"       "git branch -D feat/merged"       "$STUB_MERGED"
-run 0 "git branch -Dd feat/merged → ALLOW"      "git branch -Dd feat/merged"      "$STUB_MERGED"
+run 0 "git branch -D feat/merged → ALLOW"                  "git branch -D feat/merged"                  "$STUB_MERGED"
+run 0 "git branch -Dd feat/merged → ALLOW"                 "git branch -Dd feat/merged"                 "$STUB_MERGED"
 
 echo "── -D on unmerged branch (must BLOCK) ──"
-run 2 "git branch -D feat/unmerged → BLOCK"     "git branch -D feat/unmerged"     "$STUB_UNMERGED"
-run 2 "git branch -dD feat/unmerged → BLOCK"    "git branch -dD feat/unmerged"    "$STUB_UNMERGED"
+run 2 "git branch -D feat/unmerged → BLOCK"                "git branch -D feat/unmerged"                "$STUB_UNMERGED"
+run 2 "git branch -dD feat/unmerged → BLOCK"               "git branch -dD feat/unmerged"               "$STUB_UNMERGED"
+run 2 "git branch --delete --force feat/unmerged → BLOCK"  "git branch --delete --force feat/unmerged"  "$STUB_UNMERGED"
+run 2 "git branch --force --delete feat/unmerged → BLOCK"  "git branch --force --delete feat/unmerged"  "$STUB_UNMERGED"
 
 echo "── -D with no branch name (must BLOCK) ──"
-run 2 "git branch -D (no name) → BLOCK"         "git branch -D"                   ""
+run 2 "git branch -D (no name) → BLOCK"                    "git branch -D"                              ""
+
+echo "── -D with multiple branch names (must BLOCK) ──"
+run 2 "git branch -D feat/a feat/b → BLOCK"                "git branch -D feat/a feat/b"                ""
 
 echo "── safe delete -d unchanged (must ALLOW) ──"
-run 0 "git branch -d feat/x → ALLOW"            "git branch -d feat/x"            ""
-run 0 "git branch --delete feat/x → ALLOW"      "git branch --delete feat/x"      ""
+run 0 "git branch -d feat/x → ALLOW"                       "git branch -d feat/x"                       ""
+run 0 "git branch --delete feat/x → ALLOW"                 "git branch --delete feat/x"                 ""
+run 0 "git branch --force feat/x → ALLOW"                  "git branch --force feat/x"                  ""
 
 echo ""
 echo "allow-merged-branch-delete: $pass passed, $fail failed"

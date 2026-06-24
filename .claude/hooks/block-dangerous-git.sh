@@ -90,18 +90,23 @@ while IFS= read -r seg; do
     clean)  block "git clean (destructive)" ;;
     stash)  [ "$1" = "clear" ] && block "git stash clear (drops all stashes)" ;;
     branch)
-      _has_D=0; _branch_name=""
+      _has_D=0; _has_force=0; _has_delete=0; _branch_name=""; _bcount=0
       for a in "$@"; do
         case "$a" in
+          --force) _has_force=1 ;;
+          --delete) _has_delete=1 ;;
           --*) : ;;
           -*D*) _has_D=1 ;;
           -*) : ;;
-          *) [ -z "$_branch_name" ] && _branch_name="$a" ;;
+          *) _bcount=$((_bcount+1)); [ "$_bcount" -eq 1 ] && _branch_name="$a" ;;
         esac
       done
+      [ "$_has_force" -eq 1 ] && [ "$_has_delete" -eq 1 ] && _has_D=1
       if [ "$_has_D" -eq 1 ]; then
-        if [ -z "$_branch_name" ]; then
+        if [ "$_bcount" -eq 0 ]; then
           block "git branch -D with no branch name — cannot check for unmerged commits"
+        elif [ "$_bcount" -gt 1 ]; then
+          block "git branch -D with multiple branch names — check each manually in a terminal"
         else
           _default=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
           [ -z "$_default" ] && _default="main"
