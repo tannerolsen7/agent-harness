@@ -118,4 +118,11 @@ if (cd "$REPO_ROOT" && git branch --delete --force "$BRANCH" >/dev/null 2>&1); t
   printf 'deleted branch %s (was at %s)\n' "$BRANCH" "$SHA"
 fi
 
+# Remind the user to pull local main when origin/main moved ahead (e.g. after a PR merged).
+BEHIND=$(git -C "$REPO_ROOT" rev-list --count main..origin/main 2>/dev/null || echo "0")
+if [ "$BEHIND" -gt 0 ]; then
+  printf 'main is %s commit(s) behind origin/main — pull to stay current:\n' "$BEHIND"
+  printf "  git -C '%s' pull origin main\n" "$REPO_ROOT"
+fi
+
 exit 0

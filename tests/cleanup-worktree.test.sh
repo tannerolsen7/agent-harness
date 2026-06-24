@@ -174,5 +174,50 @@ bash "$SCRIPT" "$TMP/.claude/worktrees/zero-commit-task" >/dev/null 2>&1; EC=$?
 ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/zero-commit-task >/dev/null 2>&1 ); chk "$?" "zero-commit: branch survives"
 rm -rf "$TMP"
 
+# ── local main behind origin/main: print pull reminder after cleanup ─────────
+# Simulates a PR merge without a local `git pull` — origin/main moves ahead,
+# but refs/heads/main stays behind.
+TMP=$(make_repo)
+(
+  cd "$TMP"
+  # Normalize local branch to 'main' regardless of init.defaultBranch setting.
+  git branch -M main 2>/dev/null || true
+  git worktree add -q .claude/worktrees/behind-task -b feat/behind-task >/dev/null 2>&1
+  ( cd .claude/worktrees/behind-task && git commit -q --allow-empty --no-verify -m work )
+  # Build the merge commit on a temp branch and push it straight to origin/main.
+  git checkout -q -b temp-merge >/dev/null 2>&1
+  git merge -q --no-ff feat/behind-task -m "merge" >/dev/null 2>&1
+  git push -q origin temp-merge:refs/heads/main >/dev/null 2>&1
+  git checkout -q main >/dev/null 2>&1
+  git branch -D temp-merge >/dev/null 2>&1
+  # Fetch so refs/remotes/origin/main is updated, but local main stays behind.
+  git fetch -q origin >/dev/null 2>&1
+) >/dev/null 2>&1
+
+OUT=$(bash "$SCRIPT" "$TMP/.claude/worktrees/behind-task" 2>&1)
+! [ -d "$TMP/.claude/worktrees/behind-task" ]; chk "$?" "behind main: worktree was removed"
+! ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/behind-task >/dev/null 2>&1 ); chk "$?" "behind main: branch was deleted"
+printf '%s\n' "$OUT" | grep -q "behind origin/main"; chk "$?" "behind main: prints pull reminder when local main is stale"
+printf '%s\n' "$OUT" | grep -q "pull origin main"; chk "$?" "behind main: pull command includes 'pull origin main'"
+rm -rf "$TMP"
+
+# ── local main up to date: no pull reminder ───────────────────────────────────
+TMP=$(make_repo)
+(
+  cd "$TMP"
+  # Normalize local branch to 'main' regardless of init.defaultBranch setting.
+  git branch -M main 2>/dev/null || true
+  git worktree add -q .claude/worktrees/current-task -b feat/current-task >/dev/null 2>&1
+  ( cd .claude/worktrees/current-task && git commit -q --allow-empty --no-verify -m work )
+  # Merge and push — local main stays in sync with origin/main.
+  git merge -q --no-ff feat/current-task -m "merge" >/dev/null 2>&1
+  git push -q origin HEAD:refs/heads/main >/dev/null 2>&1
+  git fetch -q origin >/dev/null 2>&1
+) >/dev/null 2>&1
+
+OUT=$(bash "$SCRIPT" "$TMP/.claude/worktrees/current-task" 2>&1)
+! printf '%s\n' "$OUT" | grep -q "behind origin/main"; chk "$?" "main current: no pull reminder when local main is up to date"
+rm -rf "$TMP"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ]

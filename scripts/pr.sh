@@ -6,6 +6,8 @@
 # Normalized interface: --title / --body. These map to each CLI's flags (gh: --body,
 # glab: --description); any other args pass through. Forge is detected from the remote
 # (override with PR_FORGE=github|gitlab). PR_DRY_RUN=1 prints the resolved command, runs nothing.
+# After a successful create, polls CI until checks pass, fail, or CI_POLL_TIMEOUT (default: 600s)
+# elapses. CI_POLL_SKIP=1 bypasses polling (useful in test environments or GitLab without glab).
 set -e
 
 SENTINEL=".claude/.cr-ok"
@@ -133,6 +135,60 @@ fi
 if "${cmd[@]}"; then
   if [ -n "${CONSUMED:-}" ]; then rm -f "$CONSUMED" 2>/dev/null || true; fi  # success → consumed for good
   trap - EXIT INT TERM
+
+  # --- CI polling: wait for checks to finish before declaring success ---
+  if [ -z "${CI_POLL_SKIP:-}" ]; then
+    _CI_TIMEOUT="${CI_POLL_TIMEOUT:-600}"
+
+    if [ "$FORGE" = "github" ]; then
+      _CI_PR_URL=$(gh pr view --json url -q .url 2>/dev/null || true)
+      if [ -z "$_CI_PR_URL" ]; then
+        printf "CI: could not get PR URL — skipping poll.\n" >&2
+      else
+        printf "CI: waiting for checks (timeout: %ds)...\n" "$_CI_TIMEOUT" >&2
+        SECONDS=0
+        _CI_DONE=0
+        _CI_JQ='.statusCheckRollup // [] | if length == 0 then "none" elif any(.[]; (.__typename == "CheckRun" and .status == "COMPLETED" and (.conclusion == "FAILURE" or .conclusion == "TIMED_OUT" or .conclusion == "STARTUP_FAILURE")) or (.__typename == "StatusContext" and (.state == "failure" or .state == "error"))) then "failed" elif any(.[]; (.__typename == "CheckRun" and .status != "COMPLETED") or (.__typename == "StatusContext" and .state == "pending")) then "pending" else "passed" end'
+        while [ "$SECONDS" -lt "$_CI_TIMEOUT" ]; do
+          _CI_STATE=$(gh pr view "$_CI_PR_URL" --json statusCheckRollup -q "$_CI_JQ" 2>/dev/null || echo "error")
+          case "$_CI_STATE" in
+            none)   printf "CI: no checks configured.\n" >&2; _CI_DONE=1; break ;;
+            passed) printf "CI: all checks passed.\n" >&2; _CI_DONE=1; break ;;
+            failed) printf "CI: checks failed — see %s\n" "$_CI_PR_URL" >&2; exit 1 ;;
+            *)      sleep 15 ;;
+          esac
+        done
+        [ "$_CI_DONE" -eq 0 ] && printf "CI: timed out after %ds — checks still running. Monitor: %s\n" "$_CI_TIMEOUT" "$_CI_PR_URL" >&2
+      fi
+
+    elif [ "$FORGE" = "gitlab" ]; then
+      # Needs validation against a real GitLab instance. Use CI_POLL_SKIP=1 if glab api field names differ.
+      _GL_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+      _GL_MR_IID=$(glab api "projects/:fullpath/merge_requests?source_branch=${_GL_BRANCH}&state=opened" \
+        --jq '.[0].iid' 2>/dev/null || true)
+      if [ -z "$_GL_MR_IID" ] || [ "$_GL_MR_IID" = "null" ]; then
+        printf "CI: could not find MR for branch — skipping poll. Use CI_POLL_SKIP=1 to suppress.\n" >&2
+      else
+        _GL_MR_URL=$(glab api "projects/:fullpath/merge_requests/$_GL_MR_IID" \
+          --jq '.web_url' 2>/dev/null || true)
+        printf "CI: waiting for pipeline (timeout: %ds)...\n" "$_CI_TIMEOUT" >&2
+        SECONDS=0
+        _CI_DONE=0
+        while [ "$SECONDS" -lt "$_CI_TIMEOUT" ]; do
+          _GL_STATUS=$(glab api "projects/:fullpath/merge_requests/$_GL_MR_IID" \
+            --jq '(.head_pipeline.status // "none")' 2>/dev/null || echo "error")
+          case "$_GL_STATUS" in
+            success)         printf "CI: pipeline passed.\n" >&2; _CI_DONE=1; break ;;
+            failed|canceled) printf "CI: pipeline %s — see %s\n" "$_GL_STATUS" "${_GL_MR_URL:-MR}" >&2; exit 1 ;;
+            none)            printf "CI: no pipeline found — skipping poll.\n" >&2; _CI_DONE=1; break ;;
+            *)               sleep 15 ;;
+          esac
+        done
+        [ "$_CI_DONE" -eq 0 ] && printf "CI: timed out after %ds — pipeline still running.\n" "$_CI_TIMEOUT" >&2
+      fi
+    fi
+  fi
+
   exit 0
 else
   status=$?

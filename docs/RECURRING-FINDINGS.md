@@ -55,13 +55,6 @@ file and you reset the loop's memory.
 **Locations:** .claude/hooks/block-dangerous-git.sh (norm_ref doesn't resolve HEAD; explicit-arg branch check only)
 **Detail:** `git push origin HEAD` on main exits 0 (allowed). `norm_ref("HEAD")` returns `"HEAD"` (not in protected list); two non-flag args means `_non_flag=2` skips the bare-push `_non_flag<=1` fallback. Guard file — NEEDS HUMAN to fix.
 
-### test-mk-no-gitdir-guard
-**Signature:** A test helper that calls `git init` in a temp dir does not unset inherited `GIT_DIR` env vars, risking real-repo corruption when run from a worktree.
-**Occurrences:** 2
-**Last seen:** 2026-06-18
-**Locations:** tests/check-integrity.test.sh (mk() function, lines 18–30); tests/install.test.sh (line 695 — correctly handled)
-**Detail:** Matches the documented PITFALL "Running tests from inside a worktree corrupts the real repo." The fix is to unset GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_PREFIX/GIT_COMMON_DIR/GIT_OBJECT_DIRECTORY/GIT_NAMESPACE at the top of the test file. Fixed in both locations. At Occurrences ≥3 this should be promoted to a named /cr check.
-
 ### stale-comment-wrong-output-protocol
 **Signature:** A comment describes the behavior or output of a command/function, but the actual behavior differs, misleading anyone who reads or extends it.
 **Occurrences:** 3 — AUTO-PROMOTE
@@ -299,9 +292,27 @@ file and you reset the loop's memory.
 **Locations:** `scripts/install.sh` (`CREATE_ONCE`) vs `scripts/sync-harness.sh` (`template_for()`) — `deploy-targets.yml` was in `CREATE_ONCE` but missing from `template_for`; sync silently skipped restoring it after deletion.
 **Detail:** `template_for` is a `case` statement that maps create-once filenames to their source template paths — the same mapping already encoded in `install.sh`'s `CREATE_ONCE` variable. When a new entry is added to `CREATE_ONCE`, `template_for` must be updated in the same commit, or sync will hit the `*)` arm and print "skipped (create-once, no template)" with no error. Fixed by adding the missing case arm. Pattern: any time two structures must mirror each other without an automated check (a lint script, a test that reads both, or a shared constant), the PITFALLS or RECURRING-FINDINGS entry should recommend converting the human-process rule into an automated check.
 
+### test-assumes-local-main-branch-exists
+**Signature:** A test that exercises code using `refs/heads/main` or `main..origin/main` does not explicitly create a local `main` branch, so it silently fails on systems where `init.defaultBranch` is `master`.
+**Occurrences:** 1
+**Last seen:** 2026-06-24
+**Locations:** tests/cleanup-worktree.test.sh (new "behind main" test — `git checkout -q main` silently failed on master-default git; `BEHIND=0` prevented the reminder from printing)
+**Detail:** `make_repo` pushes to `origin/main` but does not rename the local branch. On systems with `init.defaultBranch=master`, local `refs/heads/main` never exists. Any script that computes `main..origin/main` returns 0 (silently). Fix: add `git branch -M main 2>/dev/null || true` to the test setup to force the local branch name, regardless of global git config.
+
 ---
 
+### hook-command-splitter-backtick-false-positive
+**Signature:** The hook's command splitter splits on backticks (treating them as shell command substitution boundaries), so backtick-formatted code in a string argument — e.g., a PR body containing `` `git branch -D` `` — is parsed as a separate command and incorrectly blocked.
+**Occurrences:** 1
+**Last seen:** 2026-06-24
+**Locations:** `.claude/hooks/block-dangerous-git.sh` (command splitter: `tr $';|&()\`' $'\n'`); surfaced when `gh pr create --body "... \`git branch -D\` ..."` was blocked with "git branch -D with no branch name"
+**Detail:** The splitter is designed to detect `cmd1 && cmd2` and backtick-substituted commands like `` `git push --force` `` inside compound Bash strings. But it also fires on backtick-wrapped text inside quoted string arguments (Markdown inline code in a PR body). Workaround: write the PR body to a file and use `--body-file` to avoid the backtick in the command string. Long-term fix: the splitter should not split inside a quoted string context. Requires human edit (guard-file path).
+
 ## Promoted
+
+### test-mk-no-gitdir-guard
+**Promoted:** 2026-06-24 (Occurrences: 3)
+**Entry:** PITFALLS.md → "Test files that create temp repos must unset inherited GIT_DIR env vars"
 
 ### internal-code-no-explanation
 **Promoted:** 2026-06-22 (Occurrences: 3)
@@ -315,3 +326,4 @@ file and you reset the loop's memory.
 **Entry:** PITFALLS.md → "Stale comments: describing code state that has since changed"
 **Post-promotion sighting:** 2026-06-20 — `scripts/worktree-add.sh` line 3 header comment said `Usage: ... <path> <branch>` after adding an optional `[base-ref]` parameter. The `:?` usage strings on lines 13–14 were updated but the header was not. Fixed in this pass.
 **Post-promotion sighting:** 2026-06-22 — `scripts/ci-verify.sh` deploy-drift step comment said "Exits 0 when the manifest is absent (opt-in only)" — omitted the second exit-0 case (all entries pass). Fixed in this pass.
+**Post-promotion sighting:** 2026-06-24 — `docs/testing/pr-ci-polling.md` spec entry said "GitLab forge skips polling with a warning" — written under the original design (skip-only). Design changed during grilling to attempt polling via `glab api`; spec was not updated. Fixed in /cr pass for feat/pr-ci-polling.
