@@ -87,3 +87,6 @@ From /cr on feat/harness-plugin. The hooks/ dir at repo root is new. Add a CONTE
 
 ## Verify plugin.json needs a "hooks" field
 NEEDS HUMAN. plugin.json declares "skills" and "agents" explicitly. It doesn't declare "hooks". If Claude Code requires a "hooks": "hooks/hooks.json" declaration to discover hooks/hooks.json, behavior 3 (session-start sync check) silently never fires. Cannot verify from codebase alone — needs the Claude Code plugin spec or a real install test. Low risk if Claude Code auto-discovers by convention.
+
+## Validate and test GitLab CI polling path in scripts/pr.sh
+The GitLab polling path (glab api projects/:fullpath/merge_requests + head_pipeline.status) was written without validation on a real GitLab instance. Field names may differ. No automated tests exist for this path. Requires: a GitLab instance or a recorded glab api response to verify field names, then add tests to pr-host-agnostic.test.sh using the same stub pattern as the GitHub CI tests. Until validated, CI_POLL_SKIP=1 is the recommended escape hatch for GitLab users.
