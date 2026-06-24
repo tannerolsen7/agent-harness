@@ -285,6 +285,13 @@ file and you reset the loop's memory.
 **Locations:** tests/safety-file-guard.test.sh (.claude/hooks/* guard — only Add tested; .husky/* guard correctly has all three); tests/agents-hook-guard.test.sh (agents guard initially only had Add — Modify and Delete added in /cr fix pass)
 **Detail:** The `.husky/*` guard has three test cases (new, modify, delete), covering all arms of the ACMRDT filter. The `.claude/hooks/*` guard in the same file has only one test (new file). A regression that removes the Modify or Delete arm from the guard would go undetected. Pattern: for every category a hook protects, test each operation type (Add, Modify, Delete) that the diff-filter covers — not just Add.
 
+### merge-base-is-ancestor-zero-commit-false-positive
+**Signature:** A script uses `git merge-base --is-ancestor <branch_tip> origin/main` alone to decide if a branch is merged. A freshly-provisioned branch with no unique commits has its tip at origin/main's tip (or an older commit in origin/main's history), so the check returns true even though the branch was never merged.
+**Occurrences:** 1
+**Last seen:** 2026-06-24
+**Locations:** scripts/cleanup-worktree.sh (initial implementation — merge check had no MAIN_TIP guard; fixed in this PR)
+**Detail:** The initial implementation compared `BRANCH_TIP` against `origin/main` via `merge-base --is-ancestor` without checking whether `BRANCH_TIP` equals `origin/main`'s current tip. A worktree created from the current main tip, with no commits added, satisfies the ancestor check — the tip IS in origin/main's history (it IS origin/main). The script would have deleted the worktree and branch immediately. This is the exact PITFALLS.md entry "git merge-base --is-ancestor cannot tell a fresh branch from a merged one." Fix: add `[ "$BRANCH_TIP" != "$MAIN_TIP" ]` guard before the ancestor check. A worktree created at main's tip has BRANCH_TIP = MAIN_TIP; once work is committed, BRANCH_TIP moves forward. This guard prevents the false positive without blocking legitimate cleanup.
+
 ### parallel-lookup-tables-diverge-silently
 **Signature:** Two lookup tables or lists in different files must stay in sync, but there is no automated check — adding an entry to one without updating the other produces a silent no-op instead of an error.
 **Occurrences:** 1
