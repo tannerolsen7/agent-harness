@@ -446,8 +446,7 @@ Then push, then open the PR (this order matters — `scripts/pr.sh` validates th
 ```bash
 git push -u origin "$(git rev-parse --abbrev-ref HEAD)"
 scripts/pr.sh --title "..." --body "..."
-PR_NUMBER=$(gh pr view --json number -q .number)
-gh pr view "$PR_NUMBER" --json state,title,url,mergeable,statusCheckRollup
+gh pr view --json state,title,url,mergeable,statusCheckRollup
 ```
 
 ---
