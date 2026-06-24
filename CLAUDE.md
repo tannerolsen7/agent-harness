@@ -58,3 +58,11 @@ These rules are guidance only — no hook can enforce them automatically:
 
 - **Communication voice** (9th-grade reading level, plain language) — judgment call; no linter catches bad prose.
 - **`/refactor` before structural moves** — no reliable way to detect a structural move from a diff alone. The branch `type/` prefix partially enforces the routing rule (the type must match the work), but detecting structural moves inside a diff is still a human judgment.
+
+# Protected-file changes
+
+When you need to change a file that the safety-file guard blocks agents from committing (hooks, settings, gate scripts), give the user three things in order — never just describe the change and ask them to handle it themselves:
+
+1. **What it does** — one or two plain sentences explaining the behavior change and why it is needed.
+2. **The exact code** — the full before and after in a code block so they can read it before running anything.
+3. **A self-contained terminal command** — prefixed with `cd <absolute-path> &&` so it can be pasted directly. Use a Python heredoc when the content has shell special characters that make `sed` unreliable.
