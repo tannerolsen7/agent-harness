@@ -301,6 +301,13 @@ file and you reset the loop's memory.
 
 ---
 
+### hook-command-splitter-backtick-false-positive
+**Signature:** The hook's command splitter splits on backticks (treating them as shell command substitution boundaries), so backtick-formatted code in a string argument — e.g., a PR body containing `` `git branch -D` `` — is parsed as a separate command and incorrectly blocked.
+**Occurrences:** 1
+**Last seen:** 2026-06-24
+**Locations:** `.claude/hooks/block-dangerous-git.sh` (command splitter: `tr $';|&()\`' $'\n'`); surfaced when `gh pr create --body "... \`git branch -D\` ..."` was blocked with "git branch -D with no branch name"
+**Detail:** The splitter is designed to detect `cmd1 && cmd2` and backtick-substituted commands like `` `git push --force` `` inside compound Bash strings. But it also fires on backtick-wrapped text inside quoted string arguments (Markdown inline code in a PR body). Workaround: write the PR body to a file and use `--body-file` to avoid the backtick in the command string. Long-term fix: the splitter should not split inside a quoted string context. Requires human edit (guard-file path).
+
 ## Promoted
 
 ### test-mk-no-gitdir-guard
