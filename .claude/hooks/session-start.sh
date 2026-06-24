@@ -16,7 +16,9 @@ unset _INPUT _MODEL
 # _SESSION_ID intentionally stays alive — the session isolation block below reads it.
 
 # Truncate the permission log so each session starts clean
-HASH=$(echo "${CLAUDE_PROJECT_DIR:-/}" | md5 | cut -c1-8)
+HASH=$(printf '%s' "${CLAUDE_PROJECT_DIR:-/}" | md5 2>/dev/null | cut -c1-8 \
+  || printf '%s' "${CLAUDE_PROJECT_DIR:-/}" | md5sum 2>/dev/null | cut -c1-8 \
+  || echo "00000000")
 > "/tmp/claude-perm-log-${HASH}.jsonl" 2>/dev/null || true
 
 # Auto-clean merged worktrees + branches at session start (best-effort).
