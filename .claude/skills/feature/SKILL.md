@@ -162,7 +162,10 @@ has signed off on the sheet, schema, and mockup.
 
 1. Confirm the expected behavior with the user
    - **If this touches the database or adds a UI screen, it is not Tiny** — escalate to Small and run the design gate. Tiny is exempt from the design-confirmed sentinel only because it has no new data shape and no new screen.
-2. Record it in `docs/testing/<slug>.md` under confirmed behaviors before writing any code (run `bash scripts/derive-slug.sh` to get the slug from the current branch)
+2. Record it in `docs/testing/<slug>.md` under confirmed behaviors before writing any code (run `bash scripts/derive-slug.sh` to get the slug from the current branch). Then commit the spec file before `/tdd` starts — stop if the file is missing:
+   ```bash
+   bash scripts/spec-commit.sh
+   ```
 3. Invoke `/tdd` for the single slice (contract required)
 4. Invoke `/simplify` on the changed code
 5. Invoke `/cr`. If the change touched auth/permissions/data boundary,
@@ -186,9 +189,18 @@ has signed off on the sheet, schema, and mockup.
    `@spec-writer` writes confirmed behavior entries to `docs/testing/<slug>.md` before touching code.
    Do not write TESTING.md entries inline — `@spec-writer` owns the format and the "never invent
    behaviors" rule. Wait for its summary (entries written + open questions) before proceeding.
+   Then commit the spec file before moving to Plan — stop if the file is missing:
+   ```bash
+   bash scripts/spec-commit.sh
+   ```
 7. **Plan** — read relevant source files and existing tests. Design the public interface. Get user approval before writing code.
 8. **Implement** — **pass the Implementation gate first** (read `.claude/.design-confirmed`; refuse if absent or stale). Then invoke `/tdd` (contract required). Tracer bullet slice first.
-9. **Simplify** — invoke `/simplify` on all changed files.
+9. **Simplify** — invoke `/simplify` on all changed files. Then commit before `/cr`:
+   ```bash
+   SLUG=$(bash scripts/derive-slug.sh)
+   git add -u
+   git commit -m "style($SLUG): simplify" || echo "nothing to commit — skipping"
+   ```
 10. **Review** — invoke `/cr`. If touched auth/permissions/data boundary, also invoke `/cr-security`.
 11. **Type check** — `npx tsc --noEmit` must exit zero
 12. **Commit** — conventional commit format
@@ -214,12 +226,21 @@ has signed off on the sheet, schema, and mockup.
    findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
    `@spec-writer` writes confirmed behavior entries to `docs/testing/<slug>.md`. Do not write entries
    inline. Wait for its summary before proceeding to decomposition.
+   Then commit the spec file before Decompose — stop if the file is missing:
+   ```bash
+   bash scripts/spec-commit.sh
+   ```
 8. **Decompose** — invoke `/to-issues`. Apply decomposition checklist: tracer bullet first, label parallel vs. sequential, verify each slice independently shippable.
    **STOP. Do not proceed to Step 9 until the user has confirmed the issue list.** This is a hard gate. Implementation does not begin until /to-issues has run and the output is approved. If the user asks "did you use /to-issues?" mid-implementation, that question is the instruction — stop, run /to-issues, get confirmation, then resume.
    After confirmation: identify which issues are independent. Spawn sub-agents for independent issues simultaneously — do not work sequentially through the list if issues have no shared dependency. State the parallel groupings explicitly before spawning.
 9. **Plan** — read CONTEXT.md, AGENTS.md, existing tests. Design interface. Get user approval.
 10. **Implement** — **pass the Implementation gate first** (read `.claude/.design-confirmed`; refuse if absent or stale). Then invoke `/tdd` for each issue in order. Tracer bullet slice first. (contract required)
-11. **Simplify** — invoke `/simplify` on all changed files
+11. **Simplify** — invoke `/simplify` on all changed files. Then commit before `/cr`:
+    ```bash
+    SLUG=$(bash scripts/derive-slug.sh)
+    git add -u
+    git commit -m "style($SLUG): simplify" || echo "nothing to commit — skipping"
+    ```
 12. **Review** — `/cr`, `/cr-security` if triggered
 13. **Type check** — `npx tsc --noEmit` must exit zero
 14. **Commit**

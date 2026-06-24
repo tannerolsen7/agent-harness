@@ -417,6 +417,13 @@ If Step 3b flagged promotion candidates, act by judgment here — do **not** gat
 
 List each promotion in the disposition report (under "Fixed now" — it's a canon change) so it's visible.
 
+Then commit all cr-driven changes before the sentinel. Any commit after the sentinel invalidates it, so this must run before Step 7:
+```bash
+SLUG=$(bash scripts/derive-slug.sh)
+git add -u
+git commit -m "fix($SLUG): apply cr findings" || echo "nothing to commit — skipping"
+```
+
 ---
 
 ## Step 6 — Manual test checklist
