@@ -74,6 +74,18 @@ Source: /cr of feat/shard-testing-md — [P9] devil's advocate pass
 
 ---
 
+## /cr mid-run checkpointing (MEDIUM)
+
+**Problem:** The `/cr` skill has no mechanism to save its state mid-run. All progress between "launch 9 passes" and "write sentinel" lives only in the context window. If context compacts mid-run, the resumed session has to re-read files to verify the compaction summary — slow and error-prone.
+
+**Fix:** After synthesis (Step 3), write `.claude/.cr-progress.json` with the tiered findings list and the current HEAD sha. After fixes complete (Step 4), update the file. On resume, a session can read this file to see what passes have already run and what was fixed, instead of re-deriving from disk. Delete the file when the sentinel is written.
+
+A second improvement: commit each must-fix item separately during the fix loop so disk state always reflects progress.
+
+**Source:** feat/harness-plugin — context compaction fired mid-/cr after all 9 passes but before sentinel write. Resumed session needed file re-reads to verify compaction summary.
+
+---
+
 ## safety-file-guard follow-ups (LOW priority, separate PRs)
 
 - **`^` anchor on `_GATE_SCRIPTS` regex** — `.husky/pre-commit` line 24 uses `scripts/(cr-ok|...)\.sh$` without a leading `^`. Low risk (git returns root-relative paths) but explicit anchoring is defensive. Requires `--no-verify` commit.

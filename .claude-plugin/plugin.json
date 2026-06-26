@@ -1,5 +1,5 @@
 {
-  "name": "agent-harness",
+  "name": "harness",
   "description": "Skills, agents, hooks, and lint gates that install into any repo and gate code from write to merge.",
   "version": "1.0.0",
   "author": {
