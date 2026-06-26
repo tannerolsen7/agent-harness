@@ -41,8 +41,8 @@ jq -e '.plugins | length > 0' "$MARKET_JSON" >/dev/null 2>&1 && ok || no "market
 jq -e '.plugins[0].name' "$MARKET_JSON" >/dev/null 2>&1 && ok || no "marketplace.json plugins[0] missing .name"
 jq -e '.plugins[0].source.source == "github"' "$MARKET_JSON" >/dev/null 2>&1 \
   && ok || no "marketplace.json plugins[0].source.source must be \"github\""
-jq -e '.plugins[0].source.repo == "tanner/agent-harness"' "$MARKET_JSON" >/dev/null 2>&1 \
-  && ok || no "marketplace.json plugins[0].source.repo must be \"tanner/agent-harness\""
+jq -e '.plugins[0].source.repo == "tannerolsen7/agent-harness"' "$MARKET_JSON" >/dev/null 2>&1 \
+  && ok || no "marketplace.json plugins[0].source.repo must be \"tannerolsen7/agent-harness\""
 
 echo "plugin-manifests: $pass passed, $fail failed"
 [ "$fail" = "0" ]
