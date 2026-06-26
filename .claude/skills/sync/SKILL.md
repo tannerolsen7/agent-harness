@@ -1,6 +1,6 @@
 ---
 name: sync
-description: Applies pending harness updates to the current project's files. Runs sync-harness.sh from the plugin installation directory against the current project. Use when the user says "/sync", "sync the harness", "update the harness files", "apply harness updates", or when the session-start hook shows "[harness] project files are out of date". Requires the agent-harness plugin to be installed ($CLAUDE_PLUGIN_ROOT must be set).
+description: Applies pending harness updates to the current project's files. Runs sync-harness.sh from the plugin installation directory against the current project. Use when the user says "/sync", "sync the harness", "update the harness files", "apply harness updates", or when the session-start hook shows "[harness] project files are out of date". Requires the harness plugin to be installed ($CLAUDE_PLUGIN_ROOT must be set).
 ---
 
 # /sync — apply harness updates to this project
@@ -20,7 +20,7 @@ If `$CLAUDE_PLUGIN_ROOT` is not set or the directory does not exist, stop and
 print:
 
 ```
-The agent-harness plugin is not installed. Run /plugin install agent-harness@agent-harness first.
+The harness plugin is not installed. Run /plugin install harness@harness first.
 ```
 
 ## Step 1 — Run sync-harness.sh from the plugin directory

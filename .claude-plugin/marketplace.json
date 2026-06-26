@@ -1,21 +1,21 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "agent-harness",
-  "description": "The agent-harness plugin marketplace — skills, agents, and hooks that gate code from write to merge.",
+  "name": "harness",
+  "description": "The harness plugin marketplace — skills, agents, and hooks that gate code from write to merge.",
   "owner": {
     "name": "tanner"
   },
   "autoUpdate": true,
   "plugins": [
     {
-      "name": "agent-harness",
+      "name": "harness",
       "description": "Skills, agents, hooks, and lint gates that install into any repo and gate code from write to merge.",
       "author": {
         "name": "tanner"
       },
       "source": {
         "source": "github",
-        "repo": "tanner/agent-harness"
+        "repo": "tannerolsen7/agent-harness"
       }
     }
   ]

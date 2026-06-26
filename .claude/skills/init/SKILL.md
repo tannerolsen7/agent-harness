@@ -1,11 +1,11 @@
 ---
 name: init
-description: Sets up the harness in a new project repo — runs install.sh from the plugin directory, copies starter context docs (CLAUDE.md, AGENTS.md, CONTEXT.md, PITFALLS.md) for any that are missing, then walks the user through filling in CLAUDE.md interactively. Use when the user says "/init", "set up the harness", "fill in CLAUDE.md", "initialize this project", or "finish the install". Requires the agent-harness plugin to be installed ($CLAUDE_PLUGIN_ROOT must be set). Does not require a local clone of the harness repo.
+description: Sets up the harness in a new project repo — runs install.sh from the plugin directory, copies starter context docs (CLAUDE.md, AGENTS.md, CONTEXT.md, PITFALLS.md) for any that are missing, then walks the user through filling in CLAUDE.md interactively. Use when the user says "/init", "set up the harness", "fill in CLAUDE.md", "initialize this project", or "finish the install". Requires the harness plugin to be installed ($CLAUDE_PLUGIN_ROOT must be set). Does not require a local clone of the harness repo.
 ---
 
 # /init — set up the harness in a project
 
-The agent-harness plugin is already installed in Claude Code. This skill does the
+The harness plugin is already installed in Claude Code. This skill does the
 per-project setup: copy harness files into the current repo, then fill in
 `CLAUDE.md` together with the user.
 
@@ -17,7 +17,7 @@ If `$CLAUDE_PLUGIN_ROOT` is not set or the directory does not exist, stop and
 print this exact message:
 
 ```
-The agent-harness plugin is not installed. Run /plugin install agent-harness@agent-harness first.
+The harness plugin is not installed. Run /plugin install harness@harness first.
 ```
 
 Do not proceed past Step 0 until the check passes.
