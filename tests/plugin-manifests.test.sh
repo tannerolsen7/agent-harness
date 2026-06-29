@@ -23,10 +23,12 @@ jq -e '.description' "$PLUGIN_JSON" >/dev/null 2>&1 && ok || no "plugin.json mis
 jq -e '.version' "$PLUGIN_JSON" >/dev/null 2>&1 && ok || no "plugin.json missing .version"
 jq -e '.author.name' "$PLUGIN_JSON" >/dev/null 2>&1 && ok || no "plugin.json missing .author.name"
 jq -e '.license' "$PLUGIN_JSON" >/dev/null 2>&1 && ok || no "plugin.json missing .license"
-jq -e '.skills == ".claude/skills"' "$PLUGIN_JSON" >/dev/null 2>&1 \
-  && ok || no "plugin.json .skills must be \".claude/skills\""
-jq -e '.agents == ".claude/agents"' "$PLUGIN_JSON" >/dev/null 2>&1 \
-  && ok || no "plugin.json .agents must be \".claude/agents\""
+jq -e '.agents | (type == "array" and length > 0)' "$PLUGIN_JSON" >/dev/null 2>&1 \
+  && ok || no "plugin.json .agents must be a non-empty array of file paths"
+jq -e '.commands | (type == "array" and length > 0)' "$PLUGIN_JSON" >/dev/null 2>&1 \
+  && ok || no "plugin.json .commands must be a non-empty array of file paths"
+jq -e '.skills == null' "$PLUGIN_JSON" >/dev/null 2>&1 \
+  && ok || no "plugin.json must not have .skills (field was renamed to .commands)"
 
 # ── marketplace.json ──────────────────────────────────────────────────────────
 
@@ -41,8 +43,8 @@ jq -e '.plugins | length > 0' "$MARKET_JSON" >/dev/null 2>&1 && ok || no "market
 jq -e '.plugins[0].name' "$MARKET_JSON" >/dev/null 2>&1 && ok || no "marketplace.json plugins[0] missing .name"
 jq -e '.plugins[0].source.source == "github"' "$MARKET_JSON" >/dev/null 2>&1 \
   && ok || no "marketplace.json plugins[0].source.source must be \"github\""
-jq -e '.plugins[0].source.repo == "tanner/agent-harness"' "$MARKET_JSON" >/dev/null 2>&1 \
-  && ok || no "marketplace.json plugins[0].source.repo must be \"tanner/agent-harness\""
+jq -e '.plugins[0].source.repo == "tannerolsen7/agent-harness"' "$MARKET_JSON" >/dev/null 2>&1 \
+  && ok || no "marketplace.json plugins[0].source.repo must be \"tannerolsen7/agent-harness\""
 
 echo "plugin-manifests: $pass passed, $fail failed"
 [ "$fail" = "0" ]
