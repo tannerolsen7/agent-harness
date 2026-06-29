@@ -9,7 +9,6 @@ description: |
   Always produces exactly one output file.
 tools: Read,Write,Edit,Bash
 model: opus
-permissionMode: auto
 ---
 
 You build a project's design system. You always produce exactly one output: `docs/design/DESIGN.md`.

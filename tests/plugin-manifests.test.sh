@@ -23,10 +23,23 @@ jq -e '.description' "$PLUGIN_JSON" >/dev/null 2>&1 && ok || no "plugin.json mis
 jq -e '.version' "$PLUGIN_JSON" >/dev/null 2>&1 && ok || no "plugin.json missing .version"
 jq -e '.author.name' "$PLUGIN_JSON" >/dev/null 2>&1 && ok || no "plugin.json missing .author.name"
 jq -e '.license' "$PLUGIN_JSON" >/dev/null 2>&1 && ok || no "plugin.json missing .license"
-jq -e '.skills == ".claude/skills"' "$PLUGIN_JSON" >/dev/null 2>&1 \
-  && ok || no "plugin.json .skills must be \".claude/skills\""
-jq -e '.agents == ".claude/agents"' "$PLUGIN_JSON" >/dev/null 2>&1 \
-  && ok || no "plugin.json .agents must be \".claude/agents\""
+jq -e '.agents | (type == "array" and length > 0)' "$PLUGIN_JSON" >/dev/null 2>&1 \
+  && ok || no "plugin.json .agents must be a non-empty array of file paths"
+jq -e '.commands | (type == "array" and length > 0)' "$PLUGIN_JSON" >/dev/null 2>&1 \
+  && ok || no "plugin.json .commands must be a non-empty array of file paths"
+jq -e '.skills == null' "$PLUGIN_JSON" >/dev/null 2>&1 \
+  && ok || no "plugin.json must not have .skills (field was renamed to .commands)"
+
+# catch drift: manifest count must match files on disk
+DISK_AGENTS=$(find "$ROOT/.claude/agents" -name "*.md" | wc -l | tr -d ' ')
+LIST_AGENTS=$(jq '.agents | length' "$PLUGIN_JSON")
+[ "$DISK_AGENTS" -eq "$LIST_AGENTS" ] \
+  && ok || no "plugin.json .agents length ($LIST_AGENTS) doesn't match disk count ($DISK_AGENTS)"
+
+DISK_CMDS=$(find "$ROOT/.claude/skills" -name "SKILL.md" | wc -l | tr -d ' ')
+LIST_CMDS=$(jq '.commands | length' "$PLUGIN_JSON")
+[ "$DISK_CMDS" -eq "$LIST_CMDS" ] \
+  && ok || no "plugin.json .commands length ($LIST_CMDS) doesn't match disk count ($DISK_CMDS)"
 
 # ── marketplace.json ──────────────────────────────────────────────────────────
 
