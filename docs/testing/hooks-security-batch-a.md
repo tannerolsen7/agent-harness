@@ -22,17 +22,21 @@ Affected hooks: `block-dangerous-bash.sh`, `block-credential-read.sh`,
 
 ## Non-shell interpreter bypass in `block-credential-read.sh`
 
-`block-credential-read.sh` checks the command verb against a list of known
-reader tools to decide whether to inspect the arguments for credential file
-paths. The original list covers shell utilities (cat, grep, head, etc.) but
-not scripting interpreters. An agent can read a credential file by passing it
-to a scripting interpreter as a one-liner.
+`block-credential-read.sh` splits the command on shell separators (`;`, `|`,
+`(`, `)`) and then checks each segment's verb against a list of known reader
+tools. This works for simple commands like `cat .env`, but fails for inline
+code strings: `python3 -c "print(open('.env').read())"` fragments into pieces
+after splitting — `.env` ends up in a separate piece with no connection to the
+`python3` verb. The fix adds a pre-split scan: if the command starts with an
+interpreter name (`python3`, `node`, `ruby`, etc.) and contains `-c` or `-e`,
+the hook checks the full unsplit command string for credential file names before
+doing any splitting.
 
 ### Confirmed behaviors
 
 - **`python3 -c "print(open('.env').read())"` is blocked:** Given the command
-  verb is `python3`, the hook treats it as a reader, extracts the arguments,
-  finds `.env` in the argument string, and exits 2 (block).
+  starts with `python3` and contains `-c`, the hook scans the full raw command
+  string before splitting it. It finds `.env` in the raw string and exits 2 (block).
 
 ## Bash/sh wrapper bypass (all three file-inspection hooks)
 

@@ -87,11 +87,18 @@ echo "── behaviors 6+7: git restore/checkout on protected paths is blocked �
 run block block-dangerous-git 'git restore .claude/hooks/block-dangerous-bash.sh'
 run block block-dangerous-git 'git restore .husky/pre-commit'
 run block block-dangerous-git 'git restore .claude/settings.json'
+# --staged path: the flag is skipped, the explicit protected path is still caught
+run block block-dangerous-git 'git restore --staged .claude/hooks/block-dangerous-bash.sh'
 run block block-dangerous-git 'git checkout -- .claude/hooks/block-egress.sh'
 run block block-dangerous-git 'git checkout -- .husky/pre-push'
 run allow block-dangerous-git 'git restore src/app.ts'
+# Known gap: bare '.' restores the whole working tree, which includes hook files.
+# The handler only matches explicit protected paths — wildcards bypass it.
+# Fix requires a hook file change (NEEDS HUMAN). See BACKLOG.md.
 run allow block-dangerous-git 'git restore .'
 run allow block-dangerous-git 'git checkout -- src/app.ts'
+# git checkout without -- is a branch switch, not a path restore. No path is inspected.
+# This is intentionally allowed — the _saw_dashdash gate keeps it safe.
 run allow block-dangerous-git 'git checkout feat/my-branch'
 
 # ── Behavior 8: git remote add/set-url blocked ───────────────────────────────────
