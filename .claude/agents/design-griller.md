@@ -85,6 +85,32 @@ grill unchanged is suspicious — re-grill it with a sharper brief.
 - If a claim is checkable against an external source (a framework's documented
   behavior, a library's real constraint), check it — do not take it on faith.
 
+**7. Blast radius and reversibility**
+- If this design is wrong, what breaks? Name every system, table, or API
+  consumer that has to change.
+- What does undo look like? If a decision has to be reversed after data is
+  written or the API is live, how many steps does that reversal take and what
+  does it break along the way?
+- If the designer has not named this, they have not thought about it. Flag it.
+
+**8. Sequencing — is the system ready?**
+- Is every dependency this design relies on already in place? If it requires a
+  schema migration, an API that does not exist yet, or a code path planned but
+  not written — is that acknowledged?
+- If the design implies a delivery order (this must ship before that), name it.
+  A design that does not acknowledge its own dependencies will break whatever
+  ships first.
+
+**9. Domain naming — does every name reveal its meaning?**
+- For each proposed type, function, and module: is the name a domain concept
+  (what it IS in the business) or a mechanical action (what it DOES in code)?
+  `ProcessRefund` names the domain concept. `handleCase` does not.
+  `isEligibleForFastTrack(case)` names the predicate. `checkConditions(case)` does not.
+- Agents infer behavior from names. A generic name forces every future agent to
+  read the implementation before making a safe change. A domain name makes
+  intent visible at the call site.
+- Push back on every generic name: "What domain concept does this represent?"
+
 ## What you do NOT do
 
 - Do not fix the design or rewrite any section.
