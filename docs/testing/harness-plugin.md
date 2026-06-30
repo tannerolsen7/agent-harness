@@ -45,7 +45,7 @@ runtime behavior — they are read by Claude Code's plugin system at install tim
   Given a user runs this command, Claude Code installs the plugin from the
   registry entry. Both commands result in the same installed state.
 
-## Updated `/init` skill (`.claude/skills/init/SKILL.md`)
+## `/harness-setup` skill (`.claude/skills/harness-setup/SKILL.md`)
 
 Step 0 changes from checking `.claude/.harness-manifest.json` to checking the
 `$CLAUDE_PLUGIN_ROOT` environment variable. All remaining steps stay the same
@@ -54,16 +54,16 @@ hand.
 
 ### Confirmed behaviors — Step 0: plugin root check
 
-- **`$CLAUDE_PLUGIN_ROOT` not set causes `/init` to stop:** Given
+- **`$CLAUDE_PLUGIN_ROOT` not set causes `/harness-setup` to stop:** Given
   `$CLAUDE_PLUGIN_ROOT` is not set in the environment, Step 0 prints:
   `The harness plugin is not installed. Run /plugin install harness@harness first.`
   and the skill stops without running any further steps.
 
-- **`$CLAUDE_PLUGIN_ROOT` set to a non-existent directory causes `/init` to
+- **`$CLAUDE_PLUGIN_ROOT` set to a non-existent directory causes `/harness-setup` to
   stop:** Given `$CLAUDE_PLUGIN_ROOT` is set but the directory it names does not
   exist on disk, Step 0 prints the same message as above and the skill stops.
 
-- **`$CLAUDE_PLUGIN_ROOT` set to a valid directory lets `/init` continue:**
+- **`$CLAUDE_PLUGIN_ROOT` set to a valid directory lets `/harness-setup` continue:**
   Given `$CLAUDE_PLUGIN_ROOT` is set and the directory exists, Step 0 passes and
   the skill proceeds to Step 1.
 
@@ -80,7 +80,7 @@ hand.
   and writes `.claude/.harness-manifest.json`.
 
 - **Step 1 is idempotent:** Given `install.sh` has already run and
-  harness-owned files exist, running `/init` again does not overwrite
+  harness-owned files exist, running `/harness-setup` again does not overwrite
   create-once files (such as `CLAUDE.md`). The script reports them as
   "skipped (exists)".
 
@@ -88,7 +88,7 @@ hand.
 
 - **Setup checklist lists only `bash scripts/install-harness-hooks.sh`:**
   The checklist shown in Step 3 no longer includes `bash scripts/install.sh`.
-  Users no longer run `install.sh` manually — `/init` runs it for them via
+  Users no longer run `install.sh` manually — `/harness-setup` runs it for them via
   `$CLAUDE_PLUGIN_ROOT`.
 
 ## Session-start sync check (`hooks/check-project-sync.sh`, `hooks/hooks.json`)
