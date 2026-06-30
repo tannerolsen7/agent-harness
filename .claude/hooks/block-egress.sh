@@ -21,7 +21,7 @@ command -v jq >/dev/null 2>&1 || {
   exit 2
 }
 CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
-[ -z "$CMD" ] && exit 0
+[ -z "$CMD" ] && { echo "block-egress: empty command field — BLOCKING (fail-closed)." >&2; exit 2; }
 
 block() {
   echo "Blocked by block-egress: $1" >&2
@@ -48,9 +48,17 @@ while IFS= read -r seg; do
   done
   [ -z "$seg" ] && continue
   set -f; set -- $seg; set +f
+  # strip wrapper words; for shell/runner wrappers, also unwrap -c 'inner cmd'
   while [ $# -gt 0 ]; do
     case "$1" in
       sudo|env|command|time|nice|nohup|xargs|timeout|stdbuf|setsid|\\) shift ;;
+      npx|yarn|pnpm) shift ;;
+      bash|sh|zsh|dash|ksh) shift
+        if [ "${1:-}" = "-c" ] && [ -n "${2:-}" ]; then
+          shift
+          inner="$*"; inner="${inner#\'}"; inner="${inner%\'}"; inner="${inner#\"}"; inner="${inner%\"}"
+          set -f; set -- $inner; set +f
+        fi ;;
       *) break ;;
     esac
   done
