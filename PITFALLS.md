@@ -454,3 +454,19 @@ A separate but related gap: `sync-harness.sh` needs `HARNESS_SRC` at sync time, 
 
 **Source:** Distribution model spike (2026-06-22); confirmed by a TDD slice that ran during the spike.
 **Regression gate:** Human-process rule — no automated check yet. The spike produced a failing test but it was not committed. If this code path is ever built, add a test that passes a non-git directory as `HARNESS_SRC` and asserts the recorded `sha` is not `"local"`.
+
+---
+
+## Defensive amplification: error handlers that paper over bad states instead of preventing them
+
+**Area:** Any agent-generated code, especially code produced in unattended loops
+
+**Rule:** When Claude encounters an error or edge case, its default is to add a handler — a null check, an empty-array fallback, a try/catch, a default value. If the bad state is architecturally impossible (the value cannot be null given the schema, the array must always have content by the caller's contract, the function cannot throw), that handler is not safety — it is technical debt that hides a design flaw.
+
+**Why:** Models treat every exception as a threat to survive. Handling every error feels safe in one session. In a loop or across sessions, each pass adds one more handler for one more edge case that should not exist. The system "slowly becomes less understandable while appearing more robust." The real fix is to make the bad state unrepresentable — through type narrowing, constructor validation, or exhaustive types — rather than paper over it at every call site.
+
+**Symptoms:** A function null-checks a value the schema marks NOT NULL. An array gets a `|| []` fallback even though the caller's contract requires content. A try/catch wraps a synchronous function that cannot throw. Each instance looks reasonable alone; the pattern is visible only when you see five of them in the same file.
+
+**The fix:** Ask "can this state occur given the design?" If no, remove the handler. If yes, make the state unrepresentable: narrow the type so the impossible value cannot be constructed, validate at the trust boundary (the Zod schema or API entry point), or use an exhaustive type that closes the gap. One well-placed invariant is worth ten scattered null checks.
+
+**Source:** Armin Ronacher, "The Coming Loop" (June 2026) — the canonical description of defensive amplification in unattended agent loops.
