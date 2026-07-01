@@ -100,6 +100,10 @@ run allow block-dangerous-git 'git checkout -- src/app.ts'
 # git checkout without -- is a branch switch, not a path restore. No path is inspected.
 # This is intentionally allowed — the _saw_dashdash gate keeps it safe.
 run allow block-dangerous-git 'git checkout feat/my-branch'
+# git checkout . without -- is not caught by the _saw_dashdash gate. This is
+# intentionally allowed: agents can't commit to hook files, so HEAD always
+# contains safe versions. Restoring from HEAD is not a threat.
+run allow block-dangerous-git 'git checkout .'
 
 # ── Behavior 8: git remote add/set-url blocked ───────────────────────────────────
 echo "── behavior 8: git remote add/set-url is blocked ──"
