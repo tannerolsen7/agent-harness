@@ -207,8 +207,16 @@ state and one JSON payload from `gh pr list` (shape unchanged from today).
 
 ### 3. Open questions the robot must NOT answer
 
-None. This is an internal tooling fix with no product, UX, or business trade-off —
-every decision above is mechanical (which git plumbing call does the job) rather
-than a judgment call about what the system should do for a user. If the grill pass
-finds one hiding in here, it gets added below before this goes to Tanner for
-sign-off.
+**Found during grilling, resolved by Tanner:** the sync merge commit's push has no
+`.cr-ok` sentinel (it's gitignored, so a fresh scratch worktree never has one), and
+`.husky/pre-push`'s non-interactive path blocks any push without one. Since
+`.husky/pre-push` is a protected file agents can't edit, three options were on the
+table: (1) the script self-issues `.cr-ok`, but only after checking the merge
+touched nothing outside the files listed in `.gitattributes`'s merge= entries —
+anything else falls back to manual `/cr`; (2) `git push --no-verify`, skipping the
+whole hook chain; (3) report-only, never push automatically.
+
+**Decision: option 1** (self-issued sentinel, proof-scoped). It reuses the sentinel
+mechanism the hook already trusts, fails closed the moment the merge touches
+anything outside the pre-approved generated files, and never needs a protected file
+to change.
