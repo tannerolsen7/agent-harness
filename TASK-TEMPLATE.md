@@ -1,106 +1,166 @@
-# Agent-triggered worktree and branch cleanup after merge
+# Keep open PRs synced with main so /cr's clean-merge check stays true
 
 ## What & Why
 
-When an agent finishes a task, its worktree and branch linger until the next session
-start (when `prune-branches.sh` runs its global sweep). In a repo with many parallel
-tasks, those leftovers add up. An agent should be able to clean up its own worktree
-and branch right after the PR merges — without waiting for the next human session.
+`/cr` checks that a branch merges cleanly into main before it lets you push — but
+that check only holds at the moment `/cr` runs. Once a PR is open, main keeps moving
+(other PRs land, and this repo's dashboard files — `TASKS.md`, `harness-progress.html`,
+`harness-activity.html`, `PITFALLS.md`, `BACKLOG.md`, `docs/RECURRING-FINDINGS.md` — get
+touched by nearly every branch). By the time a human goes to merge, the PR can show
+`CONFLICTING` on GitHub even though it passed `/cr` cleanly.
+
+Right now two real PRs (#128, #129) are stuck in exactly this state. Tanner has to
+notice this, then manually fetch, merge, resolve, and push each one — the thing
+`sync-open-prs.sh` (run every session start) is supposed to do automatically, but
+doesn't, because of the two problems below. If this doesn't get fixed, every session
+keeps producing new stuck PRs and the manual cleanup never stops.
 
 ## Context
 
-- `scripts/prune-branches.sh` — the existing global sweep. Runs at session start and
-  after `/queue` merge batches. This new script is a targeted, single-worktree version.
-- `scripts/worktree-add.sh` — counterpart: creates worktrees. `cleanup-worktree.sh`
-  is the teardown mirror.
-- `.claude/agents/task-runner.md` — the pipeline that will call this script. Its "On
-  completion" section ends by returning a summary to /queue. The cleanup call goes
-  last, after everything else is done.
-- Absolute paths are fine for `git worktree remove` — no blocking hook exists for
-  them. `prune-branches.sh` and `worktree-add.sh` both already use absolute paths.
+- `scripts/sync-open-prs.sh` — runs at session start. For every open PR GitHub marks
+  `CONFLICTING`, it currently calls `gh pr update-branch --rebase`. That call runs
+  **server-side on GitHub** — it cannot see or run this repo's local `.git/config`
+  merge drivers (registered by `scripts/register-merge-drivers.sh` from
+  `.gitattributes`). So it fails on conflicts that a local `git merge origin/main`
+  would resolve automatically.
+- `.gitattributes` already declares merge strategies for some hot files:
+  `harness-progress.html merge=ours`, `PITFALLS.md merge=union`,
+  `docs/RECURRING-FINDINGS.md merge=union`, `docs/patterns-registry.md merge=union`,
+  `TASKS.md merge=tasks-higher-state` (custom driver in
+  `scripts/tasks-merge-driver.sh`). Two other files hit by nearly every branch —
+  `harness-activity.html` and `BACKLOG.md` — were never added.
+- `.claude/skills/cr/SKILL.md` (Pre-flight — Merge readiness, lines ~28–79) already
+  implements the correct pattern for this exact problem: detect the base branch,
+  fetch it, and if the branch doesn't merge cleanly, run `git merge "origin/$BASE"`;
+  on success continue, on failure `git merge --abort` and tell the human to resolve
+  manually. This design reuses that pattern instead of inventing a new one.
+- `docs/solutions/2026-06-24-auto-merge-as-sync-strategy-for-automated-tools.md` is
+  this repo's own written policy: automated tools must use `git merge` + abort-on-
+  conflict, never `git rebase`, because rebase either needs a force-push (which
+  automated tools must not do) or leaves a `REBASE_HEAD` half-state a script can't
+  recover from on its own.
+- Confirmed by hand on this repo: `git merge-tree origin/main
+  origin/feat/hooks-security-batch-a` (PR #128) exits 0 with no conflict markers —
+  it merges clean locally because the registered drivers resolve
+  `harness-progress.html`. GitHub still reports this PR as `CONFLICTING`, because it
+  can't run those drivers. That gap is the bug this design closes.
 
 ## Done Looks Like
 
-- `bash scripts/cleanup-worktree.sh .claude/worktrees/my-task` when branch is merged
-  into main → worktree removed, branch deleted, recovery SHA printed, exit 0
-- Same call when branch is NOT yet merged → prints "branch not yet merged — nothing
-  done", exit 0
-- Called with a path outside `.claude/worktrees/` → prints error, exits 1
-- Called from inside a worktree with no argument → derives path from CWD, behaves as
-  above
-- Squash-merged branch (where `merge-base --is-ancestor` is false) → detected via
-  `gh pr list --state merged` when `gh` is available, cleaned up; when `gh` is absent,
-  treated as "not merged" (safe no-op)
-- Called twice on an already-removed worktree → exits 0, no error (idempotent)
-- `task-runner.md`'s "On completion" section includes a `bash scripts/cleanup-worktree.sh`
-  call as the final step
+- `.gitattributes` has `harness-activity.html merge=ours` and
+  `BACKLOG.md merge=union`.
+- `sync-open-prs.sh` no longer calls `gh pr update-branch --rebase`. For each open,
+  non-draft, default-base PR GitHub marks `CONFLICTING`, it merges `origin/<base>`
+  locally in a throwaway worktree and pushes the result on success.
+- A PR whose branch is checked out in a live worktree elsewhere is skipped with a
+  clear "sync it yourself" message — the script never touches a branch someone else
+  has checked out.
+- A PR with a genuine content conflict (not a generated-file collision) aborts
+  cleanly and prints the exact manual recovery command, same wording style as
+  `/cr`'s pre-flight block message.
+- The scratch worktree used for the merge is always removed, even when the merge or
+  push fails.
+- The script's existing contract is preserved: always exits 0 (this runs from the
+  session-start hook and from `/queue`'s merge-batch trigger — it must never block
+  either).
+- `tests/sync-open-prs.test.sh` covers the new mechanism with a real local bare repo
+  (same pattern as `tests/pre-push-sync-gate.test.sh`), not a stubbed `gh
+  update-branch` call — because the whole point is that real git merge behavior
+  (including driver resolution) is what's under test now.
+- Running the updated script against this repo's two real stuck PRs, #128 (the
+  false-conflict one) syncs and pushes cleanly; #129 (the genuine
+  `.claude/skills/harness-setup/SKILL.md` conflict) is reported for manual
+  resolution, unchanged.
 
 ## Interface Contract
 
-### scripts/cleanup-worktree.sh (new)
+### `.gitattributes` (modified)
 
-Inputs:
-- `WORKTREE_PATH` (optional positional arg): path to clean up. If omitted, defaults
-  to `git rev-parse --show-toplevel` from CWD (works when called from inside the
-  worktree). Rejected (exit 1) if the resolved absolute path does not match
-  `$REPO_ROOT/.claude/worktrees/*`.
-
-Outputs:
-- stdout: one-line status per action ("removed worktree: ...", "deleted branch ...",
-  "branch X not yet merged — nothing done")
-- Recovery hint printed before branch deletion: "recover: git branch <name> <sha>"
-- Exit 0 on success or safe no-op; exit 1 on safety block (bad path, unexpected error)
-
-### .claude/agents/task-runner.md (modification)
-
-"On completion" — add a step 6 after the TASKS.md `[x]` update and before the return
-summary:
-
+Add two lines, same format as the existing entries:
 ```
-6. Run cleanup: `bash scripts/cleanup-worktree.sh` (called from inside the worktree,
-   no argument). This is speculative — the PR is usually not merged yet at this point.
-   If it is (e.g., auto-merge landed), the worktree and branch are cleaned up
-   immediately. If not, `prune-branches.sh` at the next session start handles it.
-   Exit code is always 0; never block the return summary on this step.
+harness-activity.html merge=ours
+BACKLOG.md             merge=union
 ```
+No driver registration changes needed — `merge.ours.driver` is already registered
+globally in `.git/config` by `scripts/register-merge-drivers.sh`, and `merge=union`
+needs no driver at all (it's a built-in git merge strategy).
+
+### `scripts/sync-open-prs.sh` (modified)
+
+Inputs: unchanged — `gh pr list --json number,headRefName,baseRefName,mergeable,isDraft`.
+The existing filters (`is_draft`, `base != $DEFAULT_BRANCH`, `mergeable !=
+CONFLICTING`) are unchanged; they already decide which PRs reach the sync step.
+
+For each PR that reaches the sync step, replace the `gh pr update-branch --rebase`
+call with:
+
+1. **Skip if the branch is checked out elsewhere.** Check
+   `git worktree list --porcelain` for `branch refs/heads/<head>`. If found, print
+   `skipped #<n> (<head>) — checked out in another worktree, sync it yourself` and
+   move to the next PR. This is the one case where touching the branch would step on
+   someone's in-progress work.
+2. **Create a scratch worktree.** `git worktree add --quiet <tmpdir> <head>` into a
+   `mktemp -d` directory. If this fails (e.g., branch doesn't exist locally yet —
+   first run may need a `git fetch origin <head>:<head>` first), report failure for
+   that PR and continue.
+3. **Merge and push inside the scratch worktree**, mirroring `/cr`'s pre-flight
+   exactly:
+   ```bash
+   git fetch origin "$base" --quiet
+   if git merge "origin/$base" --quiet -m "chore(sync): merge origin/$base into $head"; then
+     git push origin "HEAD:$head" --quiet && echo "synced #$n ($head)" \
+       || echo "failed #$n ($head) — merge ok locally but push failed, sync it yourself"
+   else
+     git merge --abort
+     echo "failed #$n ($head) — real conflict, resolve manually: git fetch origin && git checkout $head && git merge origin/$base"
+   fi
+   ```
+4. **Always remove the scratch worktree** after the attempt (`git worktree remove
+   --force <tmpdir>`), success or failure — use a trap so a mid-step error can't
+   leave it behind.
+
+Outputs: same shape as today — one status line per PR to stdout, script always
+exits 0. Line wording changes from "updated #N" / "failed #N ... rebase manually" to
+"synced #N" / "failed #N ... " + a specific reason (checked out elsewhere, scratch
+worktree couldn't be created, real conflict, or push failed after a clean merge).
 
 Constraints:
-- Must never delete a branch without first confirming it is merged into main (ancestor
-  check or `gh` confirmation). Not merged → exit 0, no-op.
-- Must never touch anything outside `.claude/worktrees/`. Path outside that prefix →
-  exit 1 immediately.
-- Remove the worktree BEFORE deleting the branch — git refuses to delete a branch that
-  is still checked out in a live worktree.
-- After confirming merge, use `git branch --delete --force` (same as `prune-branches.sh`
-  line 174). The merge check is the safety gate — not the delete flag. Using the soft
-  form (`-d`) is fragile because it checks the current HEAD, which may not be main.
-- Script is bash (shebang `#!/usr/bin/env bash`), matching every other script in
-  `scripts/`. Called via `bash scripts/cleanup-worktree.sh`, not as a hook under sh.
-- Use `git worktree remove --force "$WORKTREE_PATH"` — consistent with
-  `prune-branches.sh` and `worktree-add.sh`. Without `--force`, git refuses to
-  remove a worktree that has uncommitted changes.
-- Idempotent: if the worktree or branch was already removed, exit 0 silently.
+- Never force-push. The merge commit is a normal, forward-only commit; a plain
+  `git push` always suffices.
+- Never touch a branch checked out in another live worktree — that worktree may be
+  mid-edit in another session.
+- Never leave a scratch worktree registered after the script exits, on any exit
+  path.
+- Preserve the script's "always exit 0" contract — a sync failure for one PR is
+  reported, never fatal to the run.
+- GitLab path is unaffected — it already exits early with "not yet supported."
 
-State:
-- No persistent state. Removes the worktree directory, git's internal worktree
-  registration, and the local branch ref.
+State: none owned. Every run re-derives the PR list from `gh pr list` and re-does
+the sync from scratch; nothing persists between runs.
 
 ## Out of Scope
 
-- Cleaning up remote branches (Pass B in `prune-branches.sh` handles that)
-- Deleting branches outside `.claude/worktrees/` scope
-- Waiting/polling for a PR to merge — the call is speculative; the merge check is
-  the gate
-- Replacing `prune-branches.sh` — this is an additive complement, not a replacement
+- Fixing PR #129's real conflict in `.claude/skills/harness-setup/SKILL.md` — that's
+  overlapping hand-written content, not a generated-file collision. Handled
+  separately, by hand.
+- Auto-merging PRs. This only keeps branches in sync with main; a human (or a
+  separate tool) still decides when to actually merge.
+- GitLab support for this sync path — already stubbed as unsupported; not extended
+  here.
+- Changing `/cr`'s own pre-flight step — it already does the right thing today.
+- Adding merge strategies for any file besides `harness-activity.html` and
+  `BACKLOG.md` — no other hot file showed up unmanaged in the audit.
 
 ## Relevant Files
 
-- `scripts/cleanup-worktree.sh` (NEW)
-- `scripts/prune-branches.sh` — model for the merge-verify gate and worktree-remove
-  pattern (lines 120–180)
-- `.claude/agents/task-runner.md` — "On completion" section; add step 6
-- `docs/solutions/2026-06-17-worktree-git-file-detection.md` — `.git` file check
-  for detecting whether a path is a live worktree
+- `scripts/sync-open-prs.sh` — the script being changed
+- `.gitattributes` — two new lines
+- `.claude/skills/cr/SKILL.md` (lines ~28–79) — the merge/abort pattern this reuses
+- `docs/solutions/2026-06-24-auto-merge-as-sync-strategy-for-automated-tools.md` —
+  the policy this brings `sync-open-prs.sh` into line with
+- `tests/sync-open-prs.test.sh` — existing tests to rewrite for the new mechanism
+- `tests/pre-push-sync-gate.test.sh` — reference pattern for driving real git
+  behavior against a local bare-repo remote in a test
 
 ---
 
@@ -108,57 +168,47 @@ State:
 
 ### 1. Data shape
 
-No database or schema changes. No Zod boundaries. The inputs and outputs are git
-operations only.
+No database, no schema, no Zod boundary — this is a shell script operating on git
+state and one JSON payload from `gh pr list` (shape unchanged from today).
 
-**Script inputs:**
-- `WORKTREE_PATH` (string): resolved to absolute path before any check.
-  Must match `$REPO_ROOT/.claude/worktrees/*` or the script exits 1.
-- Branch name: derived inside the script via
-  `git -C "$WORKTREE_PATH" rev-parse --abbrev-ref HEAD`.
+**Inputs:**
+- PR JSON: `{number, headRefName, baseRefName, mergeable, isDraft}` — unchanged.
+- Git state: local worktree list, `origin/<base>` after fetch.
 
-**Merge-check inputs:**
-- `git merge-base --is-ancestor <branch-tip> origin/main` — true for regular merges.
-  MUST use `origin/main`, NOT `HEAD`. When this script runs from inside the worktree,
-  `HEAD` = the feature branch itself — checking against `HEAD` would always return true
-  and silently delete every branch. `prune-branches.sh` uses `HEAD` because it runs
-  from the main worktree where `HEAD` = main; that assumption does not hold here.
-- `gh pr list --head <branch> --state merged --json number -q '.[0].number'`
-  — detects squash-merges when `gh` is available
-
-**State changes on confirmed merge:**
-1. `git worktree remove "$WORKTREE_PATH"` — removes directory + git registration
-2. `git branch -d "$BRANCH"` (or `-D` after squash-merge proof) — removes local ref
-3. Prints recovery SHA before deletion (same pattern as `prune-branches.sh` line 174)
-
-No persistent state written. No other files modified.
+**Outputs:**
+- stdout status lines (human-readable, not machine-parsed anywhere today — grepped
+  only by tests).
+- Git side effects: a new merge commit pushed to the PR's remote branch, on success.
+- Process exit code: always 0.
 
 ### 2. Edge cases
 
-- **Path outside `.claude/worktrees/`**: exit 1 before touching anything.
-- **Worktree is the main repo root** (`.git` is a directory, not a file): exit 1 as
-  a secondary check — the path guard should catch it first.
-- **Branch not merged**: exit 0, print "branch X not yet merged — nothing done".
-- **`gh` absent + squash-merge**: `merge-base --is-ancestor` returns false, `gh`
-  unavailable → treated as "not merged", exit 0. `prune-branches.sh` catches it at
-  the next session start when `gh` is available.
-- **Worktree directory already removed**: exit 0 silently. Branch name cannot be
-  derived without the directory. Any orphaned branch will be caught by
-  `prune-branches.sh` at session start.
-- **Branch already deleted**: `git branch -d` exits non-zero; suppress the error and
-  exit 0 — both are cleaned up, which is the desired end state.
-- **Called from inside the target worktree (no arg)**: `git rev-parse --show-toplevel`
-  returns the worktree path. Path guard runs on the resolved absolute path.
-- **Called twice**: second call finds no worktree directory, no branch; exits 0.
+- **Branch checked out in another worktree** (e.g., an active `/feature` session on
+  that exact branch): skip, don't touch it, tell the human to sync manually.
+- **Branch doesn't exist locally yet** (first time this script runs after the PR was
+  opened from a fresh clone): `git worktree add <tmpdir> <head>` fails because there's
+  no local branch ref. Fetch it first (`git fetch origin <head>:<head>`) before the
+  worktree add, or worktree add with `-b` from `origin/<head>` — needs the actual
+  implementation to pick one and note it; either is fine since both leave the local
+  ref where `git worktree add` expects it. (Left as an implementation detail — not a
+  product decision.)
+- **Merge succeeds locally but push fails** (e.g., someone pushed to the same branch
+  in between fetch and push, or a permissions issue): report distinctly from a merge
+  conflict so the human knows the branch already has the right content locally, just
+  not published — different recovery than "resolve a conflict."
+- **Real content conflict** (like #129): abort, report, move on. Never leave the
+  scratch worktree mid-conflict.
+- **Two sessions run this script at the same time** on the same PR: the second
+  `git worktree add` for the same branch fails (git refuses to check out a branch
+  twice). That's the existing "checked out elsewhere" skip path — no special
+  handling needed beyond what's already in the design.
+- **`origin` push requires auth the script doesn't have** (rare, e.g. a stale token):
+  falls into the "push failed" case above — reported, not fatal to the run.
 
 ### 3. Open questions the robot must NOT answer
 
-1. **No fetch before check.** Reads last-fetched remote state. Fast. Misses a
-   just-merged PR until the next fetch, but `prune-branches.sh` catches it at
-   session start.
-
-2. **Cleanup runs before return summary** — step 6 of "On completion", after `.cr-ok`
-   and TASKS.md `[x]` update, before handing results back to /queue.
-
-3. **No PITFALLS entry.** `prune-branches.sh` already handles squash-merge cleanup
-   at session start. The no-op is safe and documented in the script itself.
+None. This is an internal tooling fix with no product, UX, or business trade-off —
+every decision above is mechanical (which git plumbing call does the job) rather
+than a judgment call about what the system should do for a user. If the grill pass
+finds one hiding in here, it gets added below before this goes to Tanner for
+sign-off.
