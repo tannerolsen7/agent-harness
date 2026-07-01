@@ -1,5 +1,5 @@
 #!/bin/bash
-# scripts/sync-open-prs.sh — sync open PRs that conflict with main.
+# scripts/sync-open-prs.sh — diagnose open PRs that conflict with main.
 # Runs at session start and when a PR merges. Always exits 0 — must never block either trigger.
 #
 # Why local merge, not `gh pr update-branch --rebase`: that call runs server-side on GitHub,
@@ -11,6 +11,15 @@
 # server-side rewrite either needs a force-push or leaves a half-applied state nothing here can
 # recover from. A local `git merge` + abort-on-conflict (the same pattern /cr's pre-flight uses)
 # avoids both problems.
+#
+# Why diagnose-only, not auto-push: an earlier version of this script self-issued a scoped
+# `.claude/.cr-ok` sentinel and pushed automatically when the merge was provably confined to
+# .gitattributes-covered files. An adversarial review found that mechanism unsafe even scoped:
+# a self-issued sentinel is indistinguishable from a real /cr review to .husky/pre-push, a fork
+# PR could smuggle its own `.gitattributes` entry into the merged tree to fake coverage, and a
+# bad auto-push could cascade onto the default branch via GitHub auto-merge with no audit trail.
+# This script now only tells you whether a conflict is real (needs a human) or false (the local
+# merge drivers already resolve it — just needs someone to run the push). It never pushes.
 
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 # Sibling scripts are resolved relative to where THIS script lives, not $ROOT — $ROOT is the
@@ -52,7 +61,7 @@ fi
 DEFAULT_BRANCH=$(git -C "$ROOT" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||') || true
 [ -z "${DEFAULT_BRANCH:-}" ] && DEFAULT_BRANCH=main
 
-PRS=$(gh pr list --json number,headRefName,baseRefName,mergeable,isDraft 2>/dev/null || echo "[]")
+PRS=$(gh pr list --json number,headRefName,baseRefName,mergeable,isDraft,isCrossRepository 2>/dev/null || echo "[]")
 
 COUNT=$(printf '%s' "$PRS" | jq 'length' 2>/dev/null || echo 0)
 if [ "$COUNT" -eq 0 ]; then
@@ -63,28 +72,30 @@ fi
 # Cache the active worktree branch list once — reused for every PR's checked-out-elsewhere check.
 ACTIVE_WT_BRANCHES=$(bash "$SCRIPT_DIR/active-worktree-branches.sh" || true)
 
-# $base is $DEFAULT_BRANCH for every PR that reaches sync_conflicting_pr (filtered below), so
+# $base is $DEFAULT_BRANCH for every PR that reaches diagnose_conflicting_pr (filtered below), so
 # fetch it once here instead of once per conflicting PR.
 git fetch origin "$DEFAULT_BRANCH" --quiet 2>/dev/null || true
 
-# Sync one CONFLICTING PR: merge origin/$3 into $2 inside a scratch worktree, and push on success.
+# Diagnose one CONFLICTING PR: merge origin/$3 into $2 inside a scratch worktree (detached, no
+# local branch created — nothing here can clobber an existing ref) to find out whether the
+# conflict is real or just the generated-file problem. Never pushes; only reports.
 # Mirrors .claude/skills/cr/SKILL.md's pre-flight (merge, abort-on-conflict) instead of rebasing.
-sync_conflicting_pr() {
+diagnose_conflicting_pr() {
   local number="$1" head="$2" base="$3"
 
   if printf '%s\n' "$ACTIVE_WT_BRANCHES" | grep -qxF "$head"; then
-    echo "skipped #${number} (${head}) — checked out in another worktree, sync it yourself"
+    echo "skipped #${number} (${head}) — checked out in another worktree, check it yourself"
     return
   fi
 
   git fetch origin "$head" --quiet 2>/dev/null || true
   local scratch
   scratch=$(mktemp -d)
-  # -B resets/creates a local branch named $head from origin/$head — safe even if a stale local
-  # branch of the same name lingers from a previous run (the active-worktree check above already
-  # ruled out it being checked out anywhere).
-  if ! git worktree add --quiet -B "$head" "$scratch" "origin/$head" >/dev/null 2>&1; then
-    echo "failed #${number} (${head}) — could not create scratch worktree, sync it yourself"
+  # --detach: no local branch is created or reset, so this can never clobber an existing ref
+  # of the same name (a real risk with `-B "$head"` — a human could have local unpushed work
+  # on a same-named branch that isn't checked out anywhere).
+  if ! git worktree add --quiet --detach "$scratch" "origin/$head" >/dev/null 2>&1; then
+    echo "failed #${number} (${head}) — could not create scratch worktree, check it yourself"
     rm -rf "$scratch"
     return
   fi
@@ -102,26 +113,16 @@ sync_conflicting_pr() {
       exit 0
     fi
 
-    # Certifying this push is safe only if the merge is fully covered by registered
-    # .gitattributes merge strategies — anything else means unreviewed content landed via the
-    # merge, and this must go through a real /cr pass instead.
+    # A resolvable-looking merge is only reported as such if every file the merge actually had to
+    # decide between is covered by a trusted (origin/$base) .gitattributes merge strategy — see
+    # check-merge-driver-coverage.sh for why the trust source matters (a branch's own copy of
+    # .gitattributes can't be used, or the branch could grant itself coverage).
     if ! bash "$SCRIPT_DIR/check-merge-driver-coverage.sh" "$merge_base" "$pre_merge_head" "origin/$base" >/dev/null 2>&1; then
       echo "failed #${number} (${head}) — merge touched files outside the registered merge strategies, needs a real /cr pass"
       exit 0
     fi
 
-    # Self-issue a scoped .cr-ok: safe only because the coverage check above confirms this merge
-    # commit introduces no content beyond what the registered merge drivers already resolved.
-    local merge_sha
-    merge_sha=$(git rev-parse HEAD)
-    mkdir -p .claude
-    printf '%s:%s' "$head" "$merge_sha" > .claude/.cr-ok
-
-    if git push origin "HEAD:$head" --quiet 2>/dev/null; then
-      echo "synced #${number} (${head})"
-    else
-      echo "failed #${number} (${head}) — merge ok locally but push failed, sync it yourself"
-    fi
+    echo "resolvable #${number} (${head}) — not a real conflict, push it yourself: git fetch origin && git checkout ${head} && git merge origin/${base} && git push origin ${head}"
   )
 
   git worktree remove --force "$scratch" >/dev/null 2>&1 || rm -rf "$scratch"
@@ -138,12 +139,16 @@ while IFS= read -r pr; do
   base=$(printf '%s' "$pr" | jq -r '.baseRefName')
   mergeable=$(printf '%s' "$pr" | jq -r '.mergeable')
   is_draft=$(printf '%s' "$pr" | jq -r '.isDraft')
+  is_cross_repo=$(printf '%s' "$pr" | jq -r '.isCrossRepository')
 
   [ "$is_draft" = "true" ] && continue
   [ "$base" != "$DEFAULT_BRANCH" ] && continue
   [ "$mergeable" != "CONFLICTING" ] && continue
+  # Fork PRs carry untrusted branch content and an untrusted .gitattributes — never run even the
+  # diagnostic merge against them automatically.
+  [ "$is_cross_repo" = "true" ] && continue
 
-  sync_conflicting_pr "$number" "$head" "$base"
+  diagnose_conflicting_pr "$number" "$head" "$base"
 done < "$TMP"
 
 exit 0

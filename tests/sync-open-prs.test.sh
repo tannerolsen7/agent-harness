@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Tests for scripts/sync-open-prs.sh — merge-and-push sync of CONFLICTING open PRs.
+# Tests for scripts/sync-open-prs.sh — diagnoses CONFLICTING open PRs via a real local merge,
+# reports real-conflict vs. resolvable, and NEVER pushes (see the script's own header comment
+# for why: a self-issuing-sentinel + auto-push design was rejected after an adversarial review
+# found it exploitable).
 # gh is stubbed only for `pr list` — every git operation is real, run against a local bare
 # "remote" repo (never the project's real origin). The whole point of this script is real
 # merge-driver resolution, which a stubbed `gh pr update-branch` could never exercise.
@@ -169,8 +172,43 @@ make_pr_branch uncovered-clone feat/uncovered real.txt "branch edit" "feat: bran
   git push -q origin bump2:main
 ) >/dev/null 2>&1
 
+# feat/cleanuncovered: touches a DIFFERENT line of notes.txt than main does below, so the plain
+# git merge succeeds with no conflict markers — the only thing that should flag this one is the
+# coverage check, not the merge step. This closes the gap /cr's review found: without this
+# fixture, a stubbed-out coverage check would still pass every existing test.
+(
+  cd "$LOCAL" || exit 1
+  git checkout -q -b bump2b origin/main
+  printf 'one\ntwo\nthree\n' > notes.txt
+  git add notes.txt && git commit -q -m "chore: add notes.txt"
+  git push -q origin bump2b:main
+  git fetch -q origin main
+) >/dev/null 2>&1
+git clone -q "$REMOTE" "$TMP/cleanuncovered-clone" >/dev/null 2>&1
+(
+  cd "$TMP/cleanuncovered-clone" || exit 1
+  git config user.email t@example.com; git config user.name tester
+  git checkout -q -b feat/cleanuncovered
+  printf 'ONE\ntwo\nthree\n' > notes.txt
+  git commit -aq -m "feat: branch edits notes.txt line 1"
+  git push -q origin feat/cleanuncovered
+) >/dev/null 2>&1
+(
+  cd "$LOCAL" || exit 1
+  git checkout -q -b bump3 origin/main
+  printf 'one\ntwo\nTHREE\n' > notes.txt
+  git commit -aq -m "chore: main edits notes.txt line 3"
+  git push -q origin bump3:main
+) >/dev/null 2>&1
+
+# feat/fork: same shape as feat/covered, but flagged cross-repository — must never be touched.
+make_pr_branch fork-clone feat/fork harness-progress.html "fork version" "feat: fork touches dashboard"
+
 UNCOVERED_TIP_BEFORE=$(git -C "$REMOTE" rev-parse feat/uncovered)
 CHECKEDOUT_TIP_BEFORE=$(git -C "$REMOTE" rev-parse feat/checkedout)
+CLEANUNCOVERED_TIP_BEFORE=$(git -C "$REMOTE" rev-parse feat/cleanuncovered)
+COVERED_TIP_BEFORE=$(git -C "$REMOTE" rev-parse feat/covered)
+FORK_TIP_BEFORE=$(git -C "$REMOTE" rev-parse feat/fork)
 
 # Check out feat/checkedout in a live worktree inside $LOCAL, so the sync script must skip it.
 git -C "$LOCAL" fetch -q origin feat/checkedout
@@ -180,7 +218,7 @@ cat > "$FAKE_BIN/gh" <<'EOF'
 #!/bin/sh
 case "$*" in
   *"pr list"*)
-    echo '[{"number":201,"headRefName":"feat/covered","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false},{"number":202,"headRefName":"feat/uncovered","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false},{"number":203,"headRefName":"feat/checkedout","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false}]'
+    echo '[{"number":201,"headRefName":"feat/covered","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false,"isCrossRepository":false},{"number":202,"headRefName":"feat/uncovered","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false,"isCrossRepository":false},{"number":203,"headRefName":"feat/checkedout","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false,"isCrossRepository":false},{"number":204,"headRefName":"feat/cleanuncovered","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false,"isCrossRepository":false},{"number":205,"headRefName":"feat/fork","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false,"isCrossRepository":true}]'
     ;;
 esac
 exit 0
@@ -190,12 +228,12 @@ chmod +x "$FAKE_BIN/gh"
 OUT=$(run_with_stub "$LOCAL"); EC=$?
 chk "$EC" "real-git: script always exits 0"
 
-# ---- Behavior 6: a merge fully covered by registered drivers is synced and pushed ----
-printf '%s' "$OUT" | grep -qF "synced #201 (feat/covered)"
-chk "$?" "covered: synced line printed"
+# ---- Behavior 6: a merge fully covered by registered drivers is reported resolvable, NOT pushed ----
+printf '%s' "$OUT" | grep -qF "resolvable #201 (feat/covered) — not a real conflict, push it yourself:"
+chk "$?" "covered: resolvable line printed with the push-it-yourself command"
 COVERED_TIP_AFTER=$(git -C "$REMOTE" rev-parse feat/covered)
-git -C "$REMOTE" log --oneline "$COVERED_TIP_AFTER" | grep -qF "chore(sync): merge"
-chk "$?" "covered: merge commit actually pushed to the remote branch"
+[ "$COVERED_TIP_AFTER" = "$COVERED_TIP_BEFORE" ]
+chk "$?" "covered: remote branch NOT pushed to (diagnose-only, never auto-publishes)"
 
 # ---- Behavior 7: a genuine content conflict is reported, not force-resolved ----
 printf '%s' "$OUT" | grep -qF "failed #202 (feat/uncovered) — real conflict, resolve manually:"
@@ -205,13 +243,30 @@ UNCOVERED_TIP_AFTER=$(git -C "$REMOTE" rev-parse feat/uncovered)
 chk "$?" "uncovered: remote branch left untouched"
 
 # ---- Behavior 8: a branch checked out in a live worktree is skipped, never touched ----
-printf '%s' "$OUT" | grep -qF "skipped #203 (feat/checkedout) — checked out in another worktree, sync it yourself"
+printf '%s' "$OUT" | grep -qF "skipped #203 (feat/checkedout) — checked out in another worktree, check it yourself"
 chk "$?" "checked-out: skip message printed"
 CHECKEDOUT_TIP_AFTER=$(git -C "$REMOTE" rev-parse feat/checkedout)
 [ "$CHECKEDOUT_TIP_AFTER" = "$CHECKEDOUT_TIP_BEFORE" ]
 chk "$?" "checked-out: remote branch left untouched"
 
-# ---- Behavior 9: no scratch worktrees are left registered afterward ----
+# ---- Behavior 9: a merge that succeeds cleanly but touches an uncovered file is still flagged ----
+# This is the case a stubbed-out coverage check would silently let through — the git merge alone
+# has no conflict markers here, so only the coverage check catches it.
+printf '%s' "$OUT" | grep -qF "failed #204 (feat/cleanuncovered) — merge touched files outside the registered merge strategies, needs a real /cr pass"
+chk "$?" "clean-uncovered: coverage check catches a cleanly-merged-but-uncovered file"
+CLEANUNCOVERED_TIP_AFTER=$(git -C "$REMOTE" rev-parse feat/cleanuncovered)
+[ "$CLEANUNCOVERED_TIP_AFTER" = "$CLEANUNCOVERED_TIP_BEFORE" ]
+chk "$?" "clean-uncovered: remote branch left untouched"
+
+# ---- Behavior 10: a cross-repository (fork) PR is never touched, regardless of coverage ----
+printf '%s' "$OUT" | grep -qF "#205"
+[ "$?" != 0 ]
+chk "$?" "fork-PR: PR #205 never touched (no diagnose/skip/fail line)"
+FORK_TIP_AFTER=$(git -C "$REMOTE" rev-parse feat/fork)
+[ "$FORK_TIP_AFTER" = "$FORK_TIP_BEFORE" ]
+chk "$?" "fork-PR: remote branch left untouched"
+
+# ---- Behavior 11: no scratch worktrees are left registered afterward ----
 WT_COUNT=$(git -C "$LOCAL" worktree list | wc -l | tr -d ' ')
 # 2 expected: $LOCAL itself + the feat/checkedout worktree this test set up on purpose.
 [ "$WT_COUNT" = "2" ]

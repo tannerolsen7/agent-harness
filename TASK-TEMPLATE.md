@@ -1,5 +1,16 @@
 # Keep open PRs synced with main so /cr's clean-merge check stays true
 
+> **Post-review addendum:** the "self-issued sentinel, proof-scoped" decision recorded in
+> section 3 below (Open Questions) was implemented, then rejected by `/cr`'s Pass 2 and
+> Pass 10 adversarial review. The review found the self-issued `.cr-ok` indistinguishable
+> from a real human review, the coverage proof readable from an attacker-influenced merged
+> tree (confirmed exploitable — see the `/cr` disposition report), and a cascade path onto
+> the default branch via GitHub auto-merge with no audit trail. The shipped design instead
+> **diagnoses only and never pushes or issues a sentinel** — the script tells you whether a
+> conflict is real or just the generated-file problem, and prints the exact commands to run
+> yourself. This is a materially different, safer mechanism than what section 3 approved;
+> treat this addendum as the record of what actually shipped.
+
 ## What & Why
 
 `/cr` checks that a branch merges cleanly into main before it lets you push — but
