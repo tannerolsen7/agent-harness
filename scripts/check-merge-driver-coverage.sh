@@ -25,6 +25,14 @@
 # (scripts/register-merge-drivers.sh does this at `npm install` time).
 set -u
 
+# comm -12 requires both inputs pre-sorted — that's why CHANGED_UNTRUSTED/CHANGED_TRUSTED are
+# piped through `sort -u` below. If a future edit drops that, comm won't error; it will just
+# silently under- or over-report the intersection.
+if [ -z "${BASH_VERSION:-}" ]; then
+  echo "check-merge-driver-coverage.sh: must run under bash (uses process substitution), not sh" >&2
+  exit 1
+fi
+
 MERGE_BASE="${1:?usage: check-merge-driver-coverage.sh <merge-base> <ref-untrusted> <ref-trusted>}"
 REF_UNTRUSTED="${2:?usage: check-merge-driver-coverage.sh <merge-base> <ref-untrusted> <ref-trusted>}"
 REF_TRUSTED="${3:?usage: check-merge-driver-coverage.sh <merge-base> <ref-untrusted> <ref-trusted>}"

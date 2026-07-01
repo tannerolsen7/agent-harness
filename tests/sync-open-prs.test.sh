@@ -93,6 +93,22 @@ printf '%s' "$OUT" | grep -qF "#77"
 [ "$?" != 0 ]
 chk "$?" "draft-PR: PR #77 never touched (no sync/skip/fail line)"
 
+# ---- Behavior 4b: a branch name outside the expected charset is rejected, not passed to git ----
+cat > "$FAKE_BIN/gh" <<'EOF'
+#!/bin/sh
+case "$*" in
+  *"pr list"*)
+    echo '[{"number":88,"headRefName":"-x/exploit","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false}]'
+    ;;
+esac
+exit 0
+EOF
+chmod +x "$FAKE_BIN/gh"
+OUT=$(run_with_stub); EC=$?
+chk "$EC" "bad-branch-name: exit 0"
+printf '%s' "$OUT" | grep -qF "skipped #88 — branch name outside the expected charset, check it yourself"
+chk "$?" "bad-branch-name: rejected before any git operation, PR number only in the message"
+
 # ---- Behavior 5: .gitattributes covers every hot generated/tracking file ----
 for entry in "PITFALLS\.md[[:space:]]+merge=union" \
              "harness-progress\.html[[:space:]]+merge=ours" \

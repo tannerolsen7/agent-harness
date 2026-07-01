@@ -148,6 +148,20 @@ while IFS= read -r pr; do
   # diagnostic merge against them automatically.
   [ "$is_cross_repo" = "true" ] && continue
 
+  # Defense in depth: $head/$base come from gh pr list JSON. GitHub itself constrains branch
+  # names, but nothing stops this script from trusting that alone — reject anything that isn't
+  # a plain git ref-like name before it flows into a refspec or worktree branch argument.
+  # The skip message uses only $number (a safe integer), never $head/$base — an out-of-charset
+  # branch name is exactly the kind of value that shouldn't be echoed back unexamined.
+  case "$head" in *[!A-Za-z0-9._/-]* | -*)
+    echo "skipped #${number} — branch name outside the expected charset, check it yourself"
+    continue ;;
+  esac
+  case "$base" in *[!A-Za-z0-9._/-]* | -*)
+    echo "skipped #${number} — branch name outside the expected charset, check it yourself"
+    continue ;;
+  esac
+
   diagnose_conflicting_pr "$number" "$head" "$base"
 done < "$TMP"
 
