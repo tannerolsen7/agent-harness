@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Tests for scripts/sync-open-prs.sh — auto-rebase conflicting open PRs.
-# Uses stub gh binaries so no network or real GitHub token is required.
+# Tests for scripts/sync-open-prs.sh — merge-and-push sync of CONFLICTING open PRs.
+# gh is stubbed only for `pr list` — every git operation is real, run against a local bare
+# "remote" repo (never the project's real origin). The whole point of this script is real
+# merge-driver resolution, which a stubbed `gh pr update-branch` could never exercise.
 # (run-tests.sh clears inherited git env so git ops stay isolated.)
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_NAMESPACE
 set -u
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 SCRIPT="$ROOT/scripts/sync-open-prs.sh"
@@ -11,7 +14,8 @@ pass=0; fail=0
 chk() { if [ "$1" = 0 ]; then pass=$((pass+1)); else echo "  MISS: $2"; fail=$((fail+1)); fi; }
 
 FAKE_BIN=$(mktemp -d)
-trap 'rm -rf "$FAKE_BIN"' EXIT
+TMP=$(mktemp -d)
+trap 'rm -rf "$FAKE_BIN" "$TMP"' EXIT
 
 # Run the script from the worktree root with $FAKE_BIN as the only place gh could come from.
 # For the no-CLI test: PATH contains only FAKE_BIN (no /usr/bin, /bin). This isolates gh on
@@ -21,13 +25,13 @@ trap 'rm -rf "$FAKE_BIN"' EXIT
 #   git rev-parse ... 2>/dev/null || pwd  →  ROOT = current dir (correct; we cd'd there)
 #   sh detect-forge.sh 2>/dev/null || echo unknown  →  FORGE=unknown
 # The unknown forge case tries command -v gh and glab, finds neither, and prints the skip msg.
-# For all other tests: $FAKE_BIN is prepended to the full PATH so stubs shadow real gh.
 _BASH=$(command -v bash)
 run_no_cli() {
   ( cd "$ROOT" && PATH="$FAKE_BIN" "$_BASH" "$SCRIPT" ) 2>&1
 }
 run_with_stub() {
-  ( cd "$ROOT" && PATH="$FAKE_BIN:$PATH" bash "$SCRIPT" ) 2>&1
+  local dir="${1:-$ROOT}"
+  ( cd "$dir" && PATH="$FAKE_BIN:$PATH" bash "$SCRIPT" ) 2>&1
 }
 
 # ---- Behavior 1: missing forge CLI exits 0 with skip message ----
@@ -51,89 +55,171 @@ chk "$EC" "no-PRs: exit 0"
 printf '%s' "$OUT" | grep -qF "no open PRs to sync"
 chk "$?" "no-PRs: skip message printed"
 
-# ---- Behavior 3: conflicting PR rebased, success printed ----
+# ---- Behavior 3: PR targeting a non-default base branch is skipped ----
+rm -f "$FAKE_BIN/list-called-count"
 cat > "$FAKE_BIN/gh" <<'EOF'
 #!/bin/sh
 case "$*" in
-  *"pr list"*)
-    echo '[{"number":42,"headRefName":"feat/my-feature","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false}]'
-    ;;
-  *"pr update-branch"*) exit 0 ;;
-esac
-exit 0
-EOF
-chmod +x "$FAKE_BIN/gh"
-OUT=$(run_with_stub); EC=$?
-chk "$EC" "rebase-success: exit 0"
-printf '%s' "$OUT" | grep -qF "updated #42 (feat/my-feature)"
-chk "$?" "rebase-success: updated line printed"
-
-# ---- Behavior 4: rebase fails, script continues to next PR and exits 0 ----
-# Two PRs: first fails rebase, second succeeds — verifies the script keeps going.
-cat > "$FAKE_BIN/gh" <<'EOF'
-#!/bin/sh
-case "$*" in
-  *"pr list"*)
-    echo '[{"number":42,"headRefName":"feat/first","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false},{"number":43,"headRefName":"feat/second","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false}]'
-    ;;
-  *"update-branch"*"42"*) exit 1 ;;
-  *"update-branch"*"43"*) exit 0 ;;
-esac
-exit 0
-EOF
-chmod +x "$FAKE_BIN/gh"
-OUT=$(run_with_stub); EC=$?
-chk "$EC" "rebase-fail: exit 0"
-printf '%s' "$OUT" | grep -qF "failed #42 (feat/first)"
-chk "$?" "rebase-fail: failure line printed for #42"
-printf '%s' "$OUT" | grep -qF "updated #43 (feat/second)"
-chk "$?" "rebase-fail: continues and updates #43"
-
-# ---- Behavior 5: PR targeting a non-default base branch is skipped ----
-rm -f "$FAKE_BIN/update-called"
-cat > "$FAKE_BIN/gh" <<EOF
-#!/bin/sh
-case "\$*" in
   *"pr list"*)
     echo '[{"number":99,"headRefName":"feat/child","baseRefName":"feat/parent","mergeable":"CONFLICTING","isDraft":false}]'
     ;;
-  *"pr update-branch"*)
-    touch "$FAKE_BIN/update-called"
-    exit 0
-    ;;
 esac
 exit 0
 EOF
 chmod +x "$FAKE_BIN/gh"
-run_with_stub >/dev/null 2>&1; EC=$?
+OUT=$(run_with_stub); EC=$?
 chk "$EC" "non-default-base: exit 0"
-[ ! -f "$FAKE_BIN/update-called" ]
-chk "$?" "non-default-base: update-branch NOT called for stacked PR"
+printf '%s' "$OUT" | grep -qF "#99"
+[ "$?" != 0 ]
+chk "$?" "non-default-base: PR #99 never touched (no sync/skip/fail line)"
 
-# ---- Behavior 6: draft PR is skipped ----
-rm -f "$FAKE_BIN/draft-update-called"
-cat > "$FAKE_BIN/gh" <<EOF
+# ---- Behavior 4: draft PR is skipped ----
+cat > "$FAKE_BIN/gh" <<'EOF'
 #!/bin/sh
-case "\$*" in
+case "$*" in
   *"pr list"*)
     echo '[{"number":77,"headRefName":"feat/draft-work","baseRefName":"main","mergeable":"CONFLICTING","isDraft":true}]'
     ;;
-  *"pr update-branch"*)
-    touch "$FAKE_BIN/draft-update-called"
-    exit 0
+esac
+exit 0
+EOF
+chmod +x "$FAKE_BIN/gh"
+OUT=$(run_with_stub); EC=$?
+chk "$EC" "draft-PR: exit 0"
+printf '%s' "$OUT" | grep -qF "#77"
+[ "$?" != 0 ]
+chk "$?" "draft-PR: PR #77 never touched (no sync/skip/fail line)"
+
+# ---- Behavior 5: .gitattributes covers every hot generated/tracking file ----
+for entry in "PITFALLS\.md[[:space:]]+merge=union" \
+             "harness-progress\.html[[:space:]]+merge=ours" \
+             "harness-activity\.html[[:space:]]+merge=ours" \
+             "BACKLOG\.md[[:space:]]+merge=union"; do
+  grep -qE "$entry" "$ROOT/.gitattributes"
+  chk "$?" ".gitattributes: $entry present"
+done
+
+# ==== Real-git fixture: bare "remote" + a local clone with merge drivers registered ====
+REMOTE="$TMP/remote.git"
+git init -q --bare "$REMOTE"
+git -C "$REMOTE" symbolic-ref HEAD refs/heads/main
+
+LOCAL="$TMP/local"
+git clone -q "$REMOTE" "$LOCAL" >/dev/null 2>&1
+(
+  cd "$LOCAL" || exit 1
+  git config user.email t@example.com; git config user.name tester
+  git config merge.ours.driver true
+  printf 'harness-progress.html merge=ours\n' > .gitattributes
+  printf 'v1\n' > harness-progress.html
+  printf 'real\n' > real.txt
+  git add -A && git commit -q -m init
+  git push -q origin HEAD:main
+  git remote set-head origin main
+) >/dev/null 2>&1
+
+# feat/covered: diverges from main on harness-progress.html only (driver-covered).
+COVERED="$TMP/covered-clone"
+git clone -q "$REMOTE" "$COVERED" >/dev/null 2>&1
+(
+  cd "$COVERED" || exit 1
+  git config user.email t@example.com; git config user.name tester
+  git checkout -q -b feat/covered
+  printf 'branch version\n' > harness-progress.html
+  git commit -aq -m "feat: branch touches dashboard"
+  git push -q origin feat/covered
+) >/dev/null 2>&1
+
+# feat/checkedout: same shape as feat/covered, used for the live-worktree skip test.
+CHECKEDOUT="$TMP/checkedout-clone"
+git clone -q "$REMOTE" "$CHECKEDOUT" >/dev/null 2>&1
+(
+  cd "$CHECKEDOUT" || exit 1
+  git config user.email t@example.com; git config user.name tester
+  git checkout -q -b feat/checkedout
+  printf 'branch version 2\n' > harness-progress.html
+  git commit -aq -m "feat: branch touches dashboard too"
+  git push -q origin feat/checkedout
+) >/dev/null 2>&1
+
+# main moves: bumps harness-progress.html (conflicts with both branches above, driver-covered).
+(
+  cd "$LOCAL" || exit 1
+  git checkout -q -b bump1 origin/main
+  printf 'main version\n' > harness-progress.html
+  git commit -aq -m "chore: main also touches dashboard"
+  git push -q origin bump1:main
+  git fetch -q origin main
+) >/dev/null 2>&1
+
+# feat/uncovered: diverges from (post-bump1) main on real.txt — no merge strategy declared.
+UNCOVERED="$TMP/uncovered-clone"
+git clone -q "$REMOTE" "$UNCOVERED" >/dev/null 2>&1
+(
+  cd "$UNCOVERED" || exit 1
+  git config user.email t@example.com; git config user.name tester
+  git checkout -q -b feat/uncovered
+  printf 'branch edit\n' >> real.txt
+  git commit -aq -m "feat: branch edits real.txt"
+  git push -q origin feat/uncovered
+) >/dev/null 2>&1
+
+# main moves again: also edits real.txt — genuine conflict, no driver to resolve it.
+(
+  cd "$LOCAL" || exit 1
+  git checkout -q -b bump2 origin/main
+  printf 'main edit\n' >> real.txt
+  git commit -aq -m "chore: main edits real.txt too"
+  git push -q origin bump2:main
+) >/dev/null 2>&1
+
+UNCOVERED_TIP_BEFORE=$(git -C "$REMOTE" rev-parse feat/uncovered)
+CHECKEDOUT_TIP_BEFORE=$(git -C "$REMOTE" rev-parse feat/checkedout)
+
+# Check out feat/checkedout in a live worktree inside $LOCAL, so the sync script must skip it.
+git -C "$LOCAL" fetch -q origin feat/checkedout
+git -C "$LOCAL" worktree add --quiet -B feat/checkedout "$TMP/live-wt" origin/feat/checkedout >/dev/null 2>&1
+
+cat > "$FAKE_BIN/gh" <<'EOF'
+#!/bin/sh
+case "$*" in
+  *"pr list"*)
+    echo '[{"number":201,"headRefName":"feat/covered","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false},{"number":202,"headRefName":"feat/uncovered","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false},{"number":203,"headRefName":"feat/checkedout","baseRefName":"main","mergeable":"CONFLICTING","isDraft":false}]'
     ;;
 esac
 exit 0
 EOF
 chmod +x "$FAKE_BIN/gh"
-run_with_stub >/dev/null 2>&1; EC=$?
-chk "$EC" "draft-PR: exit 0"
-[ ! -f "$FAKE_BIN/draft-update-called" ]
-chk "$?" "draft-PR: update-branch NOT called for draft PR"
 
-# ---- Behavior 7: PITFALLS.md has merge=union in .gitattributes ----
-grep -qE "PITFALLS\.md[[:space:]]+merge=union" "$ROOT/.gitattributes"
-chk "$?" ".gitattributes: PITFALLS.md merge=union present"
+OUT=$(run_with_stub "$LOCAL"); EC=$?
+chk "$EC" "real-git: script always exits 0"
+
+# ---- Behavior 6: a merge fully covered by registered drivers is synced and pushed ----
+printf '%s' "$OUT" | grep -qF "synced #201 (feat/covered)"
+chk "$?" "covered: synced line printed"
+COVERED_TIP_AFTER=$(git -C "$REMOTE" rev-parse feat/covered)
+git -C "$REMOTE" log --oneline "$COVERED_TIP_AFTER" | grep -qF "chore(sync): merge"
+chk "$?" "covered: merge commit actually pushed to the remote branch"
+
+# ---- Behavior 7: a genuine content conflict is reported, not force-resolved ----
+printf '%s' "$OUT" | grep -qF "failed #202 (feat/uncovered) — real conflict, resolve manually:"
+chk "$?" "uncovered: real-conflict message printed"
+UNCOVERED_TIP_AFTER=$(git -C "$REMOTE" rev-parse feat/uncovered)
+[ "$UNCOVERED_TIP_AFTER" = "$UNCOVERED_TIP_BEFORE" ]
+chk "$?" "uncovered: remote branch left untouched"
+
+# ---- Behavior 8: a branch checked out in a live worktree is skipped, never touched ----
+printf '%s' "$OUT" | grep -qF "skipped #203 (feat/checkedout) — checked out in another worktree, sync it yourself"
+chk "$?" "checked-out: skip message printed"
+CHECKEDOUT_TIP_AFTER=$(git -C "$REMOTE" rev-parse feat/checkedout)
+[ "$CHECKEDOUT_TIP_AFTER" = "$CHECKEDOUT_TIP_BEFORE" ]
+chk "$?" "checked-out: remote branch left untouched"
+
+# ---- Behavior 9: no scratch worktrees are left registered afterward ----
+WT_COUNT=$(git -C "$LOCAL" worktree list | wc -l | tr -d ' ')
+# 2 expected: $LOCAL itself + the feat/checkedout worktree this test set up on purpose.
+[ "$WT_COUNT" = "2" ]
+chk "$?" "cleanup: no leftover scratch worktrees registered in \$LOCAL"
 
 echo ""
 echo "sync-open-prs: $pass passed, $fail failed"
