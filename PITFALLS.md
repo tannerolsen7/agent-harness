@@ -470,3 +470,40 @@ A separate but related gap: `sync-harness.sh` needs `HARNESS_SRC` at sync time, 
 **The fix:** Ask "can this state occur given the design?" If no, remove the handler. If yes, make the state unrepresentable: narrow the type so the impossible value cannot be constructed, validate at the trust boundary (the Zod schema or API entry point), or use an exhaustive type that closes the gap. One well-placed invariant is worth ten scattered null checks.
 
 **Source:** Armin Ronacher, "The Coming Loop" (June 2026) — the canonical description of defensive amplification in unattended agent loops.
+
+---
+
+## Resolving git attributes from a post-merge tree instead of a fixed trusted ref
+
+**Area:** Any script that calls `git check-attr` (or reads any other trust-relevant git config
+or attributes) to decide whether a merge, diff, or branch is safe to act on automatically
+
+**Rule:** When a script's safety decision depends on `.gitattributes` (or similar config) and
+the two sides of a merge might disagree, resolve those attributes with `git check-attr
+--source=<fixed-trusted-ref>` — never by reading whatever `.gitattributes` happens to be
+checked out in the current working tree. The trusted ref must be a value fixed *before* the
+untrusted input was considered, typically the base branch, before the merge under evaluation
+ran.
+
+**Why:** `git check-attr` without `--source` reads `.gitattributes` from the current working
+tree. If that check runs after a merge, the working tree is the merged result — a state the
+untrusted side of the merge helped produce. An untrusted branch can add its own `.gitattributes`
+line (e.g. granting `merge=union` to a file it also edits) in the same change, and by the time
+the check runs, that attribute is present and reports the file as "covered" even though nobody
+but the untrusted branch's own author ever declared it safe. This is a general trust-boundary
+bug, not specific to merge drivers: any time a script's proof-of-safety is computed from state
+the input under review can influence, the proof is not independent of what it's certifying.
+
+**Symptoms:** A coverage/safety check that should fail for an attacker-controlled file instead
+reports it as covered, because the check ran against post-merge (or otherwise post-input)
+state rather than a value that existed before the untrusted content was considered.
+
+**The fix:** Pass `--source=<ref>` pinned to a value fixed before the untrusted input, e.g.
+`git check-attr --source="$TRUSTED_BASE_REF" --stdin merge`. Confirmed in
+`scripts/check-merge-driver-coverage.sh` — see also
+`docs/solutions/2026-07-01-self-issued-review-sentinel-is-a-trust-boundary.md` for the full
+incident this came from (a self-issued `.cr-ok` sentinel that used the unpinned version of
+this check to decide whether to auto-push).
+
+**Source:** `/cr` adversarial review (Pass 2 domain safety, Pass 10) on `feat/cr-merge-sync`,
+confirmed with a hand-built exploit repro (2026-07-01).
