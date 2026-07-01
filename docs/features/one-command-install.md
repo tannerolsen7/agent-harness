@@ -97,7 +97,7 @@ Outputs:
   Done. Next steps:
     1. bash scripts/install-harness-hooks.sh   # wire git hooks (inspectable; runs npm install)
     2. bash scripts/install-locks.sh           # optional OS-level locks (requires sudo)
-    3. Open Claude Code in this directory and run /init
+    3. Open Claude Code in this directory and run /harness-setup
   ```
 
 **scripts/install-harness-hooks.sh**
