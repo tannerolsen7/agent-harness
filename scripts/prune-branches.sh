@@ -37,6 +37,9 @@ git worktree prune
 # .git file (a plain text pointer to the registration in .git/worktrees/). No .git file
 # means the directory is abandoned — safe to remove.
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+# active-worktree-branches.sh lives alongside this script, not necessarily inside $ROOT — $ROOT
+# is the repo being pruned (this same checkout in production, but a disposable fixture in tests).
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 WT_BASE="$ROOT/.claude/worktrees"
 if [ -d "$WT_BASE" ]; then
   for _wd in "$WT_BASE"/*/; do
@@ -59,7 +62,7 @@ fi
 # makes `git merge-base --is-ancestor` return true — it looks "merged" but is live work.
 # Excluding active worktree branches prevents false-positive deletions in both Pass B and Pass 2.
 WT_PORCELAIN=$(git worktree list --porcelain 2>/dev/null || true)
-ACTIVE_WT_BRANCHES=$(printf '%s\n' "$WT_PORCELAIN" | awk '/^branch /{sub(/^branch refs\/heads\//, ""); print}' || true)
+ACTIVE_WT_BRANCHES=$(bash "$SCRIPT_DIR/active-worktree-branches.sh" || true)
 
 # Pass B: remote agent/workflow branches. The workflow system pushes under agent/* and
 # claude/* prefixes. Once the local branch and worktree are gone (cleaned by Passes 1/2),

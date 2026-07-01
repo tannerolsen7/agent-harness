@@ -118,29 +118,33 @@ git clone -q "$REMOTE" "$LOCAL" >/dev/null 2>&1
   git remote set-head origin main
 ) >/dev/null 2>&1
 
+# Clone $REMOTE into $TMP/<dir>, create <branch>, write <content> into <file> (overwrite unless
+# <mode> is "append"), commit, push. Collapses the covered/checkedout/uncovered fixture setup
+# below into one call each — they differ only in dir/branch/file/content/message/mode.
+# Mode matters for the uncovered case: appending (not overwriting) real.txt is what makes both
+# sides' changes land on the same line and produce a genuine, unresolvable conflict.
+make_pr_branch() {
+  local dir="$1" branch="$2" file="$3" content="$4" msg="$5" mode="${6:-write}"
+  git clone -q "$REMOTE" "$TMP/$dir" >/dev/null 2>&1
+  (
+    cd "$TMP/$dir" || exit 1
+    git config user.email t@example.com; git config user.name tester
+    git checkout -q -b "$branch"
+    if [ "$mode" = append ]; then
+      printf '%s\n' "$content" >> "$file"
+    else
+      printf '%s\n' "$content" > "$file"
+    fi
+    git commit -aq -m "$msg"
+    git push -q origin "$branch"
+  ) >/dev/null 2>&1
+}
+
 # feat/covered: diverges from main on harness-progress.html only (driver-covered).
-COVERED="$TMP/covered-clone"
-git clone -q "$REMOTE" "$COVERED" >/dev/null 2>&1
-(
-  cd "$COVERED" || exit 1
-  git config user.email t@example.com; git config user.name tester
-  git checkout -q -b feat/covered
-  printf 'branch version\n' > harness-progress.html
-  git commit -aq -m "feat: branch touches dashboard"
-  git push -q origin feat/covered
-) >/dev/null 2>&1
+make_pr_branch covered-clone feat/covered harness-progress.html "branch version" "feat: branch touches dashboard"
 
 # feat/checkedout: same shape as feat/covered, used for the live-worktree skip test.
-CHECKEDOUT="$TMP/checkedout-clone"
-git clone -q "$REMOTE" "$CHECKEDOUT" >/dev/null 2>&1
-(
-  cd "$CHECKEDOUT" || exit 1
-  git config user.email t@example.com; git config user.name tester
-  git checkout -q -b feat/checkedout
-  printf 'branch version 2\n' > harness-progress.html
-  git commit -aq -m "feat: branch touches dashboard too"
-  git push -q origin feat/checkedout
-) >/dev/null 2>&1
+make_pr_branch checkedout-clone feat/checkedout harness-progress.html "branch version 2" "feat: branch touches dashboard too"
 
 # main moves: bumps harness-progress.html (conflicts with both branches above, driver-covered).
 (
@@ -153,16 +157,8 @@ git clone -q "$REMOTE" "$CHECKEDOUT" >/dev/null 2>&1
 ) >/dev/null 2>&1
 
 # feat/uncovered: diverges from (post-bump1) main on real.txt — no merge strategy declared.
-UNCOVERED="$TMP/uncovered-clone"
-git clone -q "$REMOTE" "$UNCOVERED" >/dev/null 2>&1
-(
-  cd "$UNCOVERED" || exit 1
-  git config user.email t@example.com; git config user.name tester
-  git checkout -q -b feat/uncovered
-  printf 'branch edit\n' >> real.txt
-  git commit -aq -m "feat: branch edits real.txt"
-  git push -q origin feat/uncovered
-) >/dev/null 2>&1
+# Appending (not overwriting) is what makes this collide with main's own append below.
+make_pr_branch uncovered-clone feat/uncovered real.txt "branch edit" "feat: branch edits real.txt" append
 
 # main moves again: also edits real.txt — genuine conflict, no driver to resolve it.
 (

@@ -13,6 +13,11 @@
 # avoids both problems.
 
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+# Sibling scripts are resolved relative to where THIS script lives, not $ROOT — $ROOT is the
+# repo being synced (which is always this same checkout in production, but a disposable test
+# fixture repo under test), while active-worktree-branches.sh and check-merge-driver-coverage.sh
+# only ever exist alongside this script's own installation.
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 FORGE=$(sh "$ROOT/scripts/detect-forge.sh" 2>/dev/null || echo unknown)
 
 # Pick the CLI based on forge type. For unknown forge, try gh then glab.
@@ -56,12 +61,13 @@ if [ "$COUNT" -eq 0 ]; then
 fi
 
 # Cache the active worktree branch list once — reused for every PR's checked-out-elsewhere check.
-# Captured via a variable + awk (not `git worktree list --porcelain | grep`, which the portability
-# linter bans — porcelain paths are absolute and a direct grep on a branch name can false-match).
-WT_PORCELAIN=$(git worktree list --porcelain 2>/dev/null || true)
-ACTIVE_WT_BRANCHES=$(printf '%s\n' "$WT_PORCELAIN" | awk '/^branch /{sub(/^branch refs\/heads\//, ""); print}' || true)
+ACTIVE_WT_BRANCHES=$(bash "$SCRIPT_DIR/active-worktree-branches.sh" || true)
 
-# Sync one CONFLICTING PR: merge origin/$2 into $1 inside a scratch worktree, and push on success.
+# $base is $DEFAULT_BRANCH for every PR that reaches sync_conflicting_pr (filtered below), so
+# fetch it once here instead of once per conflicting PR.
+git fetch origin "$DEFAULT_BRANCH" --quiet 2>/dev/null || true
+
+# Sync one CONFLICTING PR: merge origin/$3 into $2 inside a scratch worktree, and push on success.
 # Mirrors .claude/skills/cr/SKILL.md's pre-flight (merge, abort-on-conflict) instead of rebasing.
 sync_conflicting_pr() {
   local number="$1" head="$2" base="$3"
@@ -85,7 +91,6 @@ sync_conflicting_pr() {
 
   (
     cd "$scratch" || exit 1
-    git fetch origin "$base" --quiet 2>/dev/null || true
 
     local pre_merge_head merge_base
     pre_merge_head=$(git rev-parse HEAD)
@@ -97,34 +102,16 @@ sync_conflicting_pr() {
       exit 0
     fi
 
-    # Only files BOTH sides changed since the merge base went through an actual merge decision —
-    # files only one side touched keep that side's already-reviewed content unchanged. Certifying
-    # this push is safe only if every such file has a registered .gitattributes merge strategy;
-    # anything else means unreviewed content landed via the merge, and this must go through a
-    # real /cr pass instead.
-    local branch_changed base_changed uncovered f attr
-    branch_changed=$(git diff --name-only "$merge_base" "$pre_merge_head" 2>/dev/null || true)
-    base_changed=$(git diff --name-only "$merge_base" "origin/$base" 2>/dev/null || true)
-    uncovered=false
-    while IFS= read -r f; do
-      [ -z "$f" ] && continue
-      if printf '%s\n' "$branch_changed" | grep -qxF "$f"; then
-        attr=$(git check-attr merge -- "$f")
-        case "$attr" in
-          *": merge: unspecified") uncovered=true ;;
-        esac
-      fi
-    done <<BASE_CHANGED
-$base_changed
-BASE_CHANGED
-
-    if [ "$uncovered" = true ]; then
+    # Certifying this push is safe only if the merge is fully covered by registered
+    # .gitattributes merge strategies — anything else means unreviewed content landed via the
+    # merge, and this must go through a real /cr pass instead.
+    if ! bash "$SCRIPT_DIR/check-merge-driver-coverage.sh" "$merge_base" "$pre_merge_head" "origin/$base" >/dev/null 2>&1; then
       echo "failed #${number} (${head}) — merge touched files outside the registered merge strategies, needs a real /cr pass"
       exit 0
     fi
 
-    # Self-issue a scoped .cr-ok: safe only because the proof above confirms this merge commit
-    # introduces no content beyond what the registered merge drivers already resolved.
+    # Self-issue a scoped .cr-ok: safe only because the coverage check above confirms this merge
+    # commit introduces no content beyond what the registered merge drivers already resolved.
     local merge_sha
     merge_sha=$(git rev-parse HEAD)
     mkdir -p .claude
