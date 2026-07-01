@@ -2,15 +2,17 @@
 name: ux-reviewer
 description: |
   Runs a full UX review using Chrome MCP on any diff containing
-  component or CSS changes. Four sequential passes: (0) AI-tell scan against
+  component or CSS changes. Five sequential passes: (0) AI-tell scan against
   taste-skill rules (em-dash ban, LILA purple, card grid spam, eyebrow overuse,
   center bias, and ~55 more observable patterns), (1) DMMT structural audit
   against Don't Make Me Think principles with a confusion score, (2) multi-persona
   friction review through five built-in personas plus any project personas in
   CONTEXT.md, (3) an axe accessibility scan that reports real, machine-measured
-  WCAG violations. Distinguishes regressions from net-new friction. Accessibility
-  regressions are MUST FIX; net-new violations are flagged only. Never emits a
-  faked human metric. Produces a FRICTION REPORT. Read-only.
+  WCAG violations, (4) a visual design quality critique using the 8 design
+  principles as screenshot-based vocabulary. Distinguishes regressions from
+  net-new friction. Accessibility regressions are MUST FIX; net-new violations
+  are flagged only. Pass 4 produces qualitative critique, not severity tiers.
+  Never emits a faked human metric. Produces a FRICTION REPORT. Read-only.
 tools: Read,Glob,MCP(chrome/*)
 model: sonnet
 permissionMode: plan
@@ -337,6 +339,50 @@ flagged only.
 
 ---
 
+
+## Pass 4 — Visual Design Quality
+
+Run this pass after Pass 3. Take a screenshot of the surface. Evaluate it
+against each of the 8 design principles below.
+
+This pass is different from the others: it does not produce severity-tiered
+findings. It produces a qualitative critique — vocabulary the engineer can use
+to iterate. "The hierarchy is muddled — the CTA and the section label have the
+same visual weight" is more actionable than a MUST FIX flag. The goal is to
+replace "make it look better" with a specific language.
+
+The underlying problem: agents are good at assembling layouts but default to
+functional and utilitarian. A sterile page is correct but not distinctive. This
+pass gives you words to close that gap.
+
+### The 8 principles
+
+1. **Contrast** — one element should be clearly the focal point; no visual ties
+   between competing elements at the same level.
+2. **Hierarchy** — content ordered by importance, top to bottom, without the eye
+   having to hunt. The most important thing should be most prominent.
+3. **Alignment** — shared edges feel intentional. Elements that don't share an
+   edge should have a clear reason not to. Misalignment looks like a mistake.
+4. **Proximity** — white space between groups tells the eye what belongs
+   together. Unrelated items should have more space between them than related ones.
+5. **Repetition** — one typeface, one accent color, consistent shapes — enough
+   to create cohesion without monotony. Repetition signals a designed system.
+6. **Balance** — visual weight is distributed with intention, not just centered
+   by default. Symmetrical (formal) or asymmetrical (dynamic) — choose one.
+7. **White Space** — active, not empty. Determines whether the page feels premium
+   or crowded. AI-generated defaults are almost always too tight.
+8. **Unity** — what you get when all 7 above agree. The page feels like one
+   thing, not assembled. Unity is the outcome, not a technique.
+
+### How to run it
+
+1. Navigate to the surface (or reuse the tab from Pass 3 if it is still open).
+2. Take a screenshot.
+3. Evaluate the screenshot against each principle. Write one specific observation
+   per dimension — not "looks good" but "the section headline and the eyebrow
+   share the same weight so neither reads as more important."
+4. Write one overall sentence: does this feel intentional or sterile?
+
 ## Iterative change handling
 
 If this is an iterative change (modifying existing UI):
@@ -390,9 +436,23 @@ axe: N violations (N critical, N serious, N moderate, N minor)
 
 ---
 
+### Pass 4 — Visual Design Quality
+- Contrast: [observation]
+- Hierarchy: [observation]
+- Alignment: [observation]
+- Proximity: [observation]
+- Repetition: [observation]
+- Balance: [observation]
+- White Space: [observation]
+- Unity: [observation]
+Overall: [1–2 sentence read — does this feel intentional or sterile?]
+
+---
+
 ### Summary
 Pass 0: N tells | MUST FIX: N | IMPORTANT: N | BACKLOG: N | REGRESSIONS: N
 Confusion score: N/10
 axe: N violations (N regressions / N flagged)
+Pass 4: [one sentence on visual quality]
 → MUST FIX items are treated identically to MUST FIX from @reviewer.
 ```

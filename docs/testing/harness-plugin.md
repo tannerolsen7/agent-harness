@@ -6,17 +6,18 @@ runtime behavior — they are read by Claude Code's plugin system at install tim
 
 ### Confirmed behaviors — `plugin.json`
 
-- **`plugin.json` declares non-default skills location:** `plugin.json` includes
-  `"skills": ".claude/skills"`. This tells Claude Code where to find skills
-  because the harness stores them at a non-default path.
+- **`plugin.json` lists agents as a non-empty array:** `plugin.json` includes
+  `"agents": [...]` with one entry per `.md` file under `.claude/agents/`. This
+  tells Claude Code exactly which agent definitions to register when the plugin
+  installs.
 
-- **`plugin.json` declares non-default agents location:** `plugin.json` includes
-  `"agents": ".claude/agents"`. This tells Claude Code where to find agent
-  definitions because the harness stores them at a non-default path.
+- **`plugin.json` lists commands as a non-empty array:** `plugin.json` includes
+  `"commands": [...]` with one entry per `SKILL.md` file under `.claude/skills/`.
+  There is no `"skills"` field — the schema field is named `commands`.
 
 - **`plugin.json` includes all required top-level fields:** The file contains
-  `name`, `description`, `version`, `author.name`, `license`, `skills`, and
-  `agents`. None of these fields is absent.
+  `name`, `description`, `version`, `author.name`, `license`, `agents`, and
+  `commands`. None of these fields is absent.
 
 ### Confirmed behaviors — `marketplace.json`
 
@@ -30,17 +31,17 @@ runtime behavior — they are read by Claude Code's plugin system at install tim
 - **`marketplace.json` includes an `owner` field:** The file names the plugin
   owner so the marketplace can attribute the plugin correctly.
 
-- **`marketplace.json` `plugins[]` entry points to `tanner/agent-harness`:** The
+- **`marketplace.json` `plugins[]` entry points to `tannerolsen7/agent-harness`:** The
   array contains exactly one entry with a GitHub source reference to
-  `tanner/agent-harness`.
+  `tannerolsen7/agent-harness`.
 
 ### Confirmed behaviors — install commands
 
-- **`/plugin marketplace add tanner/agent-harness` installs the plugin:** Given
+- **`/plugin marketplace add tannerolsen7/agent-harness` installs the plugin:** Given
   a user runs this command, Claude Code reads `marketplace.json` and registers
   the harness as a plugin. No manual file copying is required.
 
-- **`/plugin install agent-harness@agent-harness` installs the plugin directly:**
+- **`/plugin install harness@harness` installs the plugin directly:**
   Given a user runs this command, Claude Code installs the plugin from the
   registry entry. Both commands result in the same installed state.
 
@@ -55,7 +56,7 @@ hand.
 
 - **`$CLAUDE_PLUGIN_ROOT` not set causes `/init` to stop:** Given
   `$CLAUDE_PLUGIN_ROOT` is not set in the environment, Step 0 prints:
-  `The agent-harness plugin is not installed. Run /plugin install agent-harness@agent-harness first.`
+  `The harness plugin is not installed. Run /plugin install harness@harness first.`
   and the skill stops without running any further steps.
 
 - **`$CLAUDE_PLUGIN_ROOT` set to a non-existent directory causes `/init` to
