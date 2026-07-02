@@ -124,15 +124,29 @@ TMP=$(mktemp -d)
   git push -q -u origin feat/late-dirty >/dev/null 2>&1
   git merge -q --no-ff feat/late-dirty -m "merge feat/late-dirty" >/dev/null 2>&1
   git push -q origin --delete feat/late-dirty >/dev/null 2>&1
+
+  # TOCTOU RACE — feat/late-commit: same shape as feat/late-dirty, but the concurrent session
+  # COMMITS real work instead of leaving an untracked file — a clean-but-advanced worktree
+  # passes the dirty-tree check that protects feat/late-dirty. The fake `git` below fires
+  # this side effect right after feat/late-commit's OWN top-of-iteration ancestor check
+  # returns its (still-true, pre-race) answer — the exact window only the delete-time
+  # re-verify (not the dirty-tree check) can catch. Branch, worktree, and the new commit
+  # must all SURVIVE.
+  git worktree add -q .claude/worktrees/late-commit -b feat/late-commit >/dev/null 2>&1
+  ( cd .claude/worktrees/late-commit && git commit -q --allow-empty --no-verify -m "late-commit work" )
+  git push -q -u origin feat/late-commit >/dev/null 2>&1
+  git merge -q --no-ff feat/late-commit -m "merge feat/late-commit" >/dev/null 2>&1
+  git push -q origin --delete feat/late-commit >/dev/null 2>&1
 ) >/dev/null 2>&1
 
-# Fake `gh`: makes the TOCTOU race above deterministic and keeps the whole test offline (no
-# real network calls to a real `gh`, unlike before). Every `pr list` call returns "nothing
-# found" — matching what the real gh would say for these fixture-only branch names anyway —
-# except the first call for "0-trigger", which also drops a file into feat/late-dirty's
-# worktree as its side effect.
+# Fake `gh`: makes the feat/late-dirty race deterministic and keeps the whole test offline
+# (no real network calls to a real `gh`, unlike before). Every `pr list` call returns
+# "nothing found" — matching what the real gh would say for these fixture-only branch names
+# anyway — except the first call for "0-trigger", which also drops a file into
+# feat/late-dirty's worktree as its side effect.
 FAKEBIN=$(mktemp -d)
-FAKE_GH_MARKER="$FAKEBIN/.fired"
+REAL_GIT=$(command -v git)
+FAKE_GH_MARKER="$FAKEBIN/.fired-gh"
 cat > "$FAKEBIN/gh" <<EOF
 #!/usr/bin/env bash
 if printf '%s\n' "\$*" | grep -q -- '--head 0-trigger' && [ ! -f "$FAKE_GH_MARKER" ]; then
@@ -142,6 +156,27 @@ fi
 exit 0
 EOF
 chmod +x "$FAKEBIN/gh"
+
+# Fake `git`: makes the feat/late-commit race deterministic. Every call passes straight
+# through to the real git except one: the FIRST `git merge-base --is-ancestor feat/late-commit
+# HEAD` (feat/late-commit's own top-of-iteration merge check). That call runs for real first
+# (so the script sees the correct, still-true, pre-race answer, same as it would without this
+# shim) and only AFTER computing that answer does it commit new work into the worktree — so a
+# second call with the same arguments (the new delete-time re-verify) sees the post-race,
+# no-longer-merged state.
+FAKE_GIT_MARKER="$FAKEBIN/.fired-git"
+cat > "$FAKEBIN/git" <<EOF
+#!/usr/bin/env bash
+if [ "\$1" = "merge-base" ] && [ "\$2" = "--is-ancestor" ] && [ "\$3" = "feat/late-commit" ] && [ ! -f "$FAKE_GIT_MARKER" ]; then
+  touch "$FAKE_GIT_MARKER"
+  "$REAL_GIT" "\$@"
+  RC=\$?
+  ( cd "$TMP/.claude/worktrees/late-commit" && "$REAL_GIT" commit -q --allow-empty -m "concurrent new commit" )
+  exit \$RC
+fi
+exec "$REAL_GIT" "\$@"
+EOF
+chmod +x "$FAKEBIN/git"
 
 # Run prune-branches.sh in the temp repo (single run; captures all side effects and output).
 OUT=$(cd "$TMP" && PATH="$FAKEBIN:$PATH" bash "$SCRIPT" 2>&1)
@@ -200,6 +235,13 @@ rm -rf "$FAKEBIN"
 [ -d "$TMP/.claude/worktrees/late-dirty" ]; chk "$?" "TOCTOU: feat/late-dirty worktree must survive (went dirty mid-run)"
 ( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/late-dirty >/dev/null 2>&1 ); chk "$?" "TOCTOU: feat/late-dirty branch must survive (worktree removal correctly refused)"
 [ -f "$TMP/.claude/worktrees/late-dirty/concurrent-work.txt" ]; chk "$?" "TOCTOU: simulated concurrent work in feat/late-dirty must survive — not silently destroyed"
+
+# -- TOCTOU race: a branch that gains a genuinely new COMMIT (clean tree) between the
+# top-of-iteration merge check and the actual delete must not be force-deleted anyway --
+
+[ -d "$TMP/.claude/worktrees/late-commit" ]; chk "$?" "TOCTOU: feat/late-commit worktree must survive (gained a real commit mid-run)"
+( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/late-commit >/dev/null 2>&1 ); chk "$?" "TOCTOU: feat/late-commit branch must survive (re-verified as no-longer-merged before delete)"
+( cd "$TMP/.claude/worktrees/late-commit" && git log --oneline -1 | grep -q "concurrent new commit" ); chk "$?" "TOCTOU: the concurrently-added commit on feat/late-commit must survive — not orphaned by -D"
 
 rm -rf "$TMP"
 
