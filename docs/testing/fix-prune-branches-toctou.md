@@ -12,26 +12,25 @@ stale snapshot, so a branch that looks safe to delete can have its worktree
 force-removed — destroying whatever uncommitted work that concurrent session
 had in progress.
 
-Confirmed independently: a project built on this harness (event-vendor)
-hit this exact race in production and fixed it by re-checking worktree state
-live, right before deletion, instead of trusting the snapshot from the top of
-the script.
+Confirmed independently: a project built on this harness (event-vendor) hit
+this exact race in production and fixed it two ways: (1) excluding any branch
+with zero commits ahead of `origin/main` from the candidate list up front, and
+(2) re-checking worktree state live, right before deletion, instead of
+trusting the snapshot from the top of the script.
 
-### Confirmed behaviors — zero-commit exclusion
-
-- **A branch with zero commits ahead of `origin/main` is excluded from the
-  candidate list before the merge-verify loop runs:** Given a candidate branch
-  (from Pass 1 or Pass 2) whose tip has zero commits ahead of `origin/main`,
-  when `prune-branches.sh` builds its candidate list, that branch is dropped
-  from `CANDIDATES` before the merge-verify loop starts, and a "zero commits
-  ahead" message is printed. This closes the false-positive at its source: a
-  branch with no unique commits trivially passes `git merge-base
-  --is-ancestor`, whether or not it is checked out in a worktree.
-
-- **A genuinely merged branch with real commits is still cleaned up:** Given a
-  candidate branch with one or more commits ahead of `origin/main`, all of
-  which are already merged, the zero-commit exclusion does not apply to it,
-  and the existing merge-verify gate still deletes it as before.
+**Only fix (2) was ported here.** Fix (1) depends on the source repo
+squash-merging every PR — under squash-merge, a merged branch's original
+commits are never literally absorbed into `origin/main` (the squash creates a
+brand-new commit), so "zero commits ahead of `origin/main`" reliably means
+"never had any real work." This harness repo does not require squash-merge
+(`allow_merge_commit` and `allow_rebase_merge` are both enabled on GitHub, and
+`tests/prune-branches.test.sh` already exercises a real, non-squash merge as
+a first-class scenario). Porting fix (1) as-is was tried and empirically
+broke two existing regression cases (`feat/done`, `feat/local`) — once a
+branch is genuinely merged via a real merge commit, its own commits become
+ancestors of `origin/main` too, and "zero commits ahead of `origin/main`" can
+no longer tell "never touched" apart from "already fully merged." The
+exclusion was reverted rather than kept as a broken safety net.
 
 ### Confirmed behaviors — live worktree check before deletion
 

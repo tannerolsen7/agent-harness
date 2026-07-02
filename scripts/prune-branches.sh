@@ -154,17 +154,24 @@ if [ -n "$CANDIDATES" ]; then
     fi
 
     # Merged → safe to clean. If it's checked out in one of our worktrees, remove that first
-    # (git refuses to delete a checked-out branch). Parse the cached porcelain output so we
-    # don't re-invoke git worktree list once per branch.
-    WT=$(printf '%s\n' "$WT_PORCELAIN" | awk -v br="refs/heads/$b" \
+    # (git refuses to delete a checked-out branch). Re-query worktree state live here instead
+    # of reusing the cached $WT_PORCELAIN snapshot from the top of the script — earlier
+    # candidates in this same loop can each trigger a `gh pr list` network call, so real time
+    # passes between that snapshot and this branch's turn. $WT_PORCELAIN is still fine for the
+    # faster, non-destructive checks earlier (Pass B, the NO_UPSTREAM exclusion); this is the
+    # one place that actually deletes something, so it gets the authoritative, current state.
+    WT=$(git worktree list --porcelain 2>/dev/null | awk -v br="refs/heads/$b" \
       '/^worktree /{ p=$0; sub(/^worktree /,"",p) } $0=="branch "br { print p }')
     if [ -n "$WT" ]; then
       case "$WT" in
         */.claude/worktrees/*)
-          if git worktree remove --force "$WT" 2>/dev/null; then
+          # No --force: git's own dirty-worktree check is the real backstop here. If the
+          # worktree picked up real, uncommitted work since the script's startup snapshot,
+          # this fails and the branch is left alone instead of the work being discarded.
+          if git worktree remove "$WT" 2>/dev/null; then
             echo "  removed worktree: $WT (branch $b, merged)"
           else
-            echo "  WARN: could not remove worktree $WT — remove it manually, then re-run prune-branches" >&2
+            echo "  WARN: could not remove worktree $WT (dirty, or in active use) — leaving it and the branch; investigate manually, then re-run prune-branches" >&2
             continue   # leave the branch; deleting it would fail while still checked out
           fi ;;
         *)

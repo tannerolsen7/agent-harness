@@ -179,6 +179,35 @@ Use `-Fx` (fixed-string, full-line) — branch names with dots or brackets in th
 
 ---
 
+## A worktree snapshot taken at script startup goes stale by the time the delete loop runs
+
+**Area:** `scripts/prune-branches.sh`'s delete loop — any script that snapshots `git worktree list` once and reuses it later for a destructive decision.
+
+**Rule:** Never reuse a `git worktree list --porcelain` snapshot captured early in a script as the basis for an actual delete later in that same run. Re-query it live, right before the delete, and never pass `--force` to `git worktree remove` — let git's own dirty-worktree check be the last line of defense.
+
+**Why:** The fix above (excluding branches active in a worktree *at snapshot time*) only protects a worktree that already existed when the snapshot was taken. `prune-branches.sh` snapshots once, then loops over every candidate branch — and each candidate can trigger a `gh pr list` network call before the loop reaches a later one. Real time passes in that window. A worktree that was clean at snapshot time can pick up genuine uncommitted work before its branch's turn in the delete loop arrives; a stale snapshot has no way to see that, and `git worktree remove --force` bypasses git's own dirty-worktree check, discarding that work. Confirmed independently: a project built on this harness (event-vendor, FLO-89) hit this exact race in production. Their companion fix — excluding any branch with zero commits ahead of `origin/main` up front — was evaluated and **not** ported: it depends on the source repo squash-merging every PR (so a merged branch's original commits never literally become ancestors of `origin/main`). This repo allows regular merge commits too (`allow_merge_commit` is enabled on GitHub, and this repo's own test suite exercises a real merge-commit scenario as a first-class case) — under a real merge, "zero commits ahead of `origin/main`" stops meaning "never touched" and starts also matching "already fully merged," which broke two existing regression cases when tried.
+
+**Symptoms:** A worktree with real, uncommitted (or newly committed) work disappears mid-session with no error visible to the person who was using it; `prune-branches.sh` reports it as a normal cleanup ("removed worktree ... (branch ..., merged)").
+
+**The fix:** re-check live at the point of deletion, and drop `--force`:
+```sh
+WT=$(git worktree list --porcelain 2>/dev/null | awk -v br="refs/heads/$b" \
+  '/^worktree /{ p=$0; sub(/^worktree /,"",p) } $0=="branch "br { print p }')
+if [ -n "$WT" ]; then
+  if git worktree remove "$WT" 2>/dev/null; then
+    echo "  removed worktree: $WT (branch $b, merged)"
+  else
+    echo "  WARN: could not remove worktree $WT (dirty, or in active use) — leaving it and the branch" >&2
+    continue
+  fi
+fi
+```
+
+**Source:** event-vendor PR #195 (FLO-89); `docs/testing/fix-prune-branches-toctou.md`
+**Regression gate:** `tests/prune-branches.test.sh` case "TOCTOU: feat/late-dirty ... must survive"
+
+---
+
 ## Two parsers over the same structure must agree on scope
 
 **Area:** Shell scripts that scan a structured block (`scripts/scan-context.sh`)

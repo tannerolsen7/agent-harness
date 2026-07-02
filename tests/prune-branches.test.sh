@@ -101,10 +101,51 @@ TMP=$(mktemp -d)
   git worktree add -q .claude/worktrees/wt-agent -b agent/wt-task >/dev/null 2>&1
   ( cd .claude/worktrees/wt-agent && git commit -q --allow-empty --no-verify -m "worktree work" )
   git push -q origin agent/wt-task >/dev/null 2>&1
+
+  # TOCTOU RACE — 0-trigger: an ordinary unmerged branch (remote gone, real commit, not an
+  # ancestor of main), named to sort before "feat/late-dirty" in CANDIDATES so its gh call is
+  # the deterministic point the fake `gh` below fires its side effect from.
+  git checkout -q -b 0-trigger
+  git commit -q --allow-empty --no-verify -m "0-trigger unmerged work"
+  git push -q -u origin 0-trigger >/dev/null 2>&1
+  git checkout -q "$DEF"
+  git push -q origin --delete 0-trigger >/dev/null 2>&1
+
+  # TOCTOU RACE — feat/late-dirty: a genuinely, fully merged branch (real commit, --no-ff
+  # merge, remote gone) whose worktree is still registered when prune-branches.sh starts.
+  # The fake `gh` below writes an untracked file into this worktree the moment 0-trigger's
+  # merge-verify gh call fires — simulating a concurrent session adding real work to the
+  # worktree during the multi-candidate gh-call window between prune-branches.sh's startup
+  # snapshot and the moment this branch's turn in the delete loop arrives. Branch, worktree,
+  # and the simulated concurrent work must all SURVIVE — a dirty worktree must never be
+  # force-removed just because its branch is confirmed merged.
+  git worktree add -q .claude/worktrees/late-dirty -b feat/late-dirty >/dev/null 2>&1
+  ( cd .claude/worktrees/late-dirty && git commit -q --allow-empty --no-verify -m "late-dirty work" )
+  git push -q -u origin feat/late-dirty >/dev/null 2>&1
+  git merge -q --no-ff feat/late-dirty -m "merge feat/late-dirty" >/dev/null 2>&1
+  git push -q origin --delete feat/late-dirty >/dev/null 2>&1
 ) >/dev/null 2>&1
 
-# Run prune-branches.sh in the temp repo (single run; captures all side effects).
-( cd "$TMP" && bash "$SCRIPT" ) >/dev/null 2>&1
+# Fake `gh`: makes the TOCTOU race above deterministic and keeps the whole test offline (no
+# real network calls to a real `gh`, unlike before). Every `pr list` call returns "nothing
+# found" — matching what the real gh would say for these fixture-only branch names anyway —
+# except the first call for "0-trigger", which also drops a file into feat/late-dirty's
+# worktree as its side effect.
+FAKEBIN=$(mktemp -d)
+FAKE_GH_MARKER="$FAKEBIN/.fired"
+cat > "$FAKEBIN/gh" <<EOF
+#!/usr/bin/env bash
+if printf '%s\n' "\$*" | grep -q -- '--head 0-trigger' && [ ! -f "$FAKE_GH_MARKER" ]; then
+  touch "$FAKE_GH_MARKER"
+  echo "concurrent work" > "$TMP/.claude/worktrees/late-dirty/concurrent-work.txt"
+fi
+exit 0
+EOF
+chmod +x "$FAKEBIN/gh"
+
+# Run prune-branches.sh in the temp repo (single run; captures all side effects and output).
+OUT=$(cd "$TMP" && PATH="$FAKEBIN:$PATH" bash "$SCRIPT" 2>&1)
+rm -rf "$FAKEBIN"
 
 # -- Existing behaviors (regression guard) --
 
@@ -152,6 +193,13 @@ TMP=$(mktemp -d)
 
 # Active worktree agent branch is NOT deleted from remote.
 ( cd "$TMP" && git ls-remote --heads origin 'refs/heads/agent/wt-task' | grep -q 'agent/wt-task' ); chk "$?" "Pass B: active-worktree agent branch must survive on remote"
+
+# -- TOCTOU race: a worktree that goes dirty between the startup snapshot and the delete
+# loop's turn must not be force-removed, even though its branch is confirmed merged --
+
+[ -d "$TMP/.claude/worktrees/late-dirty" ]; chk "$?" "TOCTOU: feat/late-dirty worktree must survive (went dirty mid-run)"
+( cd "$TMP" && git rev-parse --verify --quiet refs/heads/feat/late-dirty >/dev/null 2>&1 ); chk "$?" "TOCTOU: feat/late-dirty branch must survive (worktree removal correctly refused)"
+[ -f "$TMP/.claude/worktrees/late-dirty/concurrent-work.txt" ]; chk "$?" "TOCTOU: simulated concurrent work in feat/late-dirty must survive — not silently destroyed"
 
 rm -rf "$TMP"
 
