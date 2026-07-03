@@ -25,6 +25,43 @@ description: |
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — a schema, a
+mockup, migration SQL, a full report — present it as prose or a document; a
+structured question can't hold that much content.
+
+This applies to: the REJECT block (Step 3c), the NEEDS HUMAN blocks (Step 4's
+fix-loop ceiling and guard-file routing), and the Disposition report (Step 5).
+The pass findings that feed these (TypeScript discipline, architectural
+drift, domain safety, etc.) are written for an engineering audience —
+translate each one before it reaches the human.
+
+---
+
 ## Pre-flight — Merge readiness
 
 Before running any review passes, verify the branch merges cleanly into the remote
@@ -306,7 +343,11 @@ Before entering the fix loop, evaluate whether the **REJECT** terminal state app
 - A single architectural drift finding exists (MUST FIX, not REJECT).
 - Issues can be fixed without reconceiving the fundamental approach.
 
-**If REJECT applies**, emit and halt — do not proceed to Step 4:
+**If REJECT applies**, emit and halt — do not proceed to Step 4. Write the
+Reason in plain words a non-engineer could follow — what's wrong and why
+patching it won't work — before naming the technical finding underneath it.
+Close with an invitation to ask before acting on the close/redirect
+commands:
 
 ```
 ## ⛔ REJECT — approach cannot be fixed in-place
@@ -342,10 +383,13 @@ If there are Must Fix items, spawn one Opus agent:
 **Guard-file escape hatch:** if a Must Fix lives in a guard file (`.claude/hooks/**`,
 `.claude/agents/**`, or `settings.json`), do NOT route it to the Opus fix agent — the
 `settings.json` deny on `Edit/Write` of those paths blocks that agent too. Route it to NEEDS
-HUMAN and surface a paste-ready command; the human is the only one allowed to change a guard
-file. Do not write the sentinel (Step 7) until the human confirms the fix is applied.
+HUMAN and surface a paste-ready command; explain in plain words why an agent can't make this
+edit itself (these are the files that control what agents are allowed to do — an agent
+editing its own permissions is the exact thing the deny rule exists to stop). The human is
+the only one allowed to change a guard file. Do not write the sentinel (Step 7) until the
+human confirms the fix is applied.
 
-After fixes: run the test suite. **Attempt ceiling: 2 (initial run + one retry).** If still failing after attempt 2 → stop; do NOT attempt a third time. Emit NEEDS HUMAN and halt:
+After fixes: run the test suite. **Attempt ceiling: 2 (initial run + one retry).** If still failing after attempt 2 → stop; do NOT attempt a third time. Emit NEEDS HUMAN and halt. State in plain words what's still broken and what was already tried before the raw test output — a human deciding what to do next needs the summary first, the log second:
 
 ```
 ## NEEDS HUMAN — fix-loop ceiling reached (F7)
@@ -357,6 +401,8 @@ The test suite is still failing after 2 fix attempts.
 **Run tests with:** `npm run test`
 **Suggested next step:** [what the agent tried, what might be wrong]
 ```
+
+Ask if anything above needs more explanation before the human digs in.
 
 Do not write the sentinel.
 
@@ -389,6 +435,13 @@ do. (Appropriate effort, not minimal: don't skip a worthwhile fix to save tokens
 After fixing any "fix now" items, re-run the test suite (one retry on failure, then surface).
 
 ### Disposition report (always emit this shape; omit a bucket only if empty)
+
+Passes like TypeScript Discipline or Architectural Drift hand you findings
+in engineering shorthand. Before they go in `<what changed>` / `<why>`,
+restate each in plain words — what would actually go wrong and why it
+mattered enough to fix, backlog, or drop — before the technical label.
+Close the report by inviting the human to ask about any line before they
+move on.
 
 ```
 ## Disposition

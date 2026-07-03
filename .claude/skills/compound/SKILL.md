@@ -28,6 +28,43 @@ Do NOT run for:
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve vs.
+reject a draft, confirm vs. deny a permission pattern — use `AskUserQuestion`;
+it renders as clickable options and already has a built-in escape hatch (the
+human can always answer "Other" with free text instead of picking a preset).
+For anything the human needs to actually read before deciding — a draft
+solution doc, a permission pattern, a full report — present it as prose or a
+document; a structured question can't hold that much content.
+
+This applies to: Step 3's draft solution doc review, and Step 8's
+permission-allowlist candidates. Step 8 is the higher-stakes one — approving
+a pattern there grants the agent unsupervised capability, so its plain-English
+explanation must be explicit about what the agent could do with that
+permission if things go wrong, not just what the pattern matches syntactically.
+
+---
+
 ## Step 1 — Understand what was built
 
 Read:
@@ -57,10 +94,15 @@ Read:
 
 ## Step 3 — Review the draft
 
-Present the draft solution doc to the user. Ask:
+Before the technical detail, summarize in plain terms what the problem was and what
+approach solved it — one or two sentences the user can read without opening the diff.
+Then present the draft solution doc and ask:
 - Is the problem statement accurate?
 - Is anything missing that made this non-obvious?
 - Are the tags right for future retrieval?
+
+Invite the user to ask for more detail on any part of the draft before answering these
+three questions — don't make them answer cold.
 
 Apply corrections before writing.
 
@@ -129,7 +171,12 @@ not covered by any existing entry. For each uncovered pattern, present it as a c
 - **Safe to add** (read-only, repo-scoped writes, or dangerous subset blocked by `block-dangerous-git.sh`): list with a brief reason
 - **Review first** (external services, credentials, mutations): list with a warning note
 
-Surface all candidates to the user and wait for confirmation before writing any.
+For each candidate, state in plain English what allowing it actually lets the agent do
+unsupervised — not just the tool-call pattern, but what could go wrong if it ran against
+the wrong file or target with nobody watching. This is the higher-stakes ask in this
+skill: granting a permission is granting unattended capability, so don't present it as a
+routine checkbox. Surface all candidates to the user, invite them to ask about any
+pattern before deciding, and wait for confirmation before writing any.
 
 If the log is empty or every pattern is already covered, say so explicitly.
 
