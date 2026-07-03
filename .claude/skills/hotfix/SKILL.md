@@ -80,7 +80,10 @@ structured question can't hold that much content.
 This applies to Phase 1 (Triage gate — the human confirms the mode) and
 Phase 2 (Mitigation-options step — the human picks an option). Both happen
 under production-down time pressure, which is exactly when unexplained terms
-like "structural boundary crossed" or "Throwaway: yes/no" cost the most.
+cost the most — e.g. saying "did this already spread past what a hotfix
+should touch, or can it still be undone with more code?" instead of
+"structural boundary crossed," or "should I throw this fix away after, or
+keep building on it?" instead of "Throwaway: yes/no."
 
 ---
 

@@ -89,8 +89,12 @@ reasoning — present it as prose or a document; a structured question can't
 hold that much content.
 
 This applies to Phase 3, the triage packet — specifically the Classification
-type (e.g. "our-code-structural", "config-infra") and the Proposed route,
-which the human confirms before the route's own skill takes over.
+type (a label like "our-code-structural" or "config-infra" is a record-keeping
+tag, not something to say cold — explain what actually broke and where, e.g.
+"this is a bug in our own code that points to a deeper design problem" or
+"this is an environment or deployment setting, not a code bug") and the
+Proposed route, which the human confirms before the route's own skill takes
+over.
 
 ---
 
