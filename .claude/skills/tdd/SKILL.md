@@ -32,6 +32,36 @@ Hold to this named loop. The behavioral rules below serve the loop — they are 
 
 ---
 
+## Presenting decisions to the human
+
+The one place below where the human is asked to decide something must do
+three things. The goal is not to dumb the information down — it's to make
+it as easy as possible to read, understand, and decide on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** This skill only has one decision point (below), and
+it's naturally a yes/no — good fit for `AskUserQuestion`, which renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset).
+
+This applies to Step 1 — the one point in this skill where the agent asks
+the user anything (a behavior not yet confirmed in `docs/TESTING.md`).
+
+---
+
 ## Step 0 — The rule that prevents the most common failure
 
 **No transcription tests.** Expected behavior comes from `docs/TESTING.md`
@@ -43,7 +73,9 @@ to derive expected values produces tests that pass even when behavior is wrong.
 ## Step 1 — Confirm the behavior before touching code
 
 - Find the target behavior in `docs/TESTING.md` or its shard files under `docs/testing/` → confirmed behaviors
-- If not there: **stop and ask the user** before proceeding
+- If not there: **stop and ask the user** before proceeding — say in plain words why
+  it needs a decision now (e.g. "this behavior isn't confirmed yet, so if I guess at
+  it the test would lock in something nobody's actually agreed to")
 - Add the confirmed behavior to `docs/testing/<slug>.md` (run `bash scripts/derive-slug.sh` to get the slug) before writing any test
 - If this is a bug fix: write the behavior as it SHOULD work, not as it does
 

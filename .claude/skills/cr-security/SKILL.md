@@ -23,6 +23,43 @@ Opt-in. Run manually before committing any change touching:
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). "If two
+   people click pay at the same time, the client could get charged twice"
+   beats "race condition." The bar: could the human explain this back to a
+   colleague and answer a follow-up question about it, confidently? If not,
+   simplify the language further — never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — a vulnerable
+code snippet, an RLS policy, a full findings list — present it as prose or
+a document; a structured question can't hold that much content.
+
+This applies to Step 4 — every finding here is MUST FIX and gets presented
+to the human raw unless it's translated first. Terms like "RLS policy gap,"
+"TOCTOU," and "privilege escalation" mean nothing cold; say what an attacker
+could actually do before naming the mechanism.
+
+---
+
 ## Step 1 — Gather context
 
 - Run `git diff HEAD` or `git diff main..HEAD`
@@ -117,3 +154,14 @@ After fixes: run the project's test suite (e.g. `npx vitest run`). Surface failu
 ## Step 4 — Surface NEEDS HUMAN items
 
 Every unresolved item must be addressed before the commit lands.
+
+**Translate before you present.** Findings from Passes 1–4 are written for
+an engineering audience and will use terms like "RLS policy gap," "TOCTOU,"
+"privilege escalation," or "tenant isolation." Before surfacing anything to
+the human, rewrite each finding in plain words: what an attacker could
+actually do and why it matters, in a sentence a non-engineer could picture
+("someone could edit another vendor's proposal by changing the id in the
+URL" beats "missing tenant scoping check"). State the plain-English impact
+before the technical label — if a term needs a definition to land, that's
+the sign to cut the term, not add the definition. Close by inviting the
+human to ask about any item before they act on it.

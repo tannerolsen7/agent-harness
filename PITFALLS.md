@@ -547,3 +547,40 @@ this check to decide whether to auto-push).
 
 **Source:** `/cr` adversarial review (Pass 2 domain safety, Pass 10) on `feat/cr-merge-sync`,
 confirmed with a hand-built exploit repro (2026-07-01).
+
+---
+
+## Porting a diff from a downstream project's copy without checking for divergence first
+
+**Area:** `.claude/skills/**/SKILL.md` and any other file this repo distributes to consuming
+projects via sync tooling
+
+**Rule:** Before applying a diff sourced from a downstream project's copy of a shared file back
+into this repo's canonical copy, check each file for divergence first — run `git apply --check`
+per file rather than copying the change by re-reading the source PR's description. A file that
+already changed independently in this repo (its own bugfix, or unrelated development) will not
+show up as a conflict unless you actually check; it will just look like a completed port.
+
+**Why:** This repo is the canonical source for skills that `event-vendor` (and other projects)
+install via sync. `event-vendor` sometimes fixes a shared file locally before the fix lands here.
+Porting that fix back assumes the canonical copy hasn't changed since the downstream diff's
+baseline — but it can have, silently. In this repo's `design/SKILL.md`, a docs-review pass had
+already fixed a cross-reference bug that also existed in the upstream, merged version of the same
+fix; blind-copying "the same change" back would have reverted that independent fix with no error.
+`queue/SKILL.md` had forked further still — this repo's version reads tasks from `TASKS.md`
+directly, while the downstream copy had been adapted to query Linear — so the same source diff's
+context lines didn't correspond to anything real here at all.
+
+**Symptoms:** A file "ported" from a downstream copy looks complete (the intended text is present)
+but silently reverts or corrupts content the canonical repo had already changed on its own.
+
+**The fix:** Split the source diff into one patch per file, run `git apply --check <patch>` against
+the target repo for each, and treat the result as a partition: files that apply cleanly are safe to
+`git apply` verbatim; files that fail have diverged and need the same *intent* hand-written against
+their real current content, not the source diff's context. See
+`docs/solutions/2026-07-03-detect-drift-before-porting-skill-fixes-upstream.md` for the full
+worked example (porting event-vendor PR #200 and #203 back into this repo).
+
+**Source:** Porting event-vendor PR #200 and #203's plain-language decision-point standard into
+this repo's skill files (2026-07-03). First occurrence — flagged as a candidate rather than a
+promoted 3x pattern.
