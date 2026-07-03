@@ -240,6 +240,16 @@ spawn an inline adversarial agent with this brief:
 Fold the grill's findings back into the sheet before it goes to the human. A
 sheet that survives the grill unchanged is suspicious — re-grill with a sharper brief.
 
+**Translate before you present.** The grill's own report is written for an
+engineering audience and will use terms like "race condition," "atomicity," or
+"unique index." Before showing anything to the human, rewrite each finding in
+plain words: what would actually go wrong, in a sentence a non-engineer could
+picture ("if two people click pay at the same time, the client could get
+charged twice"), not the technical name for why. If a term needs a definition
+to be understood, that is the sign to cut the term, not add the definition.
+This applies to every finding and every sign-off question in Steps 3 and 5
+below, not just this step.
+
 ### Step 3 — DB sub-step (only if the feature touches the database)
 
 The schema is approved **on its own, first**, because it is the least-reversible
@@ -248,7 +258,11 @@ decision. Inline in the sheet:
 1. Write the **actual proposed migration SQL** (the real `CREATE TABLE` / `ALTER`,
    not a sketch) and the **Zod schema** that guards the boundary.
 2. Present that exact data shape to the human and get **explicit approval of the
-   schema by itself** — before any other approval, before any coding.
+   schema by itself** — before any other approval, before any coding. When you
+   describe what each table/column/index is *for*, say it in plain words ("this
+   stores which Stripe notifications we've already handled, so a repeat
+   notification doesn't do anything twice") — not by naming the SQL construct
+   and assuming the human already knows what it's for.
 3. Do not proceed until the human approves the schema as written. A "looks fine,
    keep going" on the whole sheet is not schema approval; the schema gets its own yes.
 
@@ -270,7 +284,10 @@ The gate locks the data shape; this locks the **look**. For any feature with a s
 
 Once the human has confirmed the sheet (and the schema, and the mockup, where they
 apply): commit the design artifacts (sheet, contract, migration, mockup), then write
-the sentinel:
+the sentinel. Before asking for that confirmation, reread whatever summary or
+question you're about to show the human and check: could they explain it back to
+a colleague after one read? If any term needs a definition to land, cut the term
+instead — describe the effect, not the mechanism.
 
 ```bash
 bash scripts/design-confirm.sh
