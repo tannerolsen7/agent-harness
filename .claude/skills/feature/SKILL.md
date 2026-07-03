@@ -49,6 +49,41 @@ here to enforce the opposite.
 
 ---
 
+## Presenting decisions to the human
+
+Every step below that asks the human to size, approve, or confirm something
+must do three things. The goal is not to dumb the information down — it's to
+make it as easy as possible to read, understand, and decide on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — see `~/.claude/CLAUDE.md` → "Communication
+   voice." The bar: could the human explain this back to a colleague and
+   answer a follow-up question about it, confidently? If not, simplify the
+   language further — never cut real information to get there. This applies
+   to the size estimate (Step 0), spec approval, the Plan step, the
+   `/to-issues` list, and the final report — every decision point in this
+   pipeline.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — size, approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — a spec, an
+interface, a full report — present it as prose or a document; a structured
+question can't hold that much content.
+
+See `/design contract`'s own "Presenting decisions to the human" section for
+the same rule applied to the Design Questions sheet and sign-off gate.
+
+---
+
 ## Step 0 — Size the feature first
 
 Estimate scope before doing anything else:
@@ -65,6 +100,10 @@ this feature will spawn. Use .claude/agent-contract.md as the template.
 A contract must exist before a sub-agent is invoked — never spawn without one.
 
 Tell the user your estimate and ask if the size is wrong before proceeding.
+Say what the size actually changes for them, not just the label — e.g. "this
+is Small, so I'll write up the design first and check it with you before I
+touch any code" — and invite them to ask if the size or what it means is
+unclear.
 
 After the size is confirmed, create a dedicated worktree for all implementation work:
 
@@ -193,7 +232,7 @@ has signed off on the sheet, schema, and mockup.
    ```bash
    bash scripts/spec-commit.sh
    ```
-7. **Plan** — read relevant source files and existing tests. Design the public interface. Get user approval before writing code.
+7. **Plan** — read relevant source files and existing tests. Design the public interface. Get user approval before writing code — explain in plain terms what goes in, what comes back, and what happens when something goes wrong, and invite questions before they approve.
 8. **Implement** — **pass the Implementation gate first** (read `.claude/.design-confirmed`; refuse if absent or stale). Then invoke `/tdd` (contract required). Tracer bullet slice first.
 9. **Simplify** — invoke `/simplify` on all changed files. Then commit before `/cr`:
    ```bash
@@ -218,7 +257,7 @@ has signed off on the sheet, schema, and mockup.
 
 1. **Orient** — read .claude/memory.md, skim docs/solutions/README.md, check AGENTS.md open decisions
 2. **Research check** — search `docs/research/` for files relevant to external dependencies. Create a research file if a gap exists before designing anything.
-3. **Spec** — create `docs/specs/[task-slug].md` from the Medium+ spec template. Fill the user goal, user journey, edge cases, and DMMT audit section. Set `human-approved: false`. Surface to the human for review and approval before proceeding. Do not proceed to /design until `human-approved: true`.
+3. **Spec** — create `docs/specs/[task-slug].md` from the Medium+ spec template. Fill the user goal, user journey, edge cases, and DMMT audit section. Set `human-approved: false`. Surface to the human for review and approval before proceeding — state the user goal and journey in plain terms first, and invite them to ask about any edge case before approving. Do not proceed to /design until `human-approved: true`.
 4. **Design** — invoke `/design explore` (if uncertain about the approach), then `/design contract`. Contract output goes into TASK-TEMPLATE.md.
 5. **Grill** — invoke `/grill-with-docs` (contract required)
 6. **Solutions check** — search `docs/solutions/` before designing anything
@@ -231,9 +270,9 @@ has signed off on the sheet, schema, and mockup.
    bash scripts/spec-commit.sh
    ```
 8. **Decompose** — invoke `/to-issues`. Apply decomposition checklist: tracer bullet first, label parallel vs. sequential, verify each slice independently shippable.
-   **STOP. Do not proceed to Step 9 until the user has confirmed the issue list.** This is a hard gate. Implementation does not begin until /to-issues has run and the output is approved. If the user asks "did you use /to-issues?" mid-implementation, that question is the instruction — stop, run /to-issues, get confirmation, then resume.
+   **STOP. Do not proceed to Step 9 until the user has confirmed the issue list.** This is a hard gate. Implementation does not begin until /to-issues has run and the output is approved. Present each issue as what it delivers for the user, not just a technical label, and invite questions before asking for confirmation. If the user asks "did you use /to-issues?" mid-implementation, that question is the instruction — stop, run /to-issues, get confirmation, then resume.
    After confirmation: identify which issues are independent. Spawn sub-agents for independent issues simultaneously — do not work sequentially through the list if issues have no shared dependency. State the parallel groupings explicitly before spawning.
-9. **Plan** — read CONTEXT.md, AGENTS.md, existing tests. Design interface. Get user approval.
+9. **Plan** — read CONTEXT.md, AGENTS.md, existing tests. Design interface. Get user approval — explain in plain terms what goes in, what comes back, and what happens when something goes wrong, and invite questions before they approve.
 10. **Implement** — **pass the Implementation gate first** (read `.claude/.design-confirmed`; refuse if absent or stale). Then invoke `/tdd` for each issue in order. Tracer bullet slice first. (contract required)
 11. **Simplify** — invoke `/simplify` on all changed files. Then commit before `/cr`:
     ```bash
@@ -254,13 +293,13 @@ has signed off on the sheet, schema, and mockup.
 ## Large (16+ behaviors)
 
 1. **Research check** — search `docs/research/` for relevant external dependencies. Create research files for any gaps before proceeding.
-2. **Spec** — create `docs/specs/[task-slug].md`. Must be human-approved before decomposition begins.
+2. **Spec** — create `docs/specs/[task-slug].md`. Must be human-approved before decomposition begins — state the user goal and journey in plain terms first, and invite questions before approval (same rule as the Medium spec step above).
 3. **Grill** — invoke `/grill-with-docs`
 4. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
    findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
    `@spec-writer` writes confirmed behavior entries to `docs/testing/<slug>.md`. Do not write entries
    inline. Wait for its summary before decomposition.
-5. **Decompose** — invoke `/to-issues`. Each issue maps to Small or Medium. The spec.md user journey is the reference for tracing issues back to user intent.
+5. **Decompose** — invoke `/to-issues`. Each issue maps to Small or Medium. The spec.md user journey is the reference for tracing issues back to user intent. Same gate as Medium's Decompose step: present each issue as what it delivers for the user, invite questions, and get explicit confirmation of the list before proceeding.
 6. **Execute** — run `/feature` on each issue in dependency order. Sub-`/feature` calls do **not** run their own per-issue Implementation gate — `.design-confirmed` is gitignored and does not propagate into sub-worktrees. The top-level design (step 3 above) covers all issues; the gate fired once there.
 
 ---
@@ -284,17 +323,23 @@ After every feature (all size tiers), spawn a **fresh agent** — not the one th
 
 ## Final report format
 
+Fill every slot in plain terms — a fellow engineer should be able to read this
+once and know what shipped and what still needs a decision from them. End
+with an open invitation to ask about anything above.
+
 ```
 ## /feature complete
 Built: <one sentence>
 Size: <Tiny | Small | Medium | Large>
 Behaviors: <N confirmed behaviors added to docs/testing/<slug>.md>
 Tests: <N tests written, what they cover>
-Review: <cr: N must-fix auto-fixed>
+Review: <code review ran; N issues found and already fixed>
 Commit: <hash and short message>
 Security tier: <ran | not required>
 Checklist: tests/manual-checklist.sh (run to verify); manual-only steps: <list or "None">
 Needs human: <list or "None">
+
+Ask me to explain anything above in more detail.
 ```
 
 ---

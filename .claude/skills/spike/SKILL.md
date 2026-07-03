@@ -36,6 +36,41 @@ so future agents don't repeat the same investigation.
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — the research
+dossier, cited sources, a full Decision Summary — present it as prose or a
+document; a structured question can't hold that much content.
+
+This applies to the question-confirmation gate (Entry) and, above all, the
+Decision Summary — the primary artifact the human reads to decide whether
+to hand off to `/feature`, `/prototype-interface`, or a split spike.
+
+---
+
 ## Entry
 
 State your question in one sentence. The question must name:
@@ -48,7 +83,10 @@ Examples:
 - "Is the data-fetching library's optimistic-update pattern compatible with our access-policy setup, to decide if we use it for the write flow?"
 
 If you can't write the question in one sentence, the orchestrator will
-help you sharpen it before anything runs.
+help you sharpen it before anything runs. When it proposes a sharpened
+version, it must say in plain terms why it changed the wording and invite
+you to correct it before research starts — that's the "Confirm question
+with human" gate below.
 
 ---
 
@@ -143,6 +181,11 @@ Date: [YYYY-MM-DD]
 ## Sources
 [Full citation list — title, author/org, URL, date]
 ```
+
+Render each lens in plain language — what it means for the people
+building it, running it, using it, and paying for it, not just the cited
+finding — and close the summary with an invite to ask for more detail
+before the human acts on the confidence tier.
 
 ### Research Dossier (full evidence trail)
 ```

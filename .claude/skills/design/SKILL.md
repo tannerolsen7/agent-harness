@@ -30,6 +30,43 @@ For any task where agents will implement: run contract before handing off.
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). "If two
+   people click pay at the same time, the client could get charged twice"
+   beats "race condition." The bar: could the human explain this back to a
+   colleague and answer a follow-up question about it, confidently? If not,
+   simplify the language further — never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — mode, approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — a schema, a
+mockup, migration SQL, a full report — present it as prose or a document; a
+structured question can't hold that much content.
+
+This applies to the Design Questions sheet (Step 1), grill findings (Step 2),
+schema approval (Step 3), mockup approval (Step 4), and final sign-off (Step 5).
+It also applies to the four contract questions below — but as translated,
+plain-language questions, never read verbatim; see the note under that heading.
+
+---
+
 ## Mode 1: /design explore
 
 Run when you have a problem but not a design. Produces 2-3 options with
@@ -93,6 +130,11 @@ TASK-TEMPLATE.md and is the input to /grill-with-docs.
 ### The four questions
 
 Work through these in order. Don't skip to implementation.
+
+These four categories are for structuring *your own* thinking — don't read
+them verbatim at the human. Translate each one into a plain question about
+what the user would experience: "what happens if someone submits this form
+twice by accident" lands; "what's your idempotency strategy" doesn't.
 
 **1. Business need**
 - What user problem does this solve?
@@ -207,6 +249,10 @@ gate.
 ### Step 1 — Produce the Design Questions sheet
 
 Three sections, in order. Write it as a markdown doc the human can read top to bottom.
+Follow the plain-words rule above in every line — describe the effect, not just the
+mechanism ("if the event date changes after guests are invited, invites don't
+automatically resend" beats "no cascade trigger on the date column"). End the sheet
+with an explicit invitation: "Ask me about anything above before you approve it."
 
 **1. Data shape**
 - Tables / columns / types / relations this feature reads or writes (existing and new).
@@ -240,6 +286,17 @@ spawn an inline adversarial agent with this brief:
 Fold the grill's findings back into the sheet before it goes to the human. A
 sheet that survives the grill unchanged is suspicious — re-grill with a sharper brief.
 
+**Translate before you present.** The grill's own report is written for an
+engineering audience and will use terms like "race condition," "atomicity," or
+"unique index." Before showing anything to the human, rewrite each finding in
+plain words: what would actually go wrong, in a sentence a non-engineer could
+picture ("if two people click pay at the same time, the client could get
+charged twice"), not the technical name for why. If a term needs a definition
+to be understood, that is the sign to cut the term, not add the definition.
+This applies to every finding and every sign-off question in Steps 3 and 4
+below, not just this step. Close the findings summary by inviting the human
+to ask about any finding before moving on.
+
 ### Step 3 — DB sub-step (only if the feature touches the database)
 
 The schema is approved **on its own, first**, because it is the least-reversible
@@ -248,7 +305,12 @@ decision. Inline in the sheet:
 1. Write the **actual proposed migration SQL** (the real `CREATE TABLE` / `ALTER`,
    not a sketch) and the **Zod schema** that guards the boundary.
 2. Present that exact data shape to the human and get **explicit approval of the
-   schema by itself** — before any other approval, before any coding.
+   schema by itself** — before any other approval, before any coding. When you
+   describe what each table/column/index is *for*, say it in plain words ("this
+   stores which Stripe notifications we've already handled, so a repeat
+   notification doesn't do anything twice") — not by naming the SQL construct
+   and assuming the human already knows what it's for. Invite them to ask about
+   any table or column before approving.
 3. Do not proceed until the human approves the schema as written. A "looks fine,
    keep going" on the whole sheet is not schema approval; the schema gets its own yes.
 
@@ -261,12 +323,21 @@ The gate locks the data shape; this locks the **look**. For any feature with a s
    do **not** invent a new one. For the highest-stakes, client-facing screens,
    escalate to Figma (MCP-connected) instead of a static mock.
 2. Get the human to **approve the look before the full wired-up build** — the mockup
-   is the cheapest place to iterate on layout and hierarchy.
+   is the cheapest place to iterate on layout and hierarchy. Frame the ask in plain
+   terms — "does this look and feel like something you'd send to a client" — not
+   implementation detail, and invite them to point out anything that looks off before
+   approving.
 3. After the build, attach a **screenshot to the PR** for human eyeball confirmation
    that the built screen matches the approved mockup. (The full CI pixel-diff +
    tenant-assertion render gate stays deferred to the first autonomous UI run.)
 
 ### Step 5 — Write the sentinel
+
+Before asking the human to confirm the sheet, reread whatever summary or question
+you're about to show them and check: could they explain it back to a colleague
+after one read? If any term needs a definition to land, cut the term instead —
+describe the effect, not the mechanism. End the sign-off ask with an explicit
+invitation to ask about anything before they confirm.
 
 Once the human has confirmed the sheet (and the schema, and the mockup, where they
 apply): commit the design artifacts (sheet, contract, migration, mockup), then write

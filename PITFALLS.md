@@ -179,6 +179,46 @@ Use `-Fx` (fixed-string, full-line) — branch names with dots or brackets in th
 
 ---
 
+## A worktree snapshot taken at script startup goes stale by the time the delete loop runs
+
+**Area:** `scripts/prune-branches.sh`'s delete loop — any script that checks whether something is safe to delete, then acts on that check later, without re-checking right before the destructive step.
+
+**Rule:** Never treat a merge-verify result (or a `git worktree list --porcelain` snapshot) computed earlier in a script as still valid at the moment of an actual delete. Re-verify immediately before *every* destructive action for that candidate — both the ancestor check and the worktree lookup — and never pass `--force` to `git worktree remove`; let git's own dirty-worktree check be the last line of defense.
+
+**Why:** Two distinct gaps, both closed by re-checking at the last possible moment instead of trusting an earlier result:
+
+1. A worktree that was clean when checked can pick up real *uncommitted* work before its branch's turn in the delete loop arrives — earlier candidates in the same loop can each trigger a `gh pr list` network call, and real time passes in that window. A stale worktree lookup has no way to see the new content, and `--force` bypasses git's own dirty-worktree check.
+2. A branch confirmed merged at the *top* of its own loop iteration can gain a genuinely new **commit** before the bottom of that same iteration. A worktree that only gained a commit (not an uncommitted change) is clean — `git worktree remove` without `--force` doesn't catch this at all — and `git branch --delete --force` deletes whatever the branch ref currently points to regardless of ancestry, orphaning the new commit. This gap survived the first version of this fix and was only found by adversarial review (two independent lenses, one with direct reproduction) — re-verifying the ancestor check immediately before touching the worktree or branch (not just once at the top of the iteration) is what closes it.
+
+Confirmed independently: a project built on this harness (event-vendor, FLO-89) hit gap 1 in production. Their companion fix — excluding any branch with zero commits ahead of `origin/main` up front — was evaluated and **not** ported here: it depends on the source repo squash-merging every PR (so a merged branch's original commits never literally become ancestors of `origin/main`). This repo allows regular merge commits too (`allow_merge_commit` is enabled on GitHub, and this repo's own test suite exercises a real merge-commit scenario as a first-class case) — under a real merge, "zero commits ahead of `origin/main`" stops meaning "never touched" and starts also matching "already fully merged," which broke two existing regression cases when tried.
+
+**Symptoms:** A worktree with real, uncommitted or newly committed work disappears mid-session with no error visible to the person who was using it; `prune-branches.sh` reports it as a normal cleanup ("removed worktree ... (branch ..., merged)").
+
+**The fix:** re-verify merge status right before touching anything, then re-check worktree state live, then drop `--force`:
+```sh
+if ! git merge-base --is-ancestor "$b" HEAD 2>/dev/null; then
+  echo "  WARN: $b gained new commits since it was confirmed merged — leaving it" >&2
+  continue
+fi
+WT=$(git worktree list --porcelain 2>/dev/null | awk -v br="refs/heads/$b" \
+  '/^worktree /{ p=$0; sub(/^worktree /,"",p) } $0=="branch "br { print p }')
+if [ -n "$WT" ]; then
+  if git worktree remove "$WT" 2>/dev/null; then
+    echo "  removed worktree: $WT (branch $b, merged)"
+  else
+    echo "  WARN: could not remove worktree $WT — leaving it and the branch" >&2
+    continue
+  fi
+fi
+```
+
+**Scope — what this does NOT cover:** `scripts/cleanup-worktree.sh` does the same job (remove a worktree once its branch is confirmed merged) for a single worktree at a time, still uses `git worktree remove --force`, and has its own `gh pr list` call between its merge check and that removal — the same bug class, unfixed, in a second script `/queue`'s task-runner calls directly after every merge. Pass B (remote `agent/*`/`claude/*` branch cleanup, further up in this same script) also still relies on the startup snapshot with no live re-check before `git push origin --delete`; its blast radius is smaller (a remote ref disappearing, not local data loss) but the same TOCTOU shape applies. Neither is fixed by this entry — tracked as open follow-ups in issue #131. Three other `git worktree remove --force` call sites (`scripts/worktree-add.sh`, `.claude/hooks/worktree-create.sh`) are NOT in the same danger: they act synchronously on a worktree the same invocation just created, with no candidate loop and no network call in between check and act, so there's no real time window for this race to open.
+
+**Source:** event-vendor PR #195 (FLO-89); `docs/testing/fix-prune-branches-toctou.md`
+**Regression gate:** `tests/prune-branches.test.sh` cases "TOCTOU: feat/late-dirty ... must survive" and "TOCTOU: feat/late-commit ... must survive"
+
+---
+
 ## Two parsers over the same structure must agree on scope
 
 **Area:** Shell scripts that scan a structured block (`scripts/scan-context.sh`)
@@ -470,3 +510,77 @@ A separate but related gap: `sync-harness.sh` needs `HARNESS_SRC` at sync time, 
 **The fix:** Ask "can this state occur given the design?" If no, remove the handler. If yes, make the state unrepresentable: narrow the type so the impossible value cannot be constructed, validate at the trust boundary (the Zod schema or API entry point), or use an exhaustive type that closes the gap. One well-placed invariant is worth ten scattered null checks.
 
 **Source:** Armin Ronacher, "The Coming Loop" (June 2026) — the canonical description of defensive amplification in unattended agent loops.
+
+---
+
+## Resolving git attributes from a post-merge tree instead of a fixed trusted ref
+
+**Area:** Any script that calls `git check-attr` (or reads any other trust-relevant git config
+or attributes) to decide whether a merge, diff, or branch is safe to act on automatically
+
+**Rule:** When a script's safety decision depends on `.gitattributes` (or similar config) and
+the two sides of a merge might disagree, resolve those attributes with `git check-attr
+--source=<fixed-trusted-ref>` — never by reading whatever `.gitattributes` happens to be
+checked out in the current working tree. The trusted ref must be a value fixed *before* the
+untrusted input was considered, typically the base branch, before the merge under evaluation
+ran.
+
+**Why:** `git check-attr` without `--source` reads `.gitattributes` from the current working
+tree. If that check runs after a merge, the working tree is the merged result — a state the
+untrusted side of the merge helped produce. An untrusted branch can add its own `.gitattributes`
+line (e.g. granting `merge=union` to a file it also edits) in the same change, and by the time
+the check runs, that attribute is present and reports the file as "covered" even though nobody
+but the untrusted branch's own author ever declared it safe. This is a general trust-boundary
+bug, not specific to merge drivers: any time a script's proof-of-safety is computed from state
+the input under review can influence, the proof is not independent of what it's certifying.
+
+**Symptoms:** A coverage/safety check that should fail for an attacker-controlled file instead
+reports it as covered, because the check ran against post-merge (or otherwise post-input)
+state rather than a value that existed before the untrusted content was considered.
+
+**The fix:** Pass `--source=<ref>` pinned to a value fixed before the untrusted input, e.g.
+`git check-attr --source="$TRUSTED_BASE_REF" --stdin merge`. Confirmed in
+`scripts/check-merge-driver-coverage.sh` — see also
+`docs/solutions/2026-07-01-self-issued-review-sentinel-is-a-trust-boundary.md` for the full
+incident this came from (a self-issued `.cr-ok` sentinel that used the unpinned version of
+this check to decide whether to auto-push).
+
+**Source:** `/cr` adversarial review (Pass 2 domain safety, Pass 10) on `feat/cr-merge-sync`,
+confirmed with a hand-built exploit repro (2026-07-01).
+
+---
+
+## Porting a diff from a downstream project's copy without checking for divergence first
+
+**Area:** `.claude/skills/**/SKILL.md` and any other file this repo distributes to consuming
+projects via sync tooling
+
+**Rule:** Before applying a diff sourced from a downstream project's copy of a shared file back
+into this repo's canonical copy, check each file for divergence first — run `git apply --check`
+per file rather than copying the change by re-reading the source PR's description. A file that
+already changed independently in this repo (its own bugfix, or unrelated development) will not
+show up as a conflict unless you actually check; it will just look like a completed port.
+
+**Why:** This repo is the canonical source for skills that `event-vendor` (and other projects)
+install via sync. `event-vendor` sometimes fixes a shared file locally before the fix lands here.
+Porting that fix back assumes the canonical copy hasn't changed since the downstream diff's
+baseline — but it can have, silently. In this repo's `design/SKILL.md`, a docs-review pass had
+already fixed a cross-reference bug that also existed in the upstream, merged version of the same
+fix; blind-copying "the same change" back would have reverted that independent fix with no error.
+`queue/SKILL.md` had forked further still — this repo's version reads tasks from `TASKS.md`
+directly, while the downstream copy had been adapted to query Linear — so the same source diff's
+context lines didn't correspond to anything real here at all.
+
+**Symptoms:** A file "ported" from a downstream copy looks complete (the intended text is present)
+but silently reverts or corrupts content the canonical repo had already changed on its own.
+
+**The fix:** Split the source diff into one patch per file, run `git apply --check <patch>` against
+the target repo for each, and treat the result as a partition: files that apply cleanly are safe to
+`git apply` verbatim; files that fail have diverged and need the same *intent* hand-written against
+their real current content, not the source diff's context. See
+`docs/solutions/2026-07-03-detect-drift-before-porting-skill-fixes-upstream.md` for the full
+worked example (porting event-vendor PR #200 and #203 back into this repo).
+
+**Source:** Porting event-vendor PR #200 and #203's plain-language decision-point standard into
+this repo's skill files (2026-07-03). First occurrence — flagged as a candidate rather than a
+promoted 3x pattern.

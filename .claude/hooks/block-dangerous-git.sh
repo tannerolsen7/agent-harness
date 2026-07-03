@@ -13,7 +13,7 @@ INPUT=$(cat)
 command -v jq >/dev/null 2>&1 || { echo "block-dangerous-git.sh: jq missing — cannot inspect command, BLOCKING (fail-closed). Install jq." >&2; exit 2; }
 
 CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
-[ -z "$CMD" ] && exit 0
+[ -z "$CMD" ] && { echo "block-dangerous-git.sh: empty command field — BLOCKING (fail-closed)." >&2; exit 2; }
 
 block() { echo "Blocked by block-dangerous-git.sh: $1" >&2; echo "If genuinely intended, run it yourself in a terminal." >&2; exit 2; }
 
@@ -149,6 +149,34 @@ while IFS= read -r seg; do
         _cur=$(_resolve_branch)
         case "$_cur" in main|master|develop) block "push to protected branch '$_cur' (no refspec — current branch inferred)" ;; esac
       fi ;;
+    restore)
+      # Restoring a protected file reverts safety machinery. Block any path that matches.
+      for a in "$@"; do
+        case "$a" in -*) continue ;; esac
+        case "$a" in
+          .claude/hooks|.claude/hooks/*|.husky|.husky/*|\
+          .claude/settings.json|.claude/settings.local.json)
+            block "git restore of a protected path ($a)" ;;
+        esac
+      done ;;
+    checkout)
+      # `git checkout -- file` restores a file from HEAD. `git checkout branch` is safe.
+      # Only block when -- signals a path restore, not a branch switch.
+      _saw_dashdash=0
+      for a in "$@"; do
+        [ "$a" = "--" ] && { _saw_dashdash=1; continue; }
+        [ "$_saw_dashdash" = 0 ] && continue
+        case "$a" in
+          .claude/hooks|.claude/hooks/*|.husky|.husky/*|\
+          .claude/settings.json|.claude/settings.local.json)
+            block "git checkout of a protected path ($a)" ;;
+        esac
+      done ;;
+    remote)
+      # Adding or changing a remote URL is an exfiltration path (push to attacker-controlled host).
+      case "${1:-}" in
+        add|set-url) block "git remote $1 — agents cannot add or change remotes (exfiltration path)" ;;
+      esac ;;
     worktree)
       # This project's worktree convention is .claude/worktrees/<slug> (see AI-WORKFLOW.md),
       # not the system-default ../worktree-* — adapt the allowed path accordingly.

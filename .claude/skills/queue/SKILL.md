@@ -13,6 +13,41 @@ hand-offs.
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — which tasks
+to run this batch — use `AskUserQuestion`; it renders as clickable options
+and already has a built-in escape hatch (the human can always answer "Other"
+with free text instead of picking a preset). For anything the human needs to
+actually read before deciding — the candidate task list, a results report —
+present it as prose or a document; a structured question can't hold that
+much content.
+
+This applies to: Step 1's candidate-batch ask ("Which tasks should run in
+this batch?") and Step 4's results report — the `needsHuman` items and any
+blocked/failed task reasons surfaced there.
+
+---
+
 ## Step 1 — Identify candidate tasks
 
 Read `TASKS.md`. Extract tasks from the **P1** (and **P0** if any) sections that meet all of:
@@ -37,8 +72,10 @@ the workflow will reject it. Fix: add the shared output file (e.g. the file task
 and task B imports) to both tasks' `filesAffected`. That puts them in the same serial group,
 and then `stacksOn` will be accepted.
 
-Present the candidates as a numbered list with a one-line scope summary each.
-Ask the user: "Which tasks should run in this batch? Enter numbers, or 'all'."
+Present the candidates as a numbered list with a one-line scope summary each —
+that list is the full context the human needs, so don't make them look anything
+up first. Ask the user: "Which tasks should run in this batch? Enter numbers, or
+'all'." Invite them to ask about any task on the list before they answer.
 
 Wait for confirmation before proceeding.
 
@@ -155,7 +192,10 @@ After the Workflow completes, it returns a structured summary. Present it as a t
 ```
 
 Surface any `needsHuman` items from task results and any blocked/failed tasks with their
-reason, so the user can act on them.
+reason, so the user can act on them. `@task-runner`'s raw reason text is written for an
+agent audience — translate it into plain words before presenting (what actually went
+wrong, not the internal step name), and invite the user to ask for more detail on any
+task before they act on it.
 
 Update `TASKS.md`: mark completed tasks `[x]` and update the **Current State** block. Leave blocked/failed
 tasks unchecked with a note appended to their **Notes** field.

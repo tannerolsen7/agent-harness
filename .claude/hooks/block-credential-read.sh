@@ -18,7 +18,7 @@ command -v jq >/dev/null 2>&1 || {
   exit 2
 }
 CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
-[ -z "$CMD" ] && exit 0
+[ -z "$CMD" ] && { echo "block-credential-read: empty command field — BLOCKING (fail-closed)." >&2; exit 2; }
 
 block() {
   echo "Blocked by block-credential-read: $1" >&2
@@ -55,9 +55,27 @@ is_reader() {
     grep|egrep|fgrep|rg|ag|awk|sed|cut|sort|uniq|tr|paste|column) return 0 ;;
     cp|scp|rsync|tar|zip|gzip|install|dd) return 0 ;;
     source|.) return 0 ;;
+    python3|python|node|nodejs|ruby|perl|php|bun|deno) return 0 ;;
+    bash|sh|zsh|dash|ksh) return 0 ;;
   esac
   return 1
 }
+
+# Pre-split check: interpreter -c/-e code string references a credential file.
+# tr splits on parens/semicolons; that fragments "open('.env')" into separate
+# segments, losing the connection to the interpreter verb. Check raw CMD here.
+_i_precheck=0
+case "$CMD" in
+  python3\ *|python\ *|node\ *|nodejs\ *|ruby\ *|perl\ *|php\ *|bun\ *|deno\ *) _i_precheck=1 ;;
+esac
+if [ "$_i_precheck" = 1 ]; then
+  case "$CMD" in *\ -c\ *|*\ -c\"*|*\ -e\ *|*\ -e\"*|*\ -r\ *)
+    case "$CMD" in
+      *.env*|*id_rsa*|*.npmrc*|*credentials.json*|*.pem*|*.netrc*)
+        block "interpreter -c/-e code string references a credential file" ;;
+    esac
+  esac
+fi
 
 ENVRE='^[A-Za-z_][A-Za-z0-9_]*=("[^"]*"|[^[:space:]]*)([[:space:]]+(.*))?$'
 
@@ -70,9 +88,16 @@ while IFS= read -r seg; do
   done
   [ -z "$seg" ] && continue
   set -f; set -- $seg; set +f
+  # strip wrapper words; for shell wrappers, also unwrap -c 'inner cmd'
   while [ $# -gt 0 ]; do
     case "$1" in
       sudo|env|command|time|nice|nohup|xargs|timeout|stdbuf|setsid|\\) shift ;;
+      bash|sh|zsh|dash|ksh) shift
+        if [ "${1:-}" = "-c" ] && [ -n "${2:-}" ]; then
+          shift
+          inner="$*"; inner="${inner#\'}"; inner="${inner%\'}"; inner="${inner#\"}"; inner="${inner%\"}"
+          set -f; set -- $inner; set +f
+        fi ;;
       *) break ;;
     esac
   done

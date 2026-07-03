@@ -329,12 +329,40 @@ file and you reset the loop's memory.
 
 ---
 
+### parallel-protected-path-lists
+**Signature:** Two case statements that protect the same set of files (hook files, settings) live in different scripts and are maintained separately — adding a path to one doesn't add it to the other.
+**Occurrences:** 1
+**Last seen:** 2026-06-30
+**Locations:** `.claude/hooks/block-dangerous-git.sh` (restore/checkout arms) vs `is_protected()` in `.claude/hooks/block-dangerous-bash.sh` — the git hook protects only `.claude/hooks`, `.husky`, `.claude/settings.json`; the bash hook also protects `.claude/agents`, `.env`, `.env.*`. `git restore .claude/agents/...` or `git restore .env` bypasses the git hook.
+**Detail:** The root cause is duplication with no shared definition. Every time a new protected path is added to `is_protected()`, it must be manually mirrored in block-dangerous-git.sh's restore/checkout cases. Fix: extract a single source of truth (a shared include or a flat file that both scripts read) so additions only happen in one place. Short-term: expand the git hook to match the full `is_protected()` scope and add a comment like `# keep in sync with is_protected() in block-dangerous-bash.sh`.
+
+### precheck-substring-match-false-positive
+**Signature:** A pre-split raw-string security check uses a substring glob pattern (`*.env*`) that matches common non-credential expressions (like `os.environ`), causing false positives that block legitimate commands.
+**Occurrences:** 1
+**Last seen:** 2026-06-30
+**Locations:** `.claude/hooks/block-credential-read.sh` (lines 73–74) — `_i_precheck` block uses `*.env*`, which matches `os.environ`. Any `python3 -c "print(os.environ)"` call is incorrectly blocked.
+**Detail:** A raw-string check that's anchoring on a filename needs word-boundary treatment. Shell `case` patterns don't have negative lookahead, so the fix is either: (a) list specific surrounding context patterns (`.env\"`, `.env'`, `.env `, `.env)`, `.env.*`) instead of bare `*.env*`; (b) use an inline `grep -q` for the boundary check. The fix must ensure `.env.local`, `.env.production`, etc. still match. Guard file — NEEDS HUMAN.
+
+### hook-compound-operator-inside-c-arg-bypasses-wrapper-strip
+**Signature:** A shell wrapper-strip that unwraps `bash -c 'inner'` only handles the simple case. When the inner command contains `&&` or `||`, the outer `tr` splitter splits on `&` before wrapper-strip runs, fragmenting the inner command into segments that lose their quote context — so a trailing `'` or `"` breaks credential-path matching.
+**Occurrences:** 1
+**Last seen:** 2026-06-30
+**Locations:** `.claude/hooks/block-credential-read.sh` — `bash -c 'true && cat .env'` produces a segment ` cat .env'` after tr splits on `&`; `is_credential ".env'"` fails to match because of the trailing quote.
+**Detail:** The outer `tr $';|&()\`' $'\n'` splitter runs before the per-segment wrapper-strip. `&&` in a `-c` string is split at each `&`, leaving segments with trailing quote chars. `is_credential` case patterns don't account for trailing `'` or `"`. Fix A: add shell wrappers (`bash\ *|sh\ *`) to the `_i_precheck` block so the raw CMD scan covers `bash -c '...'` before any splitting. Fix B: after `-c` unwrap, re-run the inner string through the same tr-split loop instead of using `set -- $inner`. Guard file — NEEDS HUMAN.
+
 ### hook-command-splitter-backtick-false-positive
 **Signature:** The hook's command splitter splits on backticks (treating them as shell command substitution boundaries), so backtick-formatted code in a string argument — e.g., a PR body containing `` `git branch -D` `` — is parsed as a separate command and incorrectly blocked.
 **Occurrences:** 1
 **Last seen:** 2026-06-24
 **Locations:** `.claude/hooks/block-dangerous-git.sh` (command splitter: `tr $';|&()\`' $'\n'`); surfaced when `gh pr create --body "... \`git branch -D\` ..."` was blocked with "git branch -D with no branch name"
 **Detail:** The splitter is designed to detect `cmd1 && cmd2` and backtick-substituted commands like `` `git push --force` `` inside compound Bash strings. But it also fires on backtick-wrapped text inside quoted string arguments (Markdown inline code in a PR body). Workaround: write the PR body to a file and use `--body-file` to avoid the backtick in the command string. Long-term fix: the splitter should not split inside a quoted string context. Requires human edit (guard-file path).
+
+### duplicate-frontmatter-parser
+**Signature:** Two independent scripts each parse the same `---`-delimited markdown frontmatter block with their own copy of the extraction logic, instead of sharing one definition — a future format change (e.g. tolerating CRLF or a leading blank line) has to be applied twice.
+**Occurrences:** 1
+**Last seen:** 2026-07-03
+**Locations:** `scripts/skill-frontmatter-lint.sh:20` and `.husky/pre-commit`'s "Agent spawn lint" block (~line 15) both use the identical one-liner `awk '/^---$/{c++; next} c==1{print} c>=2{exit}'` to extract frontmatter from a `.md` file. `skill-frontmatter-lint.sh` was deliberately not wired into `.husky/pre-commit` in the PR that introduced it, since that file is protected from agent edits — the duplication becomes live the moment a human wires it in.
+**Detail:** Related to `parallel-protected-path-lists` above (same root-cause shape — two independently-maintained copies of one thing) but a distinct concrete case: this is parsing logic, not a protected-path list. Fix: extract the awk one-liner into a small shared helper (e.g. `scripts/lib/frontmatter.sh` with an `extract_frontmatter <file>` function) that both `.husky/pre-commit` and `scripts/skill-frontmatter-lint.sh` source. Since `.husky/pre-commit` can only be edited by a human, this extraction should happen as part of (or immediately after) the human wiring step — not deferred indefinitely.
 
 ## Promoted
 
@@ -356,3 +384,4 @@ file and you reset the loop's memory.
 **Post-promotion sighting:** 2026-06-22 — `scripts/ci-verify.sh` deploy-drift step comment said "Exits 0 when the manifest is absent (opt-in only)" — omitted the second exit-0 case (all entries pass). Fixed in this pass.
 **Post-promotion sighting:** 2026-06-24 — `docs/testing/pr-ci-polling.md` spec entry said "GitLab forge skips polling with a warning" — written under the original design (skip-only). Design changed during grilling to attempt polling via `glab api`; spec was not updated. Fixed in /cr pass for feat/pr-ci-polling.
 **Post-promotion sighting:** 2026-06-29 — `docs/testing/harness-plugin.md` described `"skills"` and `"agents"` as directory strings; both fields changed (to `"commands"` array and `"agents"` array). Repo path `tanner/agent-harness` and install command `agent-harness@agent-harness` also stale after rename. Fixed in /cr pass for feat/fix-plugin-manifest.
+**Post-promotion sighting:** 2026-06-30 — `docs/testing/hooks-security-batch-a.md` spec said python3 check "extracts the arguments, finds `.env` in the argument string." The implementation does a pre-split raw-string scan (not per-argument extraction) — `.env` is matched as a substring in the full unsplit command. Fixed in /cr pass for feat/hooks-security-batch-a.

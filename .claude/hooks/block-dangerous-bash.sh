@@ -25,7 +25,7 @@ command -v jq >/dev/null 2>&1 || {
 }
 
 CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
-[ -z "$CMD" ] && exit 0   # no command field to inspect → nothing for this hook to do
+[ -z "$CMD" ] && { echo "block-dangerous-bash: empty command field — BLOCKING (fail-closed)." >&2; exit 2; }
 
 block() {
   echo "Blocked by block-dangerous-bash: $1" >&2
@@ -100,28 +100,38 @@ while IFS= read -r seg; do
   done
   [ -z "$seg" ] && continue
   set -f; set -- $seg; set +f
-  # strip wrapper words
+  # strip wrapper words; for shell/runner wrappers, also unwrap -c 'inner cmd'
   while [ $# -gt 0 ]; do
     case "$1" in
       sudo|env|command|time|nice|nohup|xargs|timeout|stdbuf|setsid|\\) shift ;;
+      npx|yarn|pnpm) shift ;;
+      bash|sh|zsh|dash|ksh) shift
+        if [ "${1:-}" = "-c" ] && [ -n "${2:-}" ]; then
+          shift
+          inner="$*"; inner="${inner#\'}"; inner="${inner%\'}"; inner="${inner#\"}"; inner="${inner%\"}"
+          set -f; set -- $inner; set +f
+        fi ;;
       *) break ;;
     esac
   done
   [ $# -eq 0 ] && continue
   verb="$1"
 
-  # Redirects into a protected path (glued `>tgt` and separated `> tgt`).
+  # Redirects into a protected path — glued forms (>tgt, 2>tgt) and spaced (> tgt, 2> tgt).
   prev=""
   for tok in "$@"; do
     case "$tok" in
-      '>'*|'>>'*)
-        tgt="${tok#>}"; tgt="${tgt#>}"
+      '>'*|'>>'*|[0-9]'>'*|[0-9]'>>'*)
+        tgt="$tok"
+        case "$tgt" in [0-9]*) tgt="${tgt#?}" ;; esac  # strip leading fd digit
+        tgt="${tgt#>}"; tgt="${tgt#>}"                  # strip > or >>
+        case "$tgt" in '&'*) tgt="" ;; esac             # skip fd redirects like 2>&1
         [ -n "$tgt" ] && is_protected "$tgt" && block "redirect into a protected path ($tgt)"
         ;;
     esac
-    if [ "$prev" = ">" ] || [ "$prev" = ">>" ]; then
+    case "$prev" in ">"|">>"|[0-9]">"|[0-9]">>")
       is_protected "$tok" && block "redirect into a protected path ($tok)"
-    fi
+    ;; esac
     prev="$tok"
   done
 
