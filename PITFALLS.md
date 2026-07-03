@@ -179,6 +179,46 @@ Use `-Fx` (fixed-string, full-line) — branch names with dots or brackets in th
 
 ---
 
+## A worktree snapshot taken at script startup goes stale by the time the delete loop runs
+
+**Area:** `scripts/prune-branches.sh`'s delete loop — any script that checks whether something is safe to delete, then acts on that check later, without re-checking right before the destructive step.
+
+**Rule:** Never treat a merge-verify result (or a `git worktree list --porcelain` snapshot) computed earlier in a script as still valid at the moment of an actual delete. Re-verify immediately before *every* destructive action for that candidate — both the ancestor check and the worktree lookup — and never pass `--force` to `git worktree remove`; let git's own dirty-worktree check be the last line of defense.
+
+**Why:** Two distinct gaps, both closed by re-checking at the last possible moment instead of trusting an earlier result:
+
+1. A worktree that was clean when checked can pick up real *uncommitted* work before its branch's turn in the delete loop arrives — earlier candidates in the same loop can each trigger a `gh pr list` network call, and real time passes in that window. A stale worktree lookup has no way to see the new content, and `--force` bypasses git's own dirty-worktree check.
+2. A branch confirmed merged at the *top* of its own loop iteration can gain a genuinely new **commit** before the bottom of that same iteration. A worktree that only gained a commit (not an uncommitted change) is clean — `git worktree remove` without `--force` doesn't catch this at all — and `git branch --delete --force` deletes whatever the branch ref currently points to regardless of ancestry, orphaning the new commit. This gap survived the first version of this fix and was only found by adversarial review (two independent lenses, one with direct reproduction) — re-verifying the ancestor check immediately before touching the worktree or branch (not just once at the top of the iteration) is what closes it.
+
+Confirmed independently: a project built on this harness (event-vendor, FLO-89) hit gap 1 in production. Their companion fix — excluding any branch with zero commits ahead of `origin/main` up front — was evaluated and **not** ported here: it depends on the source repo squash-merging every PR (so a merged branch's original commits never literally become ancestors of `origin/main`). This repo allows regular merge commits too (`allow_merge_commit` is enabled on GitHub, and this repo's own test suite exercises a real merge-commit scenario as a first-class case) — under a real merge, "zero commits ahead of `origin/main`" stops meaning "never touched" and starts also matching "already fully merged," which broke two existing regression cases when tried.
+
+**Symptoms:** A worktree with real, uncommitted or newly committed work disappears mid-session with no error visible to the person who was using it; `prune-branches.sh` reports it as a normal cleanup ("removed worktree ... (branch ..., merged)").
+
+**The fix:** re-verify merge status right before touching anything, then re-check worktree state live, then drop `--force`:
+```sh
+if ! git merge-base --is-ancestor "$b" HEAD 2>/dev/null; then
+  echo "  WARN: $b gained new commits since it was confirmed merged — leaving it" >&2
+  continue
+fi
+WT=$(git worktree list --porcelain 2>/dev/null | awk -v br="refs/heads/$b" \
+  '/^worktree /{ p=$0; sub(/^worktree /,"",p) } $0=="branch "br { print p }')
+if [ -n "$WT" ]; then
+  if git worktree remove "$WT" 2>/dev/null; then
+    echo "  removed worktree: $WT (branch $b, merged)"
+  else
+    echo "  WARN: could not remove worktree $WT — leaving it and the branch" >&2
+    continue
+  fi
+fi
+```
+
+**Scope — what this does NOT cover:** `scripts/cleanup-worktree.sh` does the same job (remove a worktree once its branch is confirmed merged) for a single worktree at a time, still uses `git worktree remove --force`, and has its own `gh pr list` call between its merge check and that removal — the same bug class, unfixed, in a second script `/queue`'s task-runner calls directly after every merge. Pass B (remote `agent/*`/`claude/*` branch cleanup, further up in this same script) also still relies on the startup snapshot with no live re-check before `git push origin --delete`; its blast radius is smaller (a remote ref disappearing, not local data loss) but the same TOCTOU shape applies. Neither is fixed by this entry — tracked as open follow-ups in issue #131. Three other `git worktree remove --force` call sites (`scripts/worktree-add.sh`, `.claude/hooks/worktree-create.sh`) are NOT in the same danger: they act synchronously on a worktree the same invocation just created, with no candidate loop and no network call in between check and act, so there's no real time window for this race to open.
+
+**Source:** event-vendor PR #195 (FLO-89); `docs/testing/fix-prune-branches-toctou.md`
+**Regression gate:** `tests/prune-branches.test.sh` cases "TOCTOU: feat/late-dirty ... must survive" and "TOCTOU: feat/late-commit ... must survive"
+
+---
+
 ## Two parsers over the same structure must agree on scope
 
 **Area:** Shell scripts that scan a structured block (`scripts/scan-context.sh`)
