@@ -62,8 +62,9 @@ runs do not carry it.
 
 ### Pass 3 — Backend Security Checklist (Sonnet) — via the project's DB-safety adapter
 
-The harness does not hardcode a backend. Invoke **this project's database-safety skill** (its backend
-adapter, named in the project's config) and run its security checklist against the diff. That adapter owns
+The harness does not hardcode a backend. This is an extension point (see
+`docs/harness-extension-points.md`): invoke `.claude/skills/database-safety-adapter/SKILL.md`
+in the consuming project and run its security checklist against the diff. That adapter owns
 the backend-specific form of these universal classes:
 
 - Privilege escalation via user-controlled metadata used in authorization decisions

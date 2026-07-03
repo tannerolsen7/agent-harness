@@ -107,6 +107,23 @@ If no, say so explicitly.
 
 ---
 
+## Step 6b — Check for upstream-worthy changes (projects built on this harness only)
+
+Skip this step entirely if this project IS the harness source repo (no upstream to send
+this to). Otherwise: did this fix or pattern touch a **harness-owned file** (one listed as
+`copy` policy in `.claude/.harness-manifest.json`), or solve a problem general enough that
+any other project using this harness would hit the same thing?
+
+If yes: note it plainly in this run's summary as "harness upstream candidate" with a one-line
+reason, and point at `docs/harness-extension-points.md` in the harness source repo if the fix
+is project-specific logic that should become an adapter rather than a direct patch. This is a
+flag for a human to manually port upstream (open a PR against the harness repo, or file an
+issue there) — this step does not open that PR itself.
+
+If no: say so explicitly.
+
+---
+
 ## Step 7 — Check for memory.md update
 
 Did this session correct a mistake that should become a permanent rule?
