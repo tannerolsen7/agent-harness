@@ -247,7 +247,7 @@ plain words: what would actually go wrong, in a sentence a non-engineer could
 picture ("if two people click pay at the same time, the client could get
 charged twice"), not the technical name for why. If a term needs a definition
 to be understood, that is the sign to cut the term, not add the definition.
-This applies to every finding and every sign-off question in Steps 3 and 5
+This applies to every finding and every sign-off question in Steps 3 and 4
 below, not just this step.
 
 ### Step 3 — DB sub-step (only if the feature touches the database)
@@ -282,12 +282,14 @@ The gate locks the data shape; this locks the **look**. For any feature with a s
 
 ### Step 5 — Write the sentinel
 
+Before asking the human to confirm the sheet, reread whatever summary or question
+you're about to show them and check: could they explain it back to a colleague
+after one read? If any term needs a definition to land, cut the term instead —
+describe the effect, not the mechanism.
+
 Once the human has confirmed the sheet (and the schema, and the mockup, where they
 apply): commit the design artifacts (sheet, contract, migration, mockup), then write
-the sentinel. Before asking for that confirmation, reread whatever summary or
-question you're about to show the human and check: could they explain it back to
-a colleague after one read? If any term needs a definition to land, cut the term
-instead — describe the effect, not the mechanism.
+the sentinel:
 
 ```bash
 bash scripts/design-confirm.sh
