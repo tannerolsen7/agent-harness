@@ -40,6 +40,38 @@ scale. An agent that omits pricing is not doing the analysis.
 | /feature touches a new capability | Before /design contract, check if a library already does this |
 | Direct invocation | "Should we use X for Y?" or "is there a library that does Z?" |
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — pricing data,
+a build-cost estimate, the full Q1–Q7 evaluation document — present it as
+prose or a document; a structured question can't hold that much content.
+
+This applies to: the recommendation document (Q1–Q7) as presented under
+Autonomy model, and any tie-break question asked when the evaluation is close.
+
 ## The evaluation
 
 The agent researches and answers seven questions. All seven are required.
@@ -150,6 +182,10 @@ dimensions): agent presents it with full reasoning.
 If the evaluation is genuinely close (reasonable case for both):
 agent presents both cases, names a lean with reasoning, and asks
 one question that would break the tie.
+
+Either way, state the recommendation in plain, teachable language — not
+just the Q1–Q7 labels — and invite the human to ask before deciding. That
+invitation comes in addition to, not instead of, the tie-break question above.
 
 The human makes the final call in all cases. The agent does not
 proceed to /design contract or /feature until the human confirms.

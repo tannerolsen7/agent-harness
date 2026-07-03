@@ -3,11 +3,46 @@ name: grill-with-docs
 description: Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates documentation (CONTEXT.md, ADRs) inline as decisions crystallise. Use when user wants to stress-test a plan against their project's language and documented decisions.
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — a schema, a
+mockup, migration SQL, a full report — present it as prose or a document; a
+structured question can't hold that much content.
+
+This applies to: every question in the interview loop below (glossary
+conflicts, sharpened terminology, concrete scenarios, code contradictions)
+and every ADR offer.
+
+---
+
 <what-to-do>
 
 Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
-Ask the questions one at a time, waiting for feedback on each question before continuing.
+Ask the questions one at a time, waiting for feedback on each question before continuing. Each question must stand on its own — state what's being decided and why it matters before asking, in plain words, and invite the user to ask for more context before they answer. Don't assume the earlier conversation carries the context forward for them.
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
 
@@ -53,6 +88,11 @@ Create files lazily — only when you have something to write. If no `CONTEXT.md
 
 ## During the session
 
+Every prompt below is a decision put to the human — translate the jargon
+before you ask. "Your glossary defines 'cancellation' as X" needs no
+translation; "your code cancels entire Orders" does, if the human hasn't
+seen that code. Say the plain-English effect first, then ask.
+
 ### Challenge against the glossary
 
 When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
@@ -84,5 +124,9 @@ Only offer to create an ADR when all three are true:
 3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
 
 If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+
+When you do offer one, state in plain words what decision it locks in and
+why it's hard to reverse before asking if they want it written — and invite
+them to ask more before they answer.
 
 </supporting-info>

@@ -54,6 +54,48 @@ not own the /feature PRs.
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). "This will
+   lock the events table for about 30 seconds while it runs — anyone trying
+   to save a proposal during that window will see an error and need to
+   retry" beats "ACCESS EXCLUSIVE lock during ALTER TABLE." The bar: could
+   the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — a schema, a
+mockup, migration SQL, a full report — present it as prose or a document; a
+structured question can't hold that much content.
+
+This applies to every human sign-off point below: the Entry gate's Q3
+permanent-tier sign-off, Phase 1's pre-flight checklist confirmation, Phase
+2's permanent-tier rollback sign-off, Phase 3's dry-run "Proceed"
+confirmation, and Phase 5's post-migration sign-off. These are often
+irreversible operations — a raw dry-run SQL dump or a lock-risk table is not
+a decision the human can act on until it's translated into what actually
+happens to the app and its users.
+
+---
+
 ## Migration types
 
 Classify before proceeding. The type determines the dry-run strategy,
@@ -147,7 +189,10 @@ Phase 5 — Post-migration verification
 
 If Q4 is "Yes" and the answer is not already known: Phase 0 runs first.
 If Q3 is "permanent": surface to human and wait for explicit sign-off
-before any phase runs.
+before any phase runs. State plainly what "permanent" means for this
+specific migration — what data or state disappears for good and what that
+breaks if it turns out to be wrong — before asking for sign-off, and invite
+questions before they confirm.
 
 ---
 
@@ -185,7 +230,11 @@ If migration fails or is rolled back: PR 3 does not run until PR 2 succeeds.
 
 ## Phase 1 — Pre-flight checklist
 
-Agent runs each check. Human confirms all four before Phase 2.
+Agent runs each check. Human confirms all four before Phase 2. Before
+asking for that confirmation, summarize what each check found in plain
+terms — the lock risk in terms of what a user would see and for how long,
+the batch plan in terms of how long the migration will take, not just the
+filled-in table — and invite questions before the human confirms.
 
 **Check A — Backup**
 ```
@@ -284,7 +333,10 @@ Irreversibility tier: [clean-revert | compensate | window | permanent]
 	[describe — what state is the system in, what is the recovery path]
 ```
 
-Tier = **permanent** requires human explicit sign-off before Phase 3:
+Tier = **permanent** requires human explicit sign-off before Phase 3. Before
+asking for it, state plainly what happens if this migration fails halfway
+through — what state the app is left in, what a user would experience, and
+that there is no undo — and invite questions before they sign off:
 ```
 Sign-off: [ ] [handle] confirms this migration is permanent and
 	has reviewed the mid-stream failure recovery plan.
@@ -313,7 +365,10 @@ Dry-run verdict:
 ```
 
 Human confirms "Proceed" before Phase 4 runs. This is a hard gate.
-No silent auto-proceed from dry-run to execution.
+No silent auto-proceed from dry-run to execution. Before asking for
+"Proceed," translate the raw dry-run output and scale estimate into what
+will actually happen when this runs for real — how long it takes, what (if
+anything) users will notice — and invite questions before they confirm.
 
 ---
 
@@ -377,7 +432,10 @@ Verification verdict:
 	[ ] Issues found — [describe; do not merge until resolved]
 ```
 
-Human signs off on verification verdict before merge.
+Human signs off on verification verdict before merge. Before asking for
+that sign-off, state plainly what was checked and what it confirms — e.g.
+"the row counts match and a sample of 10 migrated rows looks right" — not
+just the filled-in checklist, and invite questions before they sign off.
 
 ---
 
