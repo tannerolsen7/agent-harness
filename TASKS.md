@@ -63,6 +63,12 @@ Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install h
 
 ## P2 — Serialize After P1
 
+- [ ] Wire skill-frontmatter-lint.sh into .husky/pre-commit (human-only)
+  Size: TINY
+  Slug: wire-skill-frontmatter-lint
+  filesAffected: .husky/pre-commit
+  Notes: `scripts/skill-frontmatter-lint.sh` and `tests/skill-frontmatter-lint.test.sh` (feat/skill-frontmatter-lint) check `.claude/skills/*/SKILL.md` frontmatter (name/description present, name matches directory, description <=1024 chars, description contains "Use when"). The script is deliberately unwired — `.husky/pre-commit` is protected and only a human can edit it. Wire it the same way `shell-portability-lint.sh` is wired (grep staged files matching `^\.claude/skills/[^/]+/SKILL\.md$`, pass the list to the script). Use a NUL-delimited or `while read` loop rather than unquoted variable expansion, since unquoted expansion word-splits on spaces in filenames (see the existing `$STAGED_SHELL` pattern, which has the same latent issue). While in the file: extract the duplicated frontmatter-parsing awk one-liner (`awk '/^---$/{c++; next} c==1{print} c>=2{exit}'`, present both in the "Agent spawn lint" block and in the new script) into a shared helper so both call sites use one definition — see `docs/RECURRING-FINDINGS.md` → `duplicate-frontmatter-parser`. Done when: a malformed SKILL.md blocks a commit, a well-formed one doesn't, and both gates read frontmatter through the same shared code.
+
 - [x] queue-execute: replace file-overlap stacking with explicit stacksOn field
   Size: SMALL
   Slug: queue-stacking-redesign
