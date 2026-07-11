@@ -2,7 +2,7 @@
 feature: spec-layer
 status: draft
 human-approved: false
-last-verified: —
+last-verified: 2026-07-11
 ---
 
 # Spec layer — per-feature behavioral contracts

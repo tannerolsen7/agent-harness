@@ -584,3 +584,26 @@ worked example (porting event-vendor PR #200 and #203 back into this repo).
 **Source:** Porting event-vendor PR #200 and #203's plain-language decision-point standard into
 this repo's skill files (2026-07-03). First occurrence — flagged as a candidate rather than a
 promoted 3x pattern.
+
+## Session-start hooks that regenerate dashboards from local state destroy committed history in fresh containers
+
+**The trap:** `update-progress.sh` and `activity-report.sh` rebuild `harness-progress.html` and
+`harness-activity.html` from whatever data exists locally — activity jsonl files on disk and PR
+counts from the forge CLI. On a developer machine that data is complete, so regeneration is safe.
+In a fresh remote container (Claude Code on the web, CI), most activity jsonl files don't exist and
+the forge CLI is unavailable, so the "regenerated" dashboards silently replace 349 rows of session
+history with 1 and a real PR count with 0. A session that then obeys "commit your uncommitted
+changes" ships the data loss as an innocent-looking `M harness-activity.html`.
+
+**Symptoms:** A dashboard commit from a remote session shows large deletions (hundreds of table
+rows) with tiny insertions; totals drop to near zero; `auto-update-status` says "(first run)" on a
+repo with months of history.
+
+**The fix:** Before committing hook-modified dashboard files, diff them — if the change *removes*
+history, restore from HEAD and commit only additive files (the session's own jsonl). The durable
+fix is a guard in the updater scripts: skip regeneration when the local row count is lower than
+the committed file's row count. Updater scripts are ordinary scripts (not guard files), so an
+agent can propose that patch, but it must go through /feature.
+
+**Source:** Remote session on `feat/spec-layer` (2026-07-11) — the session-start and stop hooks
+regenerated both dashboards twice; caught staged both times before push. First occurrence.
