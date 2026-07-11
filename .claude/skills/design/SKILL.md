@@ -12,10 +12,9 @@ description: |
 
 # /design
 
-> **Upstream skills required:** `/grill-with-docs`, `/tdd`, and `/to-issues`
-> are from Matt Pocock's skills repo — not included here.
-> Install once globally: `npx skills@latest add mattpocock/skills`
-> See `.claude/INDEX.md → Required global skills` for details.
+> **Upstream skills:** `/grill-with-docs`, `/tdd`, and `/to-issues` are vendored
+> in this harness (`.claude/skills/`). A missing pipeline skill is a hard stop,
+> not a skippable step: report which skill failed to resolve and stop.
 
 Two modes. Declare which at the start, or let the agent ask.
 
@@ -43,7 +42,7 @@ on:
 2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
    technical term really is the clearest word, say the plain-English effect
    *before* using the term — never name a mechanism and assume it's
-   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). "If two
+   understood (see `CLAUDE.md` (repo root) → "Communication voice"). "If two
    people click pay at the same time, the client could get charged twice"
    beats "race condition." The bar: could the human explain this back to a
    colleague and answer a follow-up question about it, confidently? If not,
@@ -332,6 +331,14 @@ The gate locks the data shape; this locks the **look**. For any feature with a s
    tenant-assertion render gate stays deferred to the first autonomous UI run.)
 
 ### Step 5 — Write the sentinel
+
+**When this gate runs inside `/feature`:** the human asks from Steps 3–5 (schema,
+mockup, sheet sign-off) are not sent one at a time. `/feature` batches them into
+its single approval packet — one `AskUserQuestion`, separate questions inside it,
+with the schema still getting its own question. Draft everything here; `/feature`
+asks once; the sentinel is written only after the packet is approved. Everything
+below about *what* the human must approve, and in what order relative to coding,
+is unchanged.
 
 Before asking the human to confirm the sheet, reread whatever summary or question
 you're about to show them and check: could they explain it back to a colleague
