@@ -201,11 +201,19 @@ has signed off on the sheet, schema, and mockup.
 
 Every Small+ task creates or updates a per-feature behavioral contract in
 `docs/specs/<feature>.md` (template: `docs/templates/spec.md`; rules:
-`docs/specs/README.md`). Two rules apply across all tiers:
+`docs/specs/README.md`). Two different files both get called "spec" — keep them
+straight: `docs/specs/<feature>.md` is the **behavioral contract** (this
+section); `docs/testing/<slug>.md` is the **testing shard** that
+`@spec-writer` and `scripts/spec-commit.sh` handle. Rules that apply across
+all tiers:
 
-- **Cold-start rule** — if the task modifies a feature that already has a spec,
-  read the spec before designing, and update its Behavior list *before*
-  changing the code. The spec's git history is the changelog of intent.
+- **Named for the feature, not the branch.** Search `docs/specs/` for an
+  existing spec covering the feature before creating a new file — a second
+  spec for the same feature is a bug.
+- **Cold-start rule (every tier, including Tiny)** — if the task modifies a
+  feature that already has a spec, read the spec before designing, and update
+  its Behavior list *before* changing the code. The spec's git history is the
+  changelog of intent.
 - **Executable verification** — the spec's Verification section is commands
   with expected results, never prose. `/cr` runs it at review.
 
@@ -215,6 +223,7 @@ Every Small+ task creates or updates a per-feature behavioral contract in
 
 1. Confirm the expected behavior with the user
    - **If this touches the database or adds a UI screen, it is not Tiny** — escalate to Small and run the design gate. Tiny is exempt from the design-confirmed sentinel only because it has no new data shape and no new screen.
+   - **Cold-start check:** if the change touches a feature with a spec in `docs/specs/`, read it and update its Behavior list before coding — Tiny is not exempt from the cold-start rule.
 2. Record it in `docs/testing/<slug>.md` under confirmed behaviors before writing any code (run `bash scripts/derive-slug.sh` to get the slug from the current branch). Then commit the spec file before `/tdd` starts — stop if the file is missing:
    ```bash
    bash scripts/spec-commit.sh
@@ -234,7 +243,7 @@ Every Small+ task creates or updates a per-feature behavioral contract in
 
 1. **Orient** — read .claude/memory.md, skim docs/solutions/README.md, check AGENTS.md open decisions. Report: any open decisions touching this task? Any relevant solutions already documented?
 2. **Research check** — search `docs/research/` for files relevant to this feature's external dependencies. If a relevant file exists, read it before the design contract. If a gap exists and the feature touches an external API or new framework pattern, create a research file in `docs/research/[topic].md` before proceeding.
-3. **Design contract** — first create or update `docs/specs/<slug>.md` from `docs/templates/spec.md`: fill the top half (Outcome, User journey, Edge cases, Out of scope) in plain terms, leave `human-approved: false`, and apply the cold-start rule if the feature already has a spec. Then invoke `/design contract`. If uncertain about the design, run `/design explore` first. Contract output goes into TASK-TEMPLATE.md before proceeding.
+3. **Design contract** — first create or update the feature's spec in `docs/specs/` from `docs/templates/spec.md` (named for the feature, not the branch — search for an existing spec first): fill the top half (Outcome, User journey, Edge cases, Out of scope) in plain terms, leave `human-approved: false`, and apply the cold-start rule if the feature already has a spec. Then invoke `/design contract`. If uncertain about the design, run `/design explore` first. Contract output goes into TASK-TEMPLATE.md before proceeding.
 4. **Grill** — invoke `/grill-with-docs` (contract required). Confirm scope, surface hidden assumptions, challenge design against `CONTEXT.md`. Doc updates get written here.
 5. **Solutions check** — search `docs/solutions/` for relevant patterns before designing the interface.
 6. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
@@ -242,11 +251,11 @@ Every Small+ task creates or updates a per-feature behavioral contract in
    `@spec-writer` writes confirmed behavior entries to `docs/testing/<slug>.md` before touching code.
    Do not write TESTING.md entries inline — `@spec-writer` owns the format and the "never invent
    behaviors" rule. Wait for its summary (entries written + open questions) before proceeding.
-   Then commit the spec file before moving to Plan — stop if the file is missing:
+   Then commit the testing shard before moving to Plan — stop if the file is missing (`spec-commit.sh` handles `docs/testing/<slug>.md` only, not the behavioral contract):
    ```bash
    bash scripts/spec-commit.sh
    ```
-7. **Plan** — read relevant source files and existing tests. Design the public interface. Get user approval before writing code — explain in plain terms what goes in, what comes back, and what happens when something goes wrong, and invite questions before they approve. Present the spec's Outcome and User journey in the same message: their approval also sets `human-approved: true` on the spec (one gate covers both).
+7. **Plan** — read relevant source files and existing tests. Design the public interface. Get user approval before writing code — explain in plain terms what goes in, what comes back, and what happens when something goes wrong, and invite questions before they approve. Present the spec's Outcome and User journey in the same message: their approval also sets `human-approved: true` and `status: building` on the spec (one gate covers both).
 8. **Implement** — **pass the Implementation gate first** (read `.claude/.design-confirmed`; refuse if absent or stale). Then invoke `/tdd` (contract required). Tracer bullet slice first.
 9. **Simplify** — invoke `/simplify` on all changed files. Then commit before `/cr`:
    ```bash
@@ -254,7 +263,12 @@ Every Small+ task creates or updates a per-feature behavioral contract in
    git add -u
    git commit -m "style($SLUG): simplify" || echo "nothing to commit — skipping"
    ```
-10. **Spec close-out** — fill the spec's bottom half to match what was actually built: Behavior (numbered contract), Implementation pointers, Verification (executable commands only). Set `status: complete`. Commit with the same `spec-commit.sh` flow as step 6.
+10. **Spec close-out** — fill the spec's bottom half to match what was actually built: Behavior (numbered contract), Implementation pointers, Verification (executable commands only; `manual:` lines for anything needing a running app). Set `status: complete`. Commit the contract explicitly (`spec-commit.sh` does NOT cover it):
+    ```bash
+    SLUG=$(bash scripts/derive-slug.sh)
+    git add docs/specs/
+    git commit -m "docs($SLUG): spec close-out"
+    ```
 11. **Review** — invoke `/cr`. If touched auth/permissions/data boundary, also invoke `/cr-security`.
 12. **Type check** — `npx tsc --noEmit` must exit zero
 13. **Commit** — conventional commit format
@@ -272,7 +286,7 @@ Every Small+ task creates or updates a per-feature behavioral contract in
 
 1. **Orient** — read .claude/memory.md, skim docs/solutions/README.md, check AGENTS.md open decisions
 2. **Research check** — search `docs/research/` for files relevant to external dependencies. Create a research file if a gap exists before designing anything.
-3. **Spec** — create or update `docs/specs/[task-slug].md` from `docs/templates/spec.md`. Fill the top half: Outcome, User journey, Edge cases, Out of scope, and the DMMT audit section for UI features. Set `human-approved: false`, and apply the cold-start rule if the feature already has a spec. Surface to the human for review and approval before proceeding — state the Outcome and journey in plain terms first, and invite them to ask about any edge case before approving. Do not proceed to /design until `human-approved: true`.
+3. **Spec** — create or update the feature's spec in `docs/specs/` from `docs/templates/spec.md` (named for the feature, not the branch — search for an existing spec first). Fill the top half: Outcome, User journey, Edge cases, Out of scope, and the DMMT audit section for UI features. Set `human-approved: false`, and apply the cold-start rule if the feature already has a spec. Surface to the human for review and approval before proceeding — state the Outcome and journey in plain terms first, and invite them to ask about any edge case before approving. Do not proceed to /design until `human-approved: true`; on approval also set `status: building`.
 4. **Design** — invoke `/design explore` (if uncertain about the approach), then `/design contract`. Contract output goes into TASK-TEMPLATE.md.
 5. **Grill** — invoke `/grill-with-docs` (contract required)
 6. **Solutions check** — search `docs/solutions/` before designing anything
@@ -280,7 +294,7 @@ Every Small+ task creates or updates a per-feature behavioral contract in
    findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
    `@spec-writer` writes confirmed behavior entries to `docs/testing/<slug>.md`. Do not write entries
    inline. Wait for its summary before proceeding to decomposition.
-   Then commit the spec file before Decompose — stop if the file is missing:
+   Then commit the testing shard before Decompose — stop if the file is missing:
    ```bash
    bash scripts/spec-commit.sh
    ```
@@ -295,7 +309,7 @@ Every Small+ task creates or updates a per-feature behavioral contract in
     git add -u
     git commit -m "style($SLUG): simplify" || echo "nothing to commit — skipping"
     ```
-12. **Spec close-out** — fill the spec's bottom half to match what was actually built: Behavior, Implementation pointers, Verification (executable commands only). Set `status: complete` and commit it.
+12. **Spec close-out** — fill the spec's bottom half to match what was actually built: Behavior, Implementation pointers, Verification (executable commands only; `manual:` lines for app-dependent checks). Set `status: complete` and commit the contract explicitly (`git add docs/specs/` — `spec-commit.sh` does not cover it).
 13. **Review** — `/cr`, `/cr-security` if triggered
 14. **Type check** — `npx tsc --noEmit` must exit zero
 15. **Commit**
@@ -309,7 +323,7 @@ Every Small+ task creates or updates a per-feature behavioral contract in
 ## Large (16+ behaviors)
 
 1. **Research check** — search `docs/research/` for relevant external dependencies. Create research files for any gaps before proceeding.
-2. **Spec** — create or update `docs/specs/[task-slug].md` from `docs/templates/spec.md`. Must be human-approved before decomposition begins — state the Outcome and journey in plain terms first, and invite questions before approval (same rule as the Medium spec step above).
+2. **Spec** — create or update the feature's spec in `docs/specs/` from `docs/templates/spec.md` (named for the feature, not the branch). Must be human-approved before decomposition begins — state the Outcome and journey in plain terms first, and invite questions before approval (same rule as the Medium spec step above; on approval also set `status: building`).
 3. **Grill** — invoke `/grill-with-docs`
 4. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
    findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
