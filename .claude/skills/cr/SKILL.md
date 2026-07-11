@@ -183,6 +183,12 @@ Review focus:
 - Logic bugs, off-by-one errors, incorrect conditions
 - Codebase-specific footguns — read PITFALLS.md before reviewing
 - Backwards compat: optional fields guarded with optional chaining?
+- If the changed feature has a behavioral contract in `docs/specs/<slug>.md`
+  (rules: `docs/specs/README.md`): does the diff deliver every numbered
+  Behavior? A behavior change without a matching spec update is Must Fix.
+- Run every command in that spec's Verification section. A failing command is
+  Must Fix. A Verification item written as prose instead of a runnable command
+  is also Must Fix — prose verifies nothing.
 
 ### Pass 2 — Domain Safety (Sonnet)
 Critical failure modes for this codebase. Read PITFALLS.md and AGENTS.md → domain rules first. If the diff
@@ -469,6 +475,8 @@ If Step 3b flagged promotion candidates, act by judgment here — do **not** gat
   it; otherwise leave it Active with a one-line reason.
 
 List each promotion in the disposition report (under "Fixed now" — it's a canon change) so it's visible.
+
+If Pass 1 ran a spec's Verification section and every command passed, set that spec's `last-verified:` frontmatter to today's date — it is part of the cr-driven changes committed below.
 
 Then commit all cr-driven changes before the sentinel. Any commit after the sentinel invalidates it, so this must run before Step 7:
 ```bash

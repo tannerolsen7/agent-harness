@@ -197,6 +197,20 @@ has signed off on the sheet, schema, and mockup.
 
 ---
 
+## Spec layer (Small and above)
+
+Every Small+ task creates or updates a per-feature behavioral contract in
+`docs/specs/<feature>.md` (template: `docs/templates/spec.md`; rules:
+`docs/specs/README.md`). Two rules apply across all tiers:
+
+- **Cold-start rule** — if the task modifies a feature that already has a spec,
+  read the spec before designing, and update its Behavior list *before*
+  changing the code. The spec's git history is the changelog of intent.
+- **Executable verification** — the spec's Verification section is commands
+  with expected results, never prose. `/cr` runs it at review.
+
+---
+
 ## Tiny (1 behavior)
 
 1. Confirm the expected behavior with the user
@@ -220,7 +234,7 @@ has signed off on the sheet, schema, and mockup.
 
 1. **Orient** — read .claude/memory.md, skim docs/solutions/README.md, check AGENTS.md open decisions. Report: any open decisions touching this task? Any relevant solutions already documented?
 2. **Research check** — search `docs/research/` for files relevant to this feature's external dependencies. If a relevant file exists, read it before the design contract. If a gap exists and the feature touches an external API or new framework pattern, create a research file in `docs/research/[topic].md` before proceeding.
-3. **Design contract** — invoke `/design contract`. If uncertain about the design, run `/design explore` first. Contract output goes into TASK-TEMPLATE.md before proceeding.
+3. **Design contract** — first create or update `docs/specs/<slug>.md` from `docs/templates/spec.md`: fill the top half (Outcome, User journey, Edge cases, Out of scope) in plain terms, leave `human-approved: false`, and apply the cold-start rule if the feature already has a spec. Then invoke `/design contract`. If uncertain about the design, run `/design explore` first. Contract output goes into TASK-TEMPLATE.md before proceeding.
 4. **Grill** — invoke `/grill-with-docs` (contract required). Confirm scope, surface hidden assumptions, challenge design against `CONTEXT.md`. Doc updates get written here.
 5. **Solutions check** — search `docs/solutions/` for relevant patterns before designing the interface.
 6. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
@@ -232,7 +246,7 @@ has signed off on the sheet, schema, and mockup.
    ```bash
    bash scripts/spec-commit.sh
    ```
-7. **Plan** — read relevant source files and existing tests. Design the public interface. Get user approval before writing code — explain in plain terms what goes in, what comes back, and what happens when something goes wrong, and invite questions before they approve.
+7. **Plan** — read relevant source files and existing tests. Design the public interface. Get user approval before writing code — explain in plain terms what goes in, what comes back, and what happens when something goes wrong, and invite questions before they approve. Present the spec's Outcome and User journey in the same message: their approval also sets `human-approved: true` on the spec (one gate covers both).
 8. **Implement** — **pass the Implementation gate first** (read `.claude/.design-confirmed`; refuse if absent or stale). Then invoke `/tdd` (contract required). Tracer bullet slice first.
 9. **Simplify** — invoke `/simplify` on all changed files. Then commit before `/cr`:
    ```bash
@@ -240,16 +254,17 @@ has signed off on the sheet, schema, and mockup.
    git add -u
    git commit -m "style($SLUG): simplify" || echo "nothing to commit — skipping"
    ```
-10. **Review** — invoke `/cr`. If touched auth/permissions/data boundary, also invoke `/cr-security`.
-11. **Type check** — `npx tsc --noEmit` must exit zero
-12. **Commit** — conventional commit format
-13. **Compound questions** — ask the agent:
+10. **Spec close-out** — fill the spec's bottom half to match what was actually built: Behavior (numbered contract), Implementation pointers, Verification (executable commands only). Set `status: complete`. Commit with the same `spec-commit.sh` flow as step 6.
+11. **Review** — invoke `/cr`. If touched auth/permissions/data boundary, also invoke `/cr-security`.
+12. **Type check** — `npx tsc --noEmit` must exit zero
+13. **Commit** — conventional commit format
+14. **Compound questions** — ask the agent:
     - What was the hardest decision you made here?
     - What alternatives did you reject, and why?
     - What are you least confident about?
-14. **Compound** — if non-obvious pattern introduced, invoke `/compound`
-15. **Checklist** — spawn a fresh agent (not the one that wrote the code) to write `tests/manual-checklist.sh`. See [Manual checklist rule](#manual-checklist-rule) below.
-16. **Report**
+15. **Compound** — if non-obvious pattern introduced, invoke `/compound`
+16. **Checklist** — spawn a fresh agent (not the one that wrote the code) to write `tests/manual-checklist.sh`. See [Manual checklist rule](#manual-checklist-rule) below.
+17. **Report**
 
 ---
 
@@ -257,7 +272,7 @@ has signed off on the sheet, schema, and mockup.
 
 1. **Orient** — read .claude/memory.md, skim docs/solutions/README.md, check AGENTS.md open decisions
 2. **Research check** — search `docs/research/` for files relevant to external dependencies. Create a research file if a gap exists before designing anything.
-3. **Spec** — create `docs/specs/[task-slug].md` from the Medium+ spec template. Fill the user goal, user journey, edge cases, and DMMT audit section. Set `human-approved: false`. Surface to the human for review and approval before proceeding — state the user goal and journey in plain terms first, and invite them to ask about any edge case before approving. Do not proceed to /design until `human-approved: true`.
+3. **Spec** — create or update `docs/specs/[task-slug].md` from `docs/templates/spec.md`. Fill the top half: Outcome, User journey, Edge cases, Out of scope, and the DMMT audit section for UI features. Set `human-approved: false`, and apply the cold-start rule if the feature already has a spec. Surface to the human for review and approval before proceeding — state the Outcome and journey in plain terms first, and invite them to ask about any edge case before approving. Do not proceed to /design until `human-approved: true`.
 4. **Design** — invoke `/design explore` (if uncertain about the approach), then `/design contract`. Contract output goes into TASK-TEMPLATE.md.
 5. **Grill** — invoke `/grill-with-docs` (contract required)
 6. **Solutions check** — search `docs/solutions/` before designing anything
@@ -280,20 +295,21 @@ has signed off on the sheet, schema, and mockup.
     git add -u
     git commit -m "style($SLUG): simplify" || echo "nothing to commit — skipping"
     ```
-12. **Review** — `/cr`, `/cr-security` if triggered
-13. **Type check** — `npx tsc --noEmit` must exit zero
-14. **Commit**
-15. **Compound questions**
-16. **Compound** — invoke `/compound` if non-obvious pattern introduced
-17. **Checklist** — spawn a fresh agent (not the one that wrote the code) to write `tests/manual-checklist.sh`. See [Manual checklist rule](#manual-checklist-rule) below.
-18. **Report**
+12. **Spec close-out** — fill the spec's bottom half to match what was actually built: Behavior, Implementation pointers, Verification (executable commands only). Set `status: complete` and commit it.
+13. **Review** — `/cr`, `/cr-security` if triggered
+14. **Type check** — `npx tsc --noEmit` must exit zero
+15. **Commit**
+16. **Compound questions**
+17. **Compound** — invoke `/compound` if non-obvious pattern introduced
+18. **Checklist** — spawn a fresh agent (not the one that wrote the code) to write `tests/manual-checklist.sh`. See [Manual checklist rule](#manual-checklist-rule) below.
+19. **Report**
 
 ---
 
 ## Large (16+ behaviors)
 
 1. **Research check** — search `docs/research/` for relevant external dependencies. Create research files for any gaps before proceeding.
-2. **Spec** — create `docs/specs/[task-slug].md`. Must be human-approved before decomposition begins — state the user goal and journey in plain terms first, and invite questions before approval (same rule as the Medium spec step above).
+2. **Spec** — create or update `docs/specs/[task-slug].md` from `docs/templates/spec.md`. Must be human-approved before decomposition begins — state the Outcome and journey in plain terms first, and invite questions before approval (same rule as the Medium spec step above).
 3. **Grill** — invoke `/grill-with-docs`
 4. **Spec** — invoke `@spec-writer`. Include the design contract text and a summary of grill
    findings directly in the `@spec-writer` prompt — it cannot read the parent conversation.
