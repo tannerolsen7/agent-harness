@@ -7,7 +7,15 @@ Task status: `[ ]` not started · `[~]` in progress (open worktree) · `[x]` don
 
 ## Current State
 
-Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install hardening, AI activity dashboard, pre-push fix, conventional commits hook (#84), queue branch stacking (#86), /cr follow-up fix (#87), and 3 queue hardening items (#89, #90, #101) all merged. Remaining: queue stacking redesign (file-overlap → explicit stacksOn), CLAUDE.md→hooks audit (P2), and fleet rollout.
+_Verified against the code on 2026-07-13._
+
+Phases 0–3 are done: the safety floor; the trust layer (un-forgeable CI gate, 4-lens reviewer, routing gate, and the risk classifier — `scripts/classify-risk.sh`, 59 passing tests); the before-coding design gate + learning loop; and the quality systems (token-lint, ux-reviewer/axe, perf-budget, mutation-testing, comment-lint, data-states — all merged). Phase 4 (fleet/platform) is mostly done — one-command install + sync (#72), the AI-activity dashboard (#76), the Claude Code plugin + marketplace (#114–#126), skill-frontmatter lint (#135), and the queue-stacking redesign (#105) all merged. Remaining Phase 4: full GitHub-canon migration, the complete CLAUDE.md→hooks audit, and multi-repo (fleet) rollout.
+
+**Live open work:** [P0] unify the two execution paths — `/feature` (a prose pipeline) and `.claude/workflows/queue-execute.js` (the deterministic workflow run via `@task-runner`) build a feature two different ways and diverge: the queue path requires a pre-existing design instead of making one, skips `/simplify` and the manual checklist, and reviews with `@reviewer` instead of the full `/cr`. No design doc is written for the unify yet. [P1] the discovery → triage-inbox loop (nothing finds work but the human). [P2] remote-session commit/push gates, the CLAUDE.md→hooks audit, and agent-sandboxing.
+
+**Unmerged WIP:** branch `feat/spec-layer` adds a per-feature behavioral-contract layer (`docs/specs/spec-layer.md`, `docs/templates/spec.md`) and further changes `/feature` — not yet merged.
+
+All autonomy (bug→PR front doors, timers, risk-based auto-merge) stays deferred to Phase 5 by decision.
 
 ---
 
