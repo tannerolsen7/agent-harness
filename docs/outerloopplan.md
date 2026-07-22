@@ -1149,7 +1149,7 @@ lint. Task 20 adds the few skills the harness genuinely lacks.
 
 **Why:** The harness already has both ideas — a central
 `docs/engineering-system/12-anti-rationalization.md` and a `verify` skill —
-but applies them uuevenly across its own skills. Coverage today: 12 of 31
+but applies them unevenly across its own skills. Coverage today: 12 of 31
 skills carry a rationalizations section, 7 of 31 carry an evidence section.
 The anti-rationalization doc's own principle is that the rebuttal must sit
 at the step most likely to be skipped, inside the skill — a central doc no
