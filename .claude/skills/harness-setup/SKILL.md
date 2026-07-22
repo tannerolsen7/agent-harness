@@ -1,9 +1,9 @@
 ---
-name: init
-description: Sets up the harness in a new project repo — runs install.sh from the plugin directory, copies starter context docs (CLAUDE.md, AGENTS.md, CONTEXT.md, PITFALLS.md) for any that are missing, then walks the user through filling in CLAUDE.md interactively. Use when the user says "/init", "set up the harness", "fill in CLAUDE.md", "initialize this project", or "finish the install". Requires the harness plugin to be installed ($CLAUDE_PLUGIN_ROOT must be set). Does not require a local clone of the harness repo.
+name: harness-setup
+description: Sets up the harness in a new project repo — runs install.sh from the plugin directory, copies starter context docs (CLAUDE.md, AGENTS.md, CONTEXT.md, PITFALLS.md) for any that are missing, then walks the user through filling in CLAUDE.md interactively. Use when the user says "/harness-setup", "set up the harness", "fill in CLAUDE.md", "initialize this project", or "finish the install". Requires the harness plugin to be installed ($CLAUDE_PLUGIN_ROOT must be set). Does not require a local clone of the harness repo.
 ---
 
-# /init — set up the harness in a project
+# /harness-setup — set up the harness in a project
 
 The harness plugin is already installed in Claude Code. This skill does the
 per-project setup: copy harness files into the current repo, then fill in
@@ -59,7 +59,7 @@ user it lists the remaining one-time steps:
 - `bash scripts/install-harness-hooks.sh` — wire git hooks and npm
 - `bash scripts/install-locks.sh` — optional: OS-level file locks (requires sudo)
 
-Tell them to delete that checklist section once all steps (including this `/init`
+Tell them to delete that checklist section once all steps (including this `/harness-setup`
 run) are done.
 
 ## Step 4 — Report

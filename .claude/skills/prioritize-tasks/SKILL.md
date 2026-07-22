@@ -20,6 +20,40 @@ If `TASKS.md` doesn't exist: stop and surface — "TASKS.md not found. Create it
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — a reordered task
+list, a backlog diff, a full report — present it as prose or a document; a
+structured question can't hold that much content.
+
+This applies to: the recommendation in Step 3, where the human confirms or
+adjusts the reordering, flags, and backlog changes before anything is written.
+
+---
+
 ## Step 1 — Read and parse
 
 Read both files in full. From `STRATEGY.md` extract:
@@ -79,6 +113,10 @@ Output a recommended `TASKS.md` reordering. Format:
 ### Backlog candidates to prune
 - [entry] (Low severity, 90+ days old) — remove?
 ```
+
+Before presenting, explain each flag in plain terms the first time it
+appears — e.g. "STALE means this hasn't moved in 30+ days, so it's worth
+asking if it still matters." Invite questions before asking for confirmation.
 
 Present the recommendation and wait for confirmation. Do not rewrite `TASKS.md` until confirmed.
 

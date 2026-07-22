@@ -26,17 +26,20 @@ Both happened because the system wasn't set up on that project. The rules existe
 
 ---
 
-## For `/feature` — Phase 0 (scope and clarity check)
+## For `/feature` — sizing (scope and clarity check)
 
-Add this table to Phase 0 of the `/feature` skill:
+This table lives at the top of the `/feature` skill (its "Anti-rationalization"
+section). The skill's copy is the source of truth — update it there first, then
+mirror here.
 
 | Rationalization | Rebuttal |
 | --- | --- |
 | "This is too small to need /grill-with-docs" | Tiny features still have hidden assumptions. /grill-with-docs takes 5 minutes. Fixing a wrong assumption takes hours. Run it. |
-| "The task is clear, Phase 0 scope check isn't needed" | Phase 0 exists because tasks are never as clear as they appear. If you're certain, confirming takes 2 minutes. |
+| "The task is clear, sizing isn't needed" | Sizing exists because tasks are never as clear as they appear. Stating the estimate takes 2 minutes. |
 | "I'll write the TESTING.md entry after" | There is no after. The spec is written before the test. The test is written before the code. This is the order. |
 | "This is a refactor, not a feature, so /feature doesn't apply" | If it changes behavior or touches more than one file, /feature applies. |
-| "The plan is obvious, I don't need approval before writing code" | The plan phase exists because what seems obvious to you may be wrong in ways you haven't considered. Get approval. |
+| "The plan is obvious, I don't need approval before writing code" | The plan phase exists because what seems obvious to you may be wrong in ways you haven't considered. It rides the approval packet — it costs no extra round-trip. Get approval. |
+| "Drafting the design before the human approves anything wastes work" | Agent drafting is cheap; human round-trips are the scarce resource. If the human rejects a draft at the packet, revising it costs minutes. Three separate waits cost more than one rejected draft. |
 | "We're already mid-implementation, /to-issues would interrupt the flow" | The human asking "did you use /to-issues?" is the interrupt. Stop. Run /to-issues. A process question from the human is not rhetorical — it is a direct instruction. Momentum is not a reason to skip a step; it is how steps get skipped. Observed in production. |
 
 ---

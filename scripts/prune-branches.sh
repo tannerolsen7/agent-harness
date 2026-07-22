@@ -56,12 +56,11 @@ if [ -d "$WT_BASE" ]; then
 fi
 
 # Collect active worktree branches once — reused by Pass B and the NO_UPSTREAM exclusion.
-# Also capture the full porcelain output for the worktree-path lookup inside the merge loop,
-# so the command runs once here instead of once per candidate branch.
 # A freshly-created worktree branch (no commits yet) has its tip at the branch point, which
 # makes `git merge-base --is-ancestor` return true — it looks "merged" but is live work.
 # Excluding active worktree branches prevents false-positive deletions in both Pass B and Pass 2.
-WT_PORCELAIN=$(git worktree list --porcelain 2>/dev/null || true)
+# This snapshot is fine for these two non-destructive filters; the delete loop below re-queries
+# worktree state live, right before it does anything destructive, instead of reusing this.
 ACTIVE_WT_BRANCHES=$(bash "$SCRIPT_DIR/active-worktree-branches.sh" || true)
 
 # Pass B: remote agent/workflow branches. The workflow system pushes under agent/* and
@@ -153,18 +152,34 @@ if [ -n "$CANDIDATES" ]; then
       continue
     fi
 
-    # Merged → safe to clean. If it's checked out in one of our worktrees, remove that first
-    # (git refuses to delete a checked-out branch). Parse the cached porcelain output so we
-    # don't re-invoke git worktree list once per branch.
-    WT=$(printf '%s\n' "$WT_PORCELAIN" | awk -v br="refs/heads/$b" \
+    # Merged → about to clean up. Re-verify merged-ness one more time, right here, before any
+    # destructive action — don't just trust the MERGED value computed at the top of this same
+    # iteration. Earlier candidates in this loop (and this candidate's own gh call, if it took
+    # one) can each take real time, so a concurrent session can commit real new work onto $b
+    # in that window. A worktree that picks up a genuine commit (as opposed to just an
+    # uncommitted change) has a clean working tree — the no-`--force` guard below would not
+    # catch it — so this ancestor re-check is what actually protects it.
+    if ! git merge-base --is-ancestor "$b" HEAD 2>/dev/null; then
+      echo "  WARN: $b gained new commits since it was confirmed merged — leaving it and its worktree; investigate manually, then re-run prune-branches" >&2
+      continue
+    fi
+
+    # If it's checked out in one of our worktrees, remove that first (git refuses to delete a
+    # checked-out branch). Query worktree state live here rather than reusing a startup
+    # snapshot — the same elapsed-time window above can also mean a worktree that didn't exist
+    # at startup exists now. This is the one place that actually deletes something, so it gets
+    # the current state, not a cached one.
+    WT=$(git worktree list --porcelain 2>/dev/null | awk -v br="refs/heads/$b" \
       '/^worktree /{ p=$0; sub(/^worktree /,"",p) } $0=="branch "br { print p }')
     if [ -n "$WT" ]; then
       case "$WT" in
         */.claude/worktrees/*)
-          if git worktree remove --force "$WT" 2>/dev/null; then
+          # No --force: git's own dirty-worktree check is the real backstop for the
+          # uncommitted-change case the ancestor re-check above can't see.
+          if REMOVE_ERR=$(git worktree remove "$WT" 2>&1); then
             echo "  removed worktree: $WT (branch $b, merged)"
           else
-            echo "  WARN: could not remove worktree $WT — remove it manually, then re-run prune-branches" >&2
+            echo "  WARN: could not remove worktree $WT — leaving it and the branch; investigate manually, then re-run prune-branches ($REMOVE_ERR)" >&2
             continue   # leave the branch; deleting it would fail while still checked out
           fi ;;
         *)
@@ -172,7 +187,7 @@ if [ -n "$CANDIDATES" ]; then
           continue ;;
       esac
     fi
-    # -D (force) is justified: merged-ness is already proven above. Print the SHA so it's recoverable.
+    # -D (force) is justified: merged-ness is proven immediately above, right before this call.
     SHA=$(git rev-parse --short "$b" 2>/dev/null || echo "unknown")
     if git branch --delete --force "$b" >/dev/null 2>&1; then
       echo "  deleted: $b (merged; was at $SHA — recover: git branch $b $SHA)"

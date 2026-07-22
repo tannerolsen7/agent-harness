@@ -10,6 +10,42 @@ Break a plan into independently-grabbable issues using vertical slices (tracer b
 
 The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.
 
+---
+
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — the full issue
+breakdown, the granularity mapping, a full report — present it as prose or a
+document; a structured question can't hold that much content.
+
+This applies to Step 4 ("Quiz the user") — the breakdown, granularity, and
+HITL/AFK split the human is asked to approve before any issue gets published.
+
+---
+
 ## Process
 
 ### 1. Gather context
@@ -40,6 +76,12 @@ Present the proposed breakdown as a numbered list. For each slice, show:
 - **Type**: HITL / AFK
 - **Blocked by**: which other slices (if any) must complete first
 - **User stories covered**: which user stories this addresses (if the source material has them)
+
+The first time you use HITL or AFK, spell out what they mean in plain
+words: HITL means "needs a human to review or decide something before it
+can move forward"; AFK means "an agent can build and merge this without
+anyone checking in." Invite the user to ask about any slice before they
+approve the breakdown.
 
 Ask the user:
 

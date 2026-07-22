@@ -357,6 +357,13 @@ file and you reset the loop's memory.
 **Locations:** `.claude/hooks/block-dangerous-git.sh` (command splitter: `tr $';|&()\`' $'\n'`); surfaced when `gh pr create --body "... \`git branch -D\` ..."` was blocked with "git branch -D with no branch name"
 **Detail:** The splitter is designed to detect `cmd1 && cmd2` and backtick-substituted commands like `` `git push --force` `` inside compound Bash strings. But it also fires on backtick-wrapped text inside quoted string arguments (Markdown inline code in a PR body). Workaround: write the PR body to a file and use `--body-file` to avoid the backtick in the command string. Long-term fix: the splitter should not split inside a quoted string context. Requires human edit (guard-file path).
 
+### duplicate-frontmatter-parser
+**Signature:** Two independent scripts each parse the same `---`-delimited markdown frontmatter block with their own copy of the extraction logic, instead of sharing one definition — a future format change (e.g. tolerating CRLF or a leading blank line) has to be applied twice.
+**Occurrences:** 1
+**Last seen:** 2026-07-03
+**Locations:** `scripts/skill-frontmatter-lint.sh:20` and `.husky/pre-commit`'s "Agent spawn lint" block (~line 15) both use the identical one-liner `awk '/^---$/{c++; next} c==1{print} c>=2{exit}'` to extract frontmatter from a `.md` file. `skill-frontmatter-lint.sh` was deliberately not wired into `.husky/pre-commit` in the PR that introduced it, since that file is protected from agent edits — the duplication becomes live the moment a human wires it in.
+**Detail:** Related to `parallel-protected-path-lists` above (same root-cause shape — two independently-maintained copies of one thing) but a distinct concrete case: this is parsing logic, not a protected-path list. Fix: extract the awk one-liner into a small shared helper (e.g. `scripts/lib/frontmatter.sh` with an `extract_frontmatter <file>` function) that both `.husky/pre-commit` and `scripts/skill-frontmatter-lint.sh` source. Since `.husky/pre-commit` can only be edited by a human, this extraction should happen as part of (or immediately after) the human wiring step — not deferred indefinitely.
+
 ## Promoted
 
 ### test-mk-no-gitdir-guard

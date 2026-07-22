@@ -7,7 +7,15 @@ Task status: `[ ]` not started · `[~]` in progress (open worktree) · `[x]` don
 
 ## Current State
 
-Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install hardening, AI activity dashboard, pre-push fix, conventional commits hook (#84), queue branch stacking (#86), /cr follow-up fix (#87), and 3 queue hardening items (#89, #90, #101) all merged. Remaining: queue stacking redesign (file-overlap → explicit stacksOn), CLAUDE.md→hooks audit (P2), and fleet rollout.
+_Verified against the code on 2026-07-13._
+
+Phases 0–3 are done: the safety floor; the trust layer (un-forgeable CI gate, 4-lens reviewer, routing gate, and the risk classifier — `scripts/classify-risk.sh`, 59 passing tests); the before-coding design gate + learning loop; and the quality systems (token-lint, ux-reviewer/axe, perf-budget, mutation-testing, comment-lint, data-states — all merged). Phase 4 (fleet/platform) is mostly done — one-command install + sync (#72), the AI-activity dashboard (#76), the Claude Code plugin + marketplace (#114–#126), skill-frontmatter lint (#135), and the queue-stacking redesign (#105) all merged. Remaining Phase 4: full GitHub-canon migration, the complete CLAUDE.md→hooks audit, and multi-repo (fleet) rollout.
+
+**Live open work:** [P0] unify the two execution paths — `/feature` (a prose pipeline) and `.claude/workflows/queue-execute.js` (the deterministic workflow run via `@task-runner`) build a feature two different ways and diverge: the queue path requires a pre-existing design instead of making one, skips `/simplify` and the manual checklist, and reviews with `@reviewer` instead of the full `/cr`. No design doc is written for the unify yet. [P1] the discovery → triage-inbox loop (nothing finds work but the human). [P2] remote-session commit/push gates, the CLAUDE.md→hooks audit, and agent-sandboxing.
+
+**Unmerged WIP:** branch `feat/spec-layer` adds a per-feature behavioral-contract layer (`docs/specs/spec-layer.md`, `docs/templates/spec.md`) and further changes `/feature` — not yet merged.
+
+All autonomy (bug→PR front doors, timers, risk-based auto-merge) stays deferred to Phase 5 by decision.
 
 ---
 
@@ -15,9 +23,53 @@ Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install h
 
 - [x] AI activity dashboard — PR #76
 
+- [ ] Unify the two execution paths: queue-execute.js as the one pipeline, /feature as its front-end
+  Size: MEDIUM
+  Slug: unify-execution-paths
+  filesAffected: .claude/workflows/queue-execute.js, .claude/skills/feature/SKILL.md, .claude/skills/queue/SKILL.md, .claude/agents/task-runner.md
+  Notes: The same feature lifecycle is implemented twice and the two copies already disagree.
+  Path A is `/feature` (interactive prose in .claude/skills/feature/SKILL.md, re-interpreted by
+  the model each run). Path B is `.claude/workflows/queue-execute.js` (deterministic Workflow:
+  design gate → worktree setup → @task-runner per task → push + PR). Known divergences today:
+  (1) the queue path hard-fails MEDIUM+ tasks without a `design:` ref (queue-execute.js
+  `validateDesignGate`) while /feature runs the design phase itself; (2) the queue path never
+  runs /simplify; (3) the queue path never runs the manual-checklist step. Every pipeline
+  improvement currently has to be made twice, and the copies keep drifting. Proposed direction
+  (to be validated by the design contract, not assumed): queue-execute.js becomes the single
+  execution path; /feature becomes its interactive front-end — it gathers the human approvals
+  (the approval packet, the /to-issues confirmation), then feeds the same deterministic pipeline
+  the queue/webhook path uses. BLOCKED: run /design contract first and link the design doc here
+  (`design: docs/features/unify-execution-paths.md`) before queuing. Done when: one pipeline
+  implementation exists; /feature and /queue both drive it; the three divergences above are
+  impossible by construction (one code path); both skills' SKILL.md docs describe the shared
+  pipeline instead of restating it.
+
 ---
 
 ## P1 — Ready to Queue
+
+- [ ] Discovery loop: scheduled scans deposit findings into a triage inbox
+  Size: SMALL
+  Slug: discovery-triage-inbox
+  filesAffected: scripts/discovery-scan.sh, tests/discovery-scan.test.sh, docs/TRIAGE-INBOX.md, .claude/skills/scan-context/SKILL.md
+  Notes: Nothing in the harness finds work except the human — rituals go overdue silently
+  (scan-context reported CLAUDE.md 24 days past its 7-day review limit on 2026-07-11, with
+  nothing prompting anyone to look). The missing piece is one bounded wire: a scheduled job
+  that RUNS THE SCANS AND ACTS ON NOTHING. Build: (1) `scripts/discovery-scan.sh` — runs the
+  existing read-only checks (`scripts/scan-context.sh`; a stale-branch audit via
+  `scripts/prune-branches.sh` in a dry-run/report mode or `git for-each-ref` age listing;
+  spec coverage: `docs/testing/` entries vs. tests; anything else already scripted and
+  read-only) and appends findings with a date stamp to `docs/TRIAGE-INBOX.md`, deduplicating
+  by finding text so re-runs don't spam. (2) The inbox doc has a header explaining the
+  contract: the scanner only deposits; a human reviews the inbox; anything actionable flows
+  through the normal gated pipeline (/feature, /debug, etc.) — the scanner must never edit
+  other files, open PRs, or fix anything. (3) Scheduling: document (in the inbox header and
+  the scan-context SKILL.md) how to wire it — a Claude Code routine/cron firing weekly that
+  runs the script and surfaces new inbox entries; do not hand-roll a daemon. (4) Test:
+  `tests/discovery-scan.test.sh` — a run on a fixture repo writes dated findings to the
+  inbox, a second identical run adds nothing, and the script exits 0 with no other files
+  modified. TDD required.
+  Depends on: the /feature skill defect fixes (branch claude/skill-defects-efficiency-y56xdc) landing first.
 
 - [x] One-command install for new projects
   Size: LARGE
@@ -62,6 +114,38 @@ Phase 3 (Quality Systems) is done. Phase 4 is in progress — install, install h
 ---
 
 ## P2 — Serialize After P1
+
+- [ ] Remote session support in commit/push gates (human-only)
+  Size: SMALL
+  Slug: remote-session-gates
+  filesAffected: .husky/pre-commit, .husky/pre-push, .claude/hooks/session-start.sh
+  Notes: The commit/push hooks assume a local shared checkout and block managed remote
+  sessions (fresh container, environment-designated branch). Three collisions, all observed
+  live in a remote session on 2026-07-11: (1) the pre-commit and pre-push worktree gates
+  require `.git` to be a FILE (dedicated worktree), but a remote container's clone has a
+  `.git` DIRECTORY and no TTY, so every non-main commit/push is blocked even though the
+  container IS the isolation; (2) the pre-push naming gate rejects environment-designated
+  branch names like `claude/<slug>` (only feat|fix|refactor|chore|docs|test|perf|build|ci|
+  style|revert pass), and the agent is forbidden from renaming the branch — and there is no
+  agent-side bypass, since .claude/hooks/block-dangerous-git.sh (correctly) blocks
+  `git push --no-verify`, so a remote session cannot push through local git at all; (3) the
+  /dev/tty probe pattern is fragile in containers (see FLO-163 — the probe silently killed
+  pushes).
+  Proposed fix: the session-start hook detects a remote container (e.g. a marker the remote
+  environment always provides) and exports/writes an explicit marker (e.g.
+  `.claude/.remote-session`, gitignored); the worktree gates and the naming gate accept the
+  marker path (worktree requirement waived, `claude/` prefix allowed) while every other gate
+  (sync, merged-PR, .cr-ok sentinel) still applies. Fail closed: no marker → current
+  behavior. While in .husky/pre-commit, also add the new `implementation-gate` script to the
+  `_GATE_SCRIPTS` protected list (`scripts/implementation-gate.sh` is a gate now and should
+  be operator-only like design-confirm.sh). Human-only: `.husky/*` and `.claude/hooks/*` are
+  protected files agents cannot commit.
+
+- [ ] Wire skill-frontmatter-lint.sh into .husky/pre-commit (human-only)
+  Size: TINY
+  Slug: wire-skill-frontmatter-lint
+  filesAffected: .husky/pre-commit
+  Notes: `scripts/skill-frontmatter-lint.sh` and `tests/skill-frontmatter-lint.test.sh` (feat/skill-frontmatter-lint) check `.claude/skills/*/SKILL.md` frontmatter (name/description present, name matches directory, description <=1024 chars, description contains "Use when"). The script is deliberately unwired — `.husky/pre-commit` is protected and only a human can edit it. Wire it the same way `shell-portability-lint.sh` is wired (grep staged files matching `^\.claude/skills/[^/]+/SKILL\.md$`, pass the list to the script). Use a NUL-delimited or `while read` loop rather than unquoted variable expansion, since unquoted expansion word-splits on spaces in filenames (see the existing `$STAGED_SHELL` pattern, which has the same latent issue). While in the file: extract the duplicated frontmatter-parsing awk one-liner (`awk '/^---$/{c++; next} c==1{print} c>=2{exit}'`, present both in the "Agent spawn lint" block and in the new script) into a shared helper so both call sites use one definition — see `docs/RECURRING-FINDINGS.md` → `duplicate-frontmatter-parser`. Done when: a malformed SKILL.md blocks a commit, a well-formed one doesn't, and both gates read frontmatter through the same shared code.
 
 - [x] queue-execute: replace file-overlap stacking with explicit stacksOn field
   Size: SMALL
