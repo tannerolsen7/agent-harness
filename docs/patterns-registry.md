@@ -244,6 +244,59 @@ engineering advice.
 
 ---
 
+## prompt-content-assertion-test
+
+**What:** Add a shell test that verifies a change to an LLM-instruction file (a skill's
+`SKILL.md`, an agent's `.md` definition) actually contains the required content, when the
+change has no executable code path to exercise directly — the "code" is prose the reviewing
+agent reads, not a function that can be called from a test.
+
+**When to use:** A task changes what a skill or agent is instructed to do, and the only way
+to regression-test that instruction is to confirm the required text is present in the right
+place. Third occurrence of this shape in this repo (`tests/harness-smoke.test.sh`,
+`tests/queue-design-gate.test.sh`, `tests/cr-test-contradiction-pass.test.sh`) — promoted per
+this registry's own ≥3-occurrence convention (the same threshold `docs/RECURRING-FINDINGS.md`
+uses for PITFALLS.md promotion).
+
+**When NOT to use:** Any change with an actual executable code path — write a real test
+against real behavior instead. This recipe is a substitute for testability, not a preference;
+reach for it only when the artifact under test is itself prose read by an LLM.
+
+**The recipe:**
+1. **The instruction file** (`.claude/skills/<name>/SKILL.md` or `.claude/agents/<name>.md`)
+   — make the content change. Give the new content a distinct, greppable heading or bold
+   label (e.g. `**Test contradiction check**`) — the test needs an anchor.
+2. **`docs/testing/<slug>.md`** — record confirmed behaviors as "the instruction directs the
+   reviewer/agent to do X," not "the reviewer was observed doing X." The test below confirms
+   the instruction text is present, not that a live agent run followed it — don't let the
+   shard's wording overclaim what's actually verified.
+3. **`tests/<slug>.test.sh`** — extract the relevant section by structural boundary, not a
+   fixed line count: `awk '/^### Heading /{p=1} /^### NextHeading /{p=0} p' "$FILE"`. Assert
+   the extracted block is non-empty before grepping inside it, so a renamed/moved heading
+   fails as "section not found" rather than a confusing phrase-not-found miss. Grep for
+   distinct phrases within the extracted block, not the whole file — a whole-file grep can
+   pass on an unrelated match elsewhere in a long doc. Include the standard
+   `unset GIT_DIR GIT_WORK_TREE ...` line even though these tests don't `git init` a temp
+   repo — the pre-commit hook requires it on every `*.test.sh` file.
+
+**Golden exemplar:** `tests/cr-test-contradiction-pass.test.sh` — the most refined version of
+this pattern (structural `awk` boundaries throughout, every assertion scoped to the extracted
+block, not just some of them).
+
+**Established by:** feat/cr-test-contradiction-pass. See [solution doc](./solutions/2026-07-24-fixed-line-window-tests-break-on-unrelated-prose.md).
+
+**Gotchas:**
+- Do not use `grep -A N` / `-B M` fixed-line windows to extract a section — any unrelated
+  content added above the target section (a merge, another PR, a doc reorg) silently pushes
+  the target out of the window and produces a false failure. See the linked solution doc for
+  a real incident where this broke mid-task from a routine `git merge origin/main`.
+- If a claim in the instruction file says it "backstops" or "also covers" another
+  skill/agent's check, verify the actual scope matches (same files, same trigger conditions)
+  before the test locks that wording in — an adversarial review caught exactly this kind of
+  overclaim in the check that established this recipe.
+
+---
+
 ## Entry format
 
 Copy this skeleton for each new recipe.

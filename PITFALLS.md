@@ -584,3 +584,19 @@ worked example (porting event-vendor PR #200 and #203 back into this repo).
 **Source:** Porting event-vendor PR #200 and #203's plain-language decision-point standard into
 this repo's skill files (2026-07-03). First occurrence — flagged as a candidate rather than a
 promoted 3x pattern.
+
+---
+
+## Fixed-line-window grep tests break on unrelated prose growth
+
+**Area:** Any shell test that verifies content of a markdown/prompt file (`.claude/skills/*/SKILL.md`, `.claude/agents/*.md`, docs) by grepping a fixed number of lines after a heading (`grep -A N` / `-B M`)
+
+**Rule:** Extract the target section by its actual structural boundary — the next heading at the same or higher level — using `awk` (e.g. `awk '/^### Heading /{p=1} /^### NextHeading /{p=0} p'`), never by a fixed line count. A fixed window is a snapshot of the document's length at the moment the test was written, not a boundary tied to its structure.
+
+**Why:** Any content added anywhere above the target section — a merge, another PR, a doc reorg — silently pushes the target content past the window's end, failing the test with zero actual regression in what's being tested. This happened directly building `tests/cr-test-contradiction-pass.test.sh`: `/cr`'s pre-flight merge-readiness check required merging 21 unrelated commits from `origin/main` mid-task, which added prose above the target section in `.claude/skills/cr/SKILL.md` and pushed it outside the test's `-A40` window. The instruction text under test was completely intact; only the fixed-line assumption broke.
+
+**Symptoms:** A test that greps a fixed window around a heading starts failing after an unrelated merge, another contributor's edit earlier in the same file, or even a paragraph in your own section growing past the window — with no change to the actual content being verified.
+
+**The check:** Before writing a test that asserts on a section of a markdown file, ask: does this use a line count, or a structural boundary? If it's a line count, switch to `awk` heading-to-next-heading extraction and assert the extracted block is non-empty before grepping inside it (so a renamed/moved heading fails as "section not found," not a confusing phrase-not-found miss). See `docs/solutions/2026-07-24-fixed-line-window-tests-break-on-unrelated-prose.md` and the `prompt-content-assertion-test` recipe in `docs/patterns-registry.md`.
+
+**Source:** Building the `/cr` Pass 6 test contradiction check (feat/cr-test-contradiction-pass, 2026-07-24). First occurrence in this repo to actually break from the failure mode — flagged as a candidate given the mechanism is certain to recur in the three existing prompt-content-assertion tests and any future ones.
