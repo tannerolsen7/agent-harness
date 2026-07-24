@@ -216,6 +216,11 @@ never written. Proceeding means the change has no regression safety net.
 Write characterization tests for the old behavior first, classify them,
 then proceed."
 
+**Backstop for misrouted work:** `/cr` Pass 6 (Test Quality) runs this same
+contradiction check on every branch, regardless of which skill did the work —
+it exists as a backstop for behavior changes that got routed through
+`/feature` instead of here.
+
 ---
 
 ## Phase 4 — Rollback plan

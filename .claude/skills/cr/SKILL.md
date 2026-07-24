@@ -191,6 +191,18 @@ Write for a tired engineer five years from now.
 - Edge cases covered
 - No database mocks
 - New behaviors in the per-feature shard (`docs/testing/<slug>.md`)?
+- **Test contradiction check**: for every test file this diff touches, and every entry in
+  `docs/testing/<slug>.md` this diff touches, read every OTHER test in that same file/shard
+  that the diff did NOT change. Does the new behavior change the result for any input that
+  untouched test's scenario covers — even if the test's current fixture doesn't happen to
+  exercise that input? A test that still passes only because its fixture is narrow is not
+  "unaffected." For each contradiction found:
+  - If the contradiction is concrete and specific (you can name the input and the old vs.
+    new expected output): MUST FIX. Name the test, the old assertion, why the new behavior
+    falsifies it, and a recommended disposition (delete with reason / update the assertion /
+    split into separate old-context and new-context cases).
+  - If you suspect a contradiction but can't pin down the specific input/output: flag it as
+    Something to Think About for human judgment — do not block merge on a guess.
 
 ### Pass 7 — Doc Drift & Footprint (Haiku)
 **Part A — Mechanical (MUST FIX):** console.log outside tests, TODO/FIXME/HACK, commented-out code, unused imports, @ts-ignore, any type, as without narrowing, it.only.
