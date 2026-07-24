@@ -25,18 +25,24 @@ echo "── contradiction check covers untouched tests in a touched file/shard 
 grep -qi "untouched\|NOT change" "$CR_SKILL"
 ok "$?" "contradiction check doesn't scope to untouched tests in the same file/shard"
 
-CONTRADICTION_BLOCK=$(grep -B2 -A15 "Test contradiction check" "$CR_SKILL")
+# Section boundaries, not fixed line counts — unrelated prose growth elsewhere
+# in either file must not make these checks look at the wrong content.
+PASS_6_BLOCK=$(awk '/^### Pass 6 /{p=1} /^### Pass 7 /{p=0} p' "$CR_SKILL")
+PHASE_3_BLOCK=$(awk '/^## Phase 3 /{p=1} /^## Phase 4 /{p=0} p' "$BC_SKILL")
+
+[ -n "$PASS_6_BLOCK" ]; ok "$?" "could not locate Pass 6 section in $CR_SKILL"
+[ -n "$PHASE_3_BLOCK" ]; ok "$?" "could not locate Phase 3 section in $BC_SKILL"
 
 echo "── concrete contradictions are MUST FIX ──"
-echo "$CONTRADICTION_BLOCK" | grep -q "MUST FIX"
+echo "$PASS_6_BLOCK" | grep -q "MUST FIX"
 ok "$?" "concrete contradiction disposition is not tied to MUST FIX"
 
 echo "── uncertain contradictions are advisory, not blocking ──"
-echo "$CONTRADICTION_BLOCK" | grep -qi "Something to Think About"
+echo "$PASS_6_BLOCK" | grep -qi "Something to Think About"
 ok "$?" "uncertain contradiction is not routed to the non-blocking tier"
 
 echo "── behavior-change Phase 3 cross-references the /cr Pass 6 backstop ──"
-grep -A40 "Phase 3 — Test inversion analysis" "$BC_SKILL" | grep -qi "Pass 6"
+echo "$PHASE_3_BLOCK" | grep -qi "Pass 6"
 ok "$?" "behavior-change Phase 3 doesn't mention /cr Pass 6 as a backstop"
 
 echo
