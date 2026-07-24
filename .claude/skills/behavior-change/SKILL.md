@@ -59,6 +59,42 @@ has callers, still has existing tests, still needs a rollback plan.
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — a caller-impact
+summary, a test inversion list, a rollback plan — present it as prose or a
+document; a structured question can't hold that much content.
+
+This applies to Phase 1 (the caller-impact summary), Phase 2 (surfacing
+external exposure), Phase 3 (the test inversion list, before any test is
+deleted or changed), and Phase 4 (the rollback plan's state-safe /
+state-unsafe verdict).
+
+---
+
 ## Entry gate — classify before proceeding
 
 Answer all four questions before running any phase. If you cannot answer
@@ -138,6 +174,10 @@ Callsite: [file:line]
 Complete this document for every internal callsite before Phase 2.
 If the callsite count exceeds 10, surface a summary to the human:
 "[N] callsites found. [N affected, N uncertain]. Review before Phase 2?"
+Translate before you show it — a "callsite" is just "a place in the code
+that calls this." For each affected one, say in plain words what would
+actually break, and invite the human to ask about any entry before you
+move on.
 
 **The signal the analysis is done:** every callsite has a verdict and an
 action. No callsite has a blank impact field.
@@ -169,10 +209,15 @@ External exposure verdict:
 	[ ] Exists — coordination required before deploy
 ```
 
-If any external exposure exists: surface to human before Phase 3.
-External coordination (communication, versioning, deprecation period) must
-be planned before implementation. Do not build the change and figure out
-communication later — that is the ordering that causes incidents.
+If any external exposure exists: surface to human before Phase 3. State
+what's exposed and why it matters in plain words before naming the
+mechanism (webhook, endpoint, payload) — e.g. "the invoice email a client
+gets will show a different total" rather than "the webhook payload
+changes" — and invite the human to ask about it before you plan
+coordination. External coordination (communication, versioning,
+deprecation period) must be planned before implementation. Do not build
+the change and figure out communication later — that is the ordering that
+causes incidents.
 
 ---
 
@@ -202,8 +247,13 @@ Test: [file:line or test name]
 			Action: none.
 ```
 
-Produce the complete classified list. Surface it to the human before any
-code is written.
+Produce the complete classified list. Before showing it to the human,
+translate each verdict into one plain sentence — what OUTDATED, VALID, or
+COVERAGE GAP actually means for that specific test (e.g. "this test checks
+something that's no longer true, so it gets deleted" or "this test still
+matters but the expected answer changes"). Surface the translated list to
+the human before any code is written, and invite them to ask about any
+entry before they sign off on deleting or changing a test.
 
 **The rule:** Do not delete a test without classifying it first. A deleted
 test with no replacement and no documented reason is coverage debt that
@@ -242,6 +292,13 @@ Answer before any code is written.
 	[ ] No — atomic switch is safe
 	[ ] Yes — [describe the flag strategy or rollout plan]
 ```
+
+If the verdict is state-unsafe or depends-on-timing, surface it to the
+human in plain words before any code is written — describe what could go
+wrong in a sentence a colleague could picture (e.g. "if we undo this after
+someone's already booked at the new price, some bookings won't match
+either price") — and invite them to ask about it before accepting the
+rollback plan.
 
 If state-unsafe and no migration plan exists: write BLOCKING to
 `questions.md`. Do not proceed. The implementation that ships without

@@ -24,6 +24,41 @@ memory.md entry (what to remember going forward).
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — approve
+vs. reject, pick one of a few options — use `AskUserQuestion`; it renders as
+clickable options and already has a built-in escape hatch (the human can
+always answer "Other" with free text instead of picking a preset). For
+anything the human needs to actually read before deciding — the PITFALLS.md
+candidate, the memory.md candidate, the root-condition reasoning behind
+them — present it as prose or a document; a structured question can't hold
+that much content.
+
+This applies to: the Review and write step, where the human approves, edits,
+or rejects the PITFALLS.md and memory.md candidates.
+
+---
+
 ## Entry
 
 Run with the hotfix slug:
@@ -106,7 +141,9 @@ Examples:
 
 ## Review and write
 
-1. Present both candidates to the human
+1. Present both candidates to the human — state each one's plain-English
+   effect (what changes going forward) before the technical template (root
+   condition, structural rule), and invite questions before they decide.
 2. Human approves, edits, or rejects each independently
 3. On approval: write to `PITFALLS.md` and `memory.md`
 4. On sentinel projects: `@doc-updater` writes them — same review step required

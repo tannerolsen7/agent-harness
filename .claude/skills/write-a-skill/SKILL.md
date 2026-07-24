@@ -55,6 +55,20 @@ description: Brief description of capability. Use when [specific triggers].
 ## Advanced features
 
 [Link to separate files: See [REFERENCE.md](REFERENCE.md)]
+
+## Common Rationalizations
+
+[Excuses an agent might use to skip a step, paired with why the excuse is wrong. One row per excuse.]
+
+| Rationalization | Reality |
+|------------------|---------|
+| "[excuse]" | [why it's wrong] |
+
+## Red Flags
+
+[Warning signs that the skill is being applied wrong or skipped. Short bullet list.]
+
+- [warning sign]
 ```
 
 ## Description Requirements
@@ -105,6 +119,15 @@ Split into separate files when:
 - Content has distinct domains (finance vs sales schemas)
 - Advanced features are rarely needed
 
+## When to Add Common Rationalizations and Red Flags
+
+Add these two sections whenever the skill enforces a step an agent could plausibly talk itself out of — a gate, a check, a "do this even though it's tempting to skip" moment. Skip them for skills that are pure lookup or reference with nothing to enforce.
+
+- **Common Rationalizations**: a table of excuse → why it's wrong. Write the excuse the way an agent would actually phrase it to itself ("it's just a small fix", "the tests will catch it anyway"), not a strawman. The rebuttal should name the concrete failure the shortcut causes, not just assert a rule.
+- **Red Flags**: a short list of observable signs the skill is being misapplied or skipped — things a reviewer (human or agent) could actually notice in a diff or a transcript, not vague warnings.
+
+Both sections exist to give an agent something to check itself against mid-task, not just a philosophy to read once. Keep entries specific to this skill's domain — generic ones ("don't cut corners") are worse than no entry at all, since they crowd out the ones worth remembering.
+
 ## Review Checklist
 
 After drafting, verify:
@@ -115,3 +138,4 @@ After drafting, verify:
 - [ ] Consistent terminology
 - [ ] Concrete examples included
 - [ ] References one level deep
+- [ ] If the skill enforces a step: Common Rationalizations and Red Flags are present and specific to this skill's domain

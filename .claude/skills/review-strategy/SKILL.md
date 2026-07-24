@@ -18,6 +18,40 @@ description: |
 
 ---
 
+## Presenting decisions to the human
+
+Every place below where the human is asked to decide, approve, or confirm
+something must do three things. The goal is not to dumb the information
+down — it's to make it as easy as possible to read, understand, and decide
+on:
+
+1. **Full context first.** State what's being decided and why it matters, in
+   one message. Don't make the human scroll back through the conversation to
+   piece it together.
+2. **Plain words — teachable, not dumbed down.** 8th/9th-grade English. If a
+   technical term really is the clearest word, say the plain-English effect
+   *before* using the term — never name a mechanism and assume it's
+   understood (see `~/.claude/CLAUDE.md` → "Communication voice"). The bar:
+   could the human explain this back to a colleague and answer a follow-up
+   question about it, confidently? If not, simplify the language further —
+   never cut real information to get there.
+3. **Leave the door open.** Close with something like "ask me to explain any
+   part of this before you decide." A summary the human can't question is a
+   rubber stamp, not a decision.
+
+**Choosing how to ask.** For a small set of discrete choices — revise now vs.
+later, pick which flagged finding to act on first — use `AskUserQuestion`; it
+renders as clickable options and already has a built-in escape hatch (the
+human can always answer "Other" with free text instead of picking a preset).
+For anything the human needs to actually read before deciding — the three
+lens reports, the consolidated summary — present it as prose or a document; a
+structured question can't hold that much content.
+
+This applies to: the Consolidated summary (Step 3), where the human decides
+whether to revise STRATEGY.md.
+
+---
+
 ## Step 1 — Read context files (orchestrator only)
 
 Read these before spawning lens agents. Pass content directly — do not ask agents to re-read.
@@ -61,6 +95,11 @@ Collect all three lens reports. Produce:
 **If revising:** focus on [most flagged section] first.
 Run `/setup-strategy` in update mode, or edit directly and update `last-reviewed`.
 ```
+
+Before showing this to the human, define the labels in plain terms the first
+time each appears — e.g. "MUST REVISIT: if we act on the strategy as written,
+we could make the wrong call here. CONSIDER: worth a look, not blocking."
+Close with an invitation to ask about any finding before deciding whether to revise.
 
 ---
 
