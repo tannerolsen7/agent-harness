@@ -25,6 +25,14 @@ npm test
 echo "ci-verify: routing-assertion"
 bash "$ROOT/scripts/check-routing.sh"
 
+# Property-test coverage: if a change touches an invariant-critical module (money math,
+# totals, tax, discounts), a matching property test must exist. Declared per-project in
+# .claude/property-invariants.json; inert when absent. See docs/property-test-gate.md.
+# Like routing above: property-test-gate.test.sh unit-tests the logic with mocked inputs;
+# this step enforces it LIVE against the real branch diff.
+echo "ci-verify: property-test-gate"
+bash "$ROOT/scripts/property-test-gate.sh"
+
 # Reference-integrity: catch broken cross-links in context docs before they rot.
 # Only blocks the PR when this PR changes at least one .md file. A PR that touches no
 # docs cannot introduce a new broken link, so the full-repo scan runs in advisory mode
