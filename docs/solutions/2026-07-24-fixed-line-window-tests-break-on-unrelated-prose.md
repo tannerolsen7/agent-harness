@@ -28,10 +28,10 @@ changed; the file just got longer somewhere else.
 This is not hypothetical — it happened mid-session while building the `/cr` Pass 6 test
 contradiction check (`tests/cr-test-contradiction-pass.test.sh`). `/cr`'s pre-flight
 merge-readiness check required syncing the feature branch with `origin/main` (21 commits,
-merge commit `ef077eb`). That merge added unrelated prose above the target section in
-`.claude/skills/cr/SKILL.md`. The test, at that point still using a fixed-line-window
-`grep -A`/`-B`, went from green to one assertion red — with the actual Pass 6 instruction
-text completely intact and correct.
+merge commit `ef077eb`). That merge added unrelated prose above the Phase 3 section in
+`.claude/skills/behavior-change/SKILL.md`. The test, at that point still using a
+fixed-line-window `grep -A40`, went from green to one assertion red — with the actual
+cross-reference text completely intact and correct.
 
 ## Root cause
 
