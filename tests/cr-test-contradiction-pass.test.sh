@@ -17,21 +17,23 @@ ok() {
 [ -f "$CR_SKILL" ] || { echo "test: $CR_SKILL not found"; exit 1; }
 [ -f "$BC_SKILL" ] || { echo "test: $BC_SKILL not found"; exit 1; }
 
-echo "── Pass 6 contains the test contradiction check ──"
-grep -q "Test contradiction check" "$CR_SKILL"
-ok "$?" "Pass 6 missing a 'Test contradiction check' item"
-
-echo "── contradiction check covers untouched tests in a touched file/shard ──"
-grep -qi "untouched\|NOT change" "$CR_SKILL"
-ok "$?" "contradiction check doesn't scope to untouched tests in the same file/shard"
-
 # Section boundaries, not fixed line counts — unrelated prose growth elsewhere
-# in either file must not make these checks look at the wrong content.
+# in either file must not make these checks look at the wrong content. Every
+# assertion below scopes to these blocks, not the whole file, so an unrelated
+# match elsewhere in either doc can't hide a regression in the actual check.
 PASS_6_BLOCK=$(awk '/^### Pass 6 /{p=1} /^### Pass 7 /{p=0} p' "$CR_SKILL")
 PHASE_3_BLOCK=$(awk '/^## Phase 3 /{p=1} /^## Phase 4 /{p=0} p' "$BC_SKILL")
 
 [ -n "$PASS_6_BLOCK" ]; ok "$?" "could not locate Pass 6 section in $CR_SKILL"
 [ -n "$PHASE_3_BLOCK" ]; ok "$?" "could not locate Phase 3 section in $BC_SKILL"
+
+echo "── Pass 6 contains the test contradiction check ──"
+echo "$PASS_6_BLOCK" | grep -q "Test contradiction check"
+ok "$?" "Pass 6 missing a 'Test contradiction check' item"
+
+echo "── contradiction check covers untouched tests in a touched file/shard ──"
+echo "$PASS_6_BLOCK" | grep -qi "untouched\|NOT change"
+ok "$?" "contradiction check doesn't scope to untouched tests in the same file/shard"
 
 echo "── concrete contradictions are MUST FIX ──"
 echo "$PASS_6_BLOCK" | grep -q "MUST FIX"

@@ -228,12 +228,14 @@ Write for a tired engineer five years from now.
 - Edge cases covered
 - No database mocks
 - New behaviors in the per-feature shard (`docs/testing/<slug>.md`)?
-- **Test contradiction check**: for every test file this diff touches, and every entry in
-  `docs/testing/<slug>.md` this diff touches, read every OTHER test in that same file/shard
-  that the diff did NOT change. Does the new behavior change the result for any input that
-  untouched test's scenario covers — even if the test's current fixture doesn't happen to
-  exercise that input? A test that still passes only because its fixture is narrow is not
-  "unaffected." For each contradiction found:
+- **Test contradiction check** (scoped to what this diff touches — not a full-suite sweep;
+  see `/behavior-change` Phase 3 for that): (1) for every test file this diff touches, read
+  every OTHER test in that same file that the diff did NOT change; (2) for every entry in
+  `docs/testing/<slug>.md` this diff touches, trace it to the test file(s) that implement it
+  and read every OTHER test in those files too. For each untouched test found this way: does
+  the new behavior change the result for any input that test's scenario covers — even if its
+  current fixture doesn't happen to exercise that input? A test that still passes only because
+  its fixture is narrow is not "unaffected." For each contradiction found:
   - If the contradiction is concrete and specific (you can name the input and the old vs.
     new expected output): MUST FIX. Name the test, the old assertion, why the new behavior
     falsifies it, and a recommended disposition (delete with reason / update the assertion /

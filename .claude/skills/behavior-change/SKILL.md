@@ -266,10 +266,12 @@ never written. Proceeding means the change has no regression safety net.
 Write characterization tests for the old behavior first, classify them,
 then proceed."
 
-**Backstop for misrouted work:** `/cr` Pass 6 (Test Quality) runs this same
-contradiction check on every branch, regardless of which skill did the work —
-it exists as a backstop for behavior changes that got routed through
-`/feature` instead of here.
+**Partial backstop for misrouted work:** `/cr` Pass 6 (Test Quality) runs a
+narrower version of this check — scoped to the files and shards a diff
+already touches, not a full-suite sweep like this phase — on every
+agent-driven push (human pushes are not mechanically gated). It catches some
+behavior changes that got routed through `/feature` instead of here, but it
+is not a substitute for this phase.
 
 ---
 
