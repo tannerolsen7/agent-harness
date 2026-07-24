@@ -364,6 +364,38 @@ file and you reset the loop's memory.
 **Locations:** `scripts/skill-frontmatter-lint.sh:20` and `.husky/pre-commit`'s "Agent spawn lint" block (~line 15) both use the identical one-liner `awk '/^---$/{c++; next} c==1{print} c>=2{exit}'` to extract frontmatter from a `.md` file. `skill-frontmatter-lint.sh` was deliberately not wired into `.husky/pre-commit` in the PR that introduced it, since that file is protected from agent edits — the duplication becomes live the moment a human wires it in.
 **Detail:** Related to `parallel-protected-path-lists` above (same root-cause shape — two independently-maintained copies of one thing) but a distinct concrete case: this is parsing logic, not a protected-path list. Fix: extract the awk one-liner into a small shared helper (e.g. `scripts/lib/frontmatter.sh` with an `extract_frontmatter <file>` function) that both `.husky/pre-commit` and `scripts/skill-frontmatter-lint.sh` source. Since `.husky/pre-commit` can only be edited by a human, this extraction should happen as part of (or immediately after) the human wiring step — not deferred indefinitely.
 
+### skill-doc-overclaims-equivalent-coverage
+**Signature:** One skill's prose claims it performs "the same check" as a sibling skill's more
+thorough phase, when its actual scope is narrower (fewer files scanned, fewer push paths gated) —
+the overclaim reads as a stronger safety guarantee than the mechanism actually provides.
+**Occurrences:** 1
+**Last seen:** 2026-07-24
+**Locations:** `.claude/skills/behavior-change/SKILL.md` Phase 3 cross-reference to `/cr` Pass 6
+(claimed "this same contradiction check" when Pass 6 is scoped to diff-touched files/shards vs.
+Phase 3's whole-suite sweep, and only fires on agent-driven pushes, not human ones)
+**Detail:** Found by the adversarial review (Pass 10, cascade/abuse/composition/assumption lenses
+all independently flagged the same root issue) while building the /cr Pass 6 test-contradiction
+check itself. Fixed by rewording both the cross-reference sentence and the confirming spec shard
+to state the narrower, accurate scope instead of claiming equivalence. Pattern: when a skill
+documents another skill's check as a "backstop" or "also covers this," verify the two mechanisms'
+actual scope matches before asserting equivalence — a narrower backstop is still valuable, but
+only if the docs say so.
+
+### grep-test-scope-drifts-from-computed-block
+**Signature:** A shell test computes a scoped content block (via `awk` section extraction) for
+some assertions but leaves earlier assertions in the same file grepping the whole source file
+instead of the block — inconsistent rigor within one test file.
+**Occurrences:** 1
+**Last seen:** 2026-07-24
+**Locations:** `tests/cr-test-contradiction-pass.test.sh` (existence and scope-language checks
+grepped the whole `cr/SKILL.md` file while the MUST-FIX/advisory-tier checks a few lines below
+correctly used the pre-computed `$PASS_6_BLOCK`)
+**Detail:** No false positive existed yet, but it's a latent risk: unrelated prose added elsewhere
+in the source file later could satisfy the whole-file grep without the actual target section
+containing it. Fix: compute the scoped block first, then use it for every assertion in the file,
+not just some. Pattern: once a test introduces section-scoped extraction, audit every other grep
+in the same file for the same source and make them all consistent.
+
 ## Promoted
 
 ### test-mk-no-gitdir-guard

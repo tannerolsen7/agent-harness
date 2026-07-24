@@ -228,6 +228,20 @@ Write for a tired engineer five years from now.
 - Edge cases covered
 - No database mocks
 - New behaviors in the per-feature shard (`docs/testing/<slug>.md`)?
+- **Test contradiction check** (scoped to what this diff touches — not a full-suite sweep;
+  see `/behavior-change` Phase 3 for that): (1) for every test file this diff touches, read
+  every OTHER test in that same file that the diff did NOT change; (2) for every entry in
+  `docs/testing/<slug>.md` this diff touches, trace it to the test file(s) that implement it
+  and read every OTHER test in those files too. For each untouched test found this way: does
+  the new behavior change the result for any input that test's scenario covers — even if its
+  current fixture doesn't happen to exercise that input? A test that still passes only because
+  its fixture is narrow is not "unaffected." For each contradiction found:
+  - If the contradiction is concrete and specific (you can name the input and the old vs.
+    new expected output): MUST FIX. Name the test, the old assertion, why the new behavior
+    falsifies it, and a recommended disposition (delete with reason / update the assertion /
+    split into separate old-context and new-context cases).
+  - If you suspect a contradiction but can't pin down the specific input/output: flag it as
+    Something to Think About for human judgment — do not block merge on a guess.
 
 ### Pass 7 — Doc Drift & Footprint (Haiku)
 **Part A — Mechanical (MUST FIX):** console.log outside tests, TODO/FIXME/HACK, commented-out code, unused imports, @ts-ignore, any type, as without narrowing, it.only.
