@@ -147,10 +147,21 @@ re-spawn.
 
 ## MUST FIX retry policy
 
-When a sub-agent's pipeline reports MUST FIX items:
+When a sub-agent's pipeline reports MUST FIX items, route by what produced
+the finding:
 
-1. **Stage 1**: re-prompt the original agent. One retry. It still has full
-   context of what it built; mechanical fixes are cheap.
+- **Mechanical** — reported by a deterministic gate script (`lint.sh`,
+  `token-lint.sh`, `comment-lint.sh`, `shell-portability-lint.sh`,
+  `data-state-lint.sh`, `circular-imports.sh`). One correct fix, no design
+  judgment involved.
+- **Judgment** — any finding carrying a `[LENS]` tag from `reviewer.md`
+  (`lens-abuse`, `lens-assumption`, `lens-cascade`, `lens-composition`).
+  Fixing it means re-deciding whether the original design was sound.
+
+1. **Stage 1 (mechanical findings only)**: re-prompt the original agent.
+   One retry. A `[LENS]`-tagged finding skips Stage 1 entirely and goes
+   straight to Stage 2 — the agent that made the design call is the
+   worst-positioned agent to catch it a second time.
 2. **Stage 2** (only if Stage 1 still has MUST FIX): spawn a fresh agent with
    no parent context. Hand it the diff + the surviving MUST FIX list. One
    attempt. Fresh framing sometimes catches what the original agent missed.
@@ -166,3 +177,6 @@ Skip both stages and surface to the user without retry if a MUST FIX item:
 - Would require violating any rule in CLAUDE.md → NEVER
 - Points to a bug in PRE-EXISTING code (not new code in the diff)
 - Involves a destructive or irreversible operation
+- Is a `[LENS]`-tagged finding that also survives Stage 2 — two
+  independent agents (author, fresh fixer) failed to resolve a design
+  judgment call; a third automated attempt is unlikely to do better
